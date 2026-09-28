@@ -1,0 +1,46 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows10.0.19041.0</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>12</LangVersion>
+    <AssemblyName>SuperDictate</AssemblyName>
+    <RootNamespace>SuperDictate</RootNamespace>
+    <StartupObject>SuperDictate.Program</StartupObject>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <!-- Explorer, shortcuts, the Apps list and the taskbar; redraw with scripts\make-icon.py. -->
+    <ApplicationIcon>SuperDictate.ico</ApplicationIcon>
+    <Platforms>x64;ARM64</Platforms>
+    <RuntimeIdentifiers>win-x64;win-arm64</RuntimeIdentifiers>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+    <Version>1.0.0</Version>
+    <Product>SuperDictate</Product>
+    <Company>SuperDictate</Company>
+    <!-- One self-contained exe: the installer copies just this file. -->
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="NAudio" Version="2.2.1" />
+  </ItemGroup>
+
+  <!-- Travel inside the exe. The speech worker and the pinned Python packages are
+       written out when needed, so an installed copy never depends on loose files. -->
+  <ItemGroup>
+    <EmbeddedResource Include="worker.py" LogicalName="worker.py" />
+    <EmbeddedResource Include="runtime-requirements.txt" LogicalName="runtime-requirements.txt" />
+    <EmbeddedResource Include="runtime-requirements-gpu.txt" LogicalName="runtime-requirements-gpu.txt" />
+    <!-- Shown on the Support page: the licence and third-party notices ship with the binary. -->
+    <EmbeddedResource Include="..\..\LICENSE" LogicalName="LICENSE" />
+    <EmbeddedResource Include="..\..\NOTICE.md" LogicalName="NOTICE.md" />
+    <!-- Repository and donation options for the Support page; see Support\Project.cs. -->
+    <EmbeddedResource Include="..\..\release-settings.ini" LogicalName="release-settings.ini" />
+    <!-- The same icon for window title bars, the tray and the sidebar logo (Ui\AppIcon.cs). -->
+    <EmbeddedResource Include="SuperDictate.ico" LogicalName="SuperDictate.ico" />
+  </ItemGroup>
+
+</Project>

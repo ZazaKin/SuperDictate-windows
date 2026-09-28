@@ -1,0 +1,16 @@
+# Optional NVIDIA GPU acceleration (about 2 GB). Offered only when an NVIDIA
+# driver is present; worker.py adds these DLL folders to the search path.
+# Every file of every pinned version is listed by its PyPI sha256; pip installs
+# with --require-hashes, so a changed or substituted wheel is refused.
+nvidia-cublas-cu12==12.9.2.10 \
+    --hash=sha256:5572131a59c3eebeeb1c4c8144f772d49372c20124916e072a0e3fc30df421d5 \
+    --hash=sha256:623f43027d40d44ceadf0043f002bd25cf353e8f13ce90b9a87057019f560661 \
+    --hash=sha256:e4f53a8ca8c5d6e8c492d0d0a3d565ecb59a751b19cfdaa4f6da0ab2104c1702
+nvidia-cuda-nvrtc-cu12==12.9.86 \
+    --hash=sha256:096d4de6bda726415dfaf3198d4f5c522b8e70139c97feef5cd2ca6d4cd9cead \
+    --hash=sha256:210cf05005a447e29214e9ce50851e83fc5f4358df8b453155d5e1918094dcb4 \
+    --hash=sha256:72972ebdcf504d69462d3bcd67e7b81edd25d0fb85a2c46d3ea3517666636349
+nvidia-cudnn-cu12==9.26.0.51 \
+    --hash=sha256:010abb90f513fc6e2b6e9278d56f594b87922fff80737434ab415da609db8311 \
+    --hash=sha256:24458a34856d6b5e83aa9b7041e92a789f0ef390f4d881529fb986df6aecca60 \
+    --hash=sha256:ce8603d4ea88d134be5a92c5e0833d513bea1ce0ee4bbc5d649fcb8718d51cbf
