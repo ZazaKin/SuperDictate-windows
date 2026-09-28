@@ -3,7 +3,8 @@
 Everything to check before releasing the app to a wide audience. `[x]` means
 done and verified, `[ ]` means still open; open items say whose step it is.
 
-Status for release 1.0.0.
+Status for release 1.0.0, published 28 September 2026 at
+https://github.com/ZazaKin/SuperDictate-windows/releases/tag/v1.0.0 (unsigned).
 
 ## 1. Code and build
 
@@ -69,7 +70,7 @@ Status for release 1.0.0.
 - [x] Logs contain no transcript text.
 - [x] Dictation windows never take focus (text can't go to the wrong window).
 - [x] Installs without administrator rights, for the current user only.
-- [ ] **You:** a code signing certificate (see section 9). Put its thumbprint
+- [ ] **You, before a later release:** a code signing certificate (see section 9); 1.0.0 shipped unsigned. Put its thumbprint
       into `signing_thumbprint` in `release-settings.ini`; the script signs and
       pins the certificate in `release-signing.sha1`. Unsigned, SmartScreen
       warns users and antivirus software is stricter.
@@ -77,8 +78,8 @@ Status for release 1.0.0.
       and pastes text, which antivirus software can mistake for malicious
       behavior. On a false positive, submit the file to Microsoft:
       https://www.microsoft.com/wdsi/filesubmission.
-- [ ] Private vulnerability reporting on the GitHub repository (`SECURITY.md`
-      points to it); turned on right after the repository is created.
+- [x] Private vulnerability reporting is on for the GitHub repository
+      (`SECURITY.md` points to it).
 
 ## 4. Privacy and legal
 
