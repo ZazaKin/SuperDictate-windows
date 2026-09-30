@@ -1,0 +1,416 @@
+<!doctype html>
+<html lang="{{lang}}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'; require-trusted-types-for 'script'; trusted-types 'none'; upgrade-insecure-requests">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<title>{{meta_title}}</title>
+<meta name="description" content="{{meta_description}}">
+<meta name="theme-color" content="#070a0f">
+<meta name="color-scheme" content="dark">
+<link rel="canonical" href="{{canonical}}">
+{{alternates_html}}
+<link rel="icon" href="/assets/logo.svg" type="image/svg+xml">
+<link rel="icon" href="/favicon.ico" sizes="48x48">
+<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="SuperDictate">
+<meta property="og:title" content="{{meta_title}}">
+<meta property="og:description" content="{{meta_description}}">
+<meta property="og:url" content="{{canonical}}">
+<meta property="og:image" content="{{site_url}}/assets/og.png">
+<meta property="og:locale" content="{{og_locale}}">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="stylesheet" href="{{css}}">
+<script src="{{js}}" defer></script>
+</head>
+<body>
+<a class="skip" href="#main">{{skip}}</a>
+
+<header class="nav">
+  <div class="nav-inner">
+    <a class="brand" href="{{home}}" aria-label="SuperDictate">
+      <img src="/assets/logo.svg" alt="" width="28" height="28">
+      <span>SuperDictate</span>
+    </a>
+    <nav class="nav-links" aria-label="{{nav_label}}">
+      <a href="#how">{{nav_features}}</a>
+      <a href="#privacy">{{nav_privacy}}</a>
+      <a href="#setup">{{nav_setup}}</a>
+      <a href="{{github_url}}">{{nav_github}}</a>
+    </nav>
+    <div class="nav-end">
+      {{langswitch_html}}
+      <a class="btn btn-primary btn-small" href="{{download_url}}">{{nav_download}}</a>
+    </div>
+  </div>
+</header>
+
+<main id="main">
+
+<!-- Hero -->
+<section class="hero">
+  <div class="hero-glow" aria-hidden="true"></div>
+  <div class="wrap hero-copy">
+    <img class="hero-mark reveal" src="/assets/logo.svg" alt="" width="72" height="72">
+    <h1 class="reveal">{{hero_title}}</h1>
+    <p class="lead reveal">{{hero_sub}}</p>
+    <div class="cta-row reveal">
+      <a class="btn btn-primary" href="{{download_url}}">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5.5 10 4.5v7H3zm8-1.1L21 3v8.5H11zM3 12.5h7v7l-7-1zm8 0h10V21l-10-1.4z"/></svg>
+        {{cta_download}}
+      </a>
+      <a class="btn btn-ghost" href="{{github_url}}">{{cta_github}}</a>
+    </div>
+    <p class="hero-meta reveal">{{hero_meta}}</p>
+  </div>
+
+  <div class="wrap">
+    <div class="stage reveal" id="hero-stage" role="img" aria-label="{{stage_label}}">
+      <div class="desk" aria-hidden="true">
+        <div class="capsule" data-listening="{{capsule_listening}}" data-processing="{{capsule_processing}}" data-pasted="{{capsule_pasted}}">
+          <span class="cap-dot"></span>
+          <span class="cap-wave"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+          <span class="cap-label">{{capsule_listening}}</span>
+          <span class="cap-lang">EN</span>
+        </div>
+
+        <div class="win win-doc">
+          <div class="win-bar">
+            <span class="win-app"><span class="win-icon"></span>{{stage_app}}</span>
+            <span class="win-ctl"><i></i><i></i><i></i></span>
+          </div>
+          <div class="doc">
+            <p class="doc-title">{{stage_doc_title}}</p>
+            <p class="doc-meta">{{stage_doc_meta}}</p>
+            <div class="doc-body"><span class="caret"></span></div>
+          </div>
+        </div>
+
+        <div class="key">
+          <span class="key-cap"><img src="/assets/logo.svg" alt="" width="18" height="18">{{key_right_alt}}</span>
+        </div>
+        <div class="micbtn micbtn-hero"><img src="/assets/logo.svg" alt="" width="52" height="52"></div>
+      </div>
+      <ul class="samples" hidden>
+        <li data-lang="EN">Let's move the design review to Thursday at three and share the notes afterwards.</li>
+        <li data-lang="DE">Können wir das Design-Review auf Donnerstag um 15 Uhr verschieben?</li>
+        <li data-lang="RU">Давайте перенесём обзор дизайна на четверг, на три часа дня.</li>
+        <li data-lang="PL">Przenieśmy przegląd projektu na czwartek na piętnastą.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- How it works -->
+<section class="section" id="how">
+  <div class="wrap">
+    <header class="section-head reveal">
+      <h2>{{how_title}}</h2>
+      <p>{{how_sub}}</p>
+    </header>
+    <ol class="steps">
+      <li class="step reveal">
+        <div class="step-art" aria-hidden="true">
+          <span class="key-cap key-cap-lg key-press"><img src="/assets/logo.svg" alt="" width="22" height="22">{{key_right_alt}}</span>
+        </div>
+        <h3><span class="step-n">1</span>{{step1_title}}</h3>
+        <p>{{step1_text}}</p>
+      </li>
+      <li class="step reveal">
+        <div class="step-art" aria-hidden="true">
+          <span class="capsule capsule-static is-on"><span class="cap-dot"></span><span class="cap-wave"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span><span class="cap-label">{{capsule_listening}}</span></span>
+        </div>
+        <h3><span class="step-n">2</span>{{step2_title}}</h3>
+        <p>{{step2_text}}</p>
+      </li>
+      <li class="step reveal">
+        <div class="step-art" aria-hidden="true">
+          <span class="field-demo"><span class="field-text">{{sample_chat}}</span><span class="caret"></span></span>
+        </div>
+        <h3><span class="step-n">3</span>{{step3_title}}</h3>
+        <p>{{step3_text}}</p>
+      </li>
+    </ol>
+  </div>
+</section>
+
+<!-- Any app -->
+<section class="section section-alt" id="apps">
+  <div class="wrap">
+    <header class="section-head reveal">
+      <h2>{{apps_title}}</h2>
+      <p>{{apps_sub}}</p>
+    </header>
+    <div class="apps reveal" id="apps-stage" role="img" aria-label="{{apps_label}}">
+      <div class="app app-chat" aria-hidden="true">
+        <div class="app-bar">{{app_chat}}</div>
+        <div class="chat">
+          <span class="bubble bubble-in">{{chat_in}}</span>
+          <span class="bubble bubble-out app-target" data-text="{{sample_chat}}">{{sample_chat}}</span>
+        </div>
+      </div>
+      <div class="app app-mail" aria-hidden="true">
+        <div class="app-bar">{{app_mail}}</div>
+        <div class="mail">
+          <span class="mail-row">{{mail_to}}</span>
+          <span class="mail-row">{{mail_subject}}</span>
+          <span class="mail-body app-target" data-text="{{sample_mail}}">{{sample_mail}}</span>
+        </div>
+      </div>
+      <div class="app app-code" aria-hidden="true">
+        <div class="app-bar">{{app_code}}</div>
+        <div class="code">
+          <span class="code-line"><b>1</b><em>function</em> loadSettings() {</span>
+          <span class="code-line code-comment"><b>2</b><span class="app-target" data-text="{{sample_code}}">{{sample_code}}</span></span>
+          <span class="code-line"><b>3</b>&nbsp;&nbsp;<em>return</em> cache.get(path);</span>
+          <span class="code-line"><b>4</b>}</span>
+        </div>
+      </div>
+      <div class="app app-search" aria-hidden="true">
+        <div class="app-bar">{{app_search}}</div>
+        <div class="search">
+          <span class="search-box"><svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5"/></svg><span class="app-target" data-text="{{sample_search}}">{{sample_search}}</span></span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Privacy -->
+<section class="section" id="privacy">
+  <div class="wrap split">
+    <div class="split-copy reveal">
+      <h2>{{privacy_title}}</h2>
+      <p class="lead-sm">{{privacy_sub}}</p>
+      <ul class="ticks">
+        <li>{{privacy_p1}}</li>
+        <li>{{privacy_p2}}</li>
+        <li>{{privacy_p3}}</li>
+        <li>{{privacy_p4}}</li>
+      </ul>
+      <p class="fine">{{privacy_note}}</p>
+    </div>
+    <div class="diagram reveal" role="img" aria-label="{{diag_label}}">
+      <div class="diag-cloud" aria-hidden="true">
+        <svg viewBox="0 0 64 40"><path d="M16 36h34a12 12 0 0 0 0-24 16 16 0 0 0-30-2A12 12 0 0 0 16 36z"/></svg>
+        <span>{{diag_cloud}}</span>
+        <em>{{diag_never}}</em>
+      </div>
+      <div class="diag-cut" aria-hidden="true"><i></i></div>
+      <div class="diag-flow" aria-hidden="true">
+        <div class="diag-node">
+          <span class="diag-ico diag-voice"><span class="cap-wave"><i></i><i></i><i></i><i></i><i></i></span></span>
+          <span>{{diag_voice}}</span>
+        </div>
+        <div class="diag-line"><i></i></div>
+        <div class="diag-node diag-pc">
+          <span class="diag-ico"><img src="/assets/logo.svg" alt="" width="34" height="34"></span>
+          <span>{{diag_pc}}</span>
+          <em>{{diag_engine}}</em>
+        </div>
+        <div class="diag-line"><i></i></div>
+        <div class="diag-node">
+          <span class="diag-ico diag-text"><span></span><span></span><span></span></span>
+          <span>{{diag_text}}</span>
+        </div>
+      </div>
+      <p class="diag-bytes"><span>0</span> {{diag_bytes}}</p>
+    </div>
+  </div>
+</section>
+
+<!-- Mic button -->
+<section class="section section-alt">
+  <div class="wrap split split-rev">
+    <div class="split-copy reveal">
+      <h2>{{mic_title}}</h2>
+      <p class="lead-sm">{{mic_sub}}</p>
+    </div>
+    <div class="micstage reveal" id="mic-stage" role="img" aria-label="{{mic_label}}">
+      <div class="mic-desk" aria-hidden="true">
+        <div class="win win-reply">
+          <div class="win-bar"><span class="win-app"><span class="win-icon"></span>{{app_mail}}</span><span class="win-ctl"><i></i><i></i><i></i></span></div>
+          <div class="reply">
+            <span class="reply-label">{{mic_field}}</span>
+            <span class="reply-field"><span class="reply-text" data-text="{{mic_sample}}"></span><span class="caret"></span></span>
+          </div>
+        </div>
+        <div class="micbtn micbtn-drag"><img src="/assets/logo.svg" alt="" width="56" height="56"><span class="micbtn-ring"></span></div>
+        <svg class="cursor" viewBox="0 0 24 24"><path d="M4 2 20 12.5l-7 1.3 4 7.2-2.6 1.4-4-7.3L5 20z"/></svg>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- AI cleanup -->
+<section class="section">
+  <div class="wrap">
+    <header class="section-head reveal">
+      <h2>{{cleanup_title}}</h2>
+      <p>{{cleanup_sub}}</p>
+    </header>
+    <div class="cleanup reveal" id="cleanup-stage">
+      <div class="clean-card clean-before">
+        <span class="clean-label">{{cleanup_heard}}</span>
+        <p>{{cleanup_before_html}}</p>
+      </div>
+      <div class="clean-arrow" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12h13m-5-6 6 6-6 6"/></svg></div>
+      <div class="clean-card clean-after">
+        <span class="clean-label">{{cleanup_pasted}}</span>
+        <p>{{cleanup_after}}</p>
+      </div>
+    </div>
+    <ul class="modes reveal">
+      <li><b>{{cleanup_mode1}}</b><span>{{cleanup_mode1_note}}</span></li>
+      <li><b>{{cleanup_mode2}}</b><span>{{cleanup_mode2_note}}</span></li>
+      <li><b>{{cleanup_mode3}}</b><span>{{cleanup_mode3_note}}</span></li>
+    </ul>
+  </div>
+</section>
+
+<!-- Languages -->
+<section class="section section-alt" id="languages">
+  <div class="wrap split">
+    <div class="split-copy reveal">
+      <h2>{{lang_title}}</h2>
+      <p class="lead-sm">{{lang_sub}}</p>
+    </div>
+    <ul class="langs-demo reveal" id="langs-stage">
+      <li><span class="chip-lang">EN</span><span class="ld-text">See you at the station at six.</span><span class="ld-name">{{lang_en}}</span></li>
+      <li><span class="chip-lang">RU</span><span class="ld-text">Встретимся на вокзале в шесть.</span><span class="ld-name">{{lang_ru}}</span></li>
+      <li><span class="chip-lang">DE</span><span class="ld-text">Wir sehen uns um sechs am Bahnhof.</span><span class="ld-name">{{lang_de}}</span></li>
+      <li><span class="chip-lang">PL</span><span class="ld-text">Do zobaczenia na dworcu o szóstej.</span><span class="ld-name">{{lang_pl}}</span></li>
+    </ul>
+  </div>
+</section>
+
+<!-- Setup -->
+<section class="section" id="setup">
+  <div class="wrap">
+    <header class="section-head reveal">
+      <h2>{{setup_title}}</h2>
+      <p>{{setup_sub}}</p>
+    </header>
+    <div class="appwin reveal" id="setup-stage" role="img" aria-label="{{setup_label}}">
+      <div class="aw" aria-hidden="true">
+        <aside class="aw-side">
+          <span class="aw-brand"><img src="/assets/logo.svg" alt="" width="24" height="24">SuperDictate</span>
+          <span class="aw-nav">Dictation</span>
+          <span class="aw-nav">Languages</span>
+          <span class="aw-nav is-on">Speech model</span>
+          <span class="aw-nav">AI cleanup</span>
+          <span class="aw-nav">History</span>
+          <span class="aw-nav">General</span>
+          <span class="aw-nav">Support</span>
+          <span class="aw-status"><i class="aw-dot"></i><span class="aw-status-text" data-needs="Setup needed" data-ready="Ready">Setup needed</span></span>
+        </aside>
+        <div class="aw-main">
+          <div class="aw-top"><span>Speech model</span><span class="aw-save">Save</span></div>
+          <div class="aw-card">
+            <span class="aw-card-title">Speech runtime</span>
+            <div class="aw-row">
+              <span class="aw-row-text"><b>Runtime</b><span class="aw-status-line" data-idle="Not installed · about 100 MB download" data-busy="Installing packages…" data-done="Installed · Python with faster-whisper">Not installed · about 100 MB download</span><span class="aw-bar"><i></i></span></span>
+              <span class="aw-btn" data-idle="Install" data-busy="Cancel">Install</span>
+            </div>
+          </div>
+          <div class="aw-card">
+            <span class="aw-card-title">Models</span>
+            <div class="aw-row">
+              <span class="aw-row-text"><b>Large v3 Turbo (recommended)</b><span class="aw-status-line" data-idle="Not downloaded · about 1.5 GB" data-busy="Downloading…" data-done="Downloaded · 1.5 GB · in use">Not downloaded · about 1.5 GB</span><span class="aw-bar"><i></i></span></span>
+              <span class="aw-btn" data-idle="Download" data-busy="Cancel">Download</span>
+            </div>
+            <div class="aw-row">
+              <span class="aw-row-text"><b>Small (balanced)</b><span class="aw-status-line">Not downloaded · about 463 MB</span></span>
+              <span class="aw-btn aw-btn-soft">Download</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="folder reveal">
+      <div class="folder-tree" aria-hidden="true">
+        <span class="ft-root">E:\SuperDictate</span>
+        <span class="ft-item ft-exe">SuperDictate.exe</span>
+        <span class="ft-item">Data</span>
+        <span class="ft-item">Models</span>
+        <span class="ft-item">Runtime</span>
+        <span class="ft-item">Logs</span>
+      </div>
+      <div>
+        <h3>{{folder_title}}</h3>
+        <p>{{folder_text}}</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Models -->
+<section class="section section-alt">
+  <div class="wrap">
+    <header class="section-head reveal">
+      <h2>{{models_title}}</h2>
+      <p>{{models_sub}}</p>
+    </header>
+    <div class="models">
+      <div class="model reveal"><span class="model-size">75 MB</span><b>Tiny</b><span>{{model_tiny}}</span></div>
+      <div class="model reveal"><span class="model-size">141 MB</span><b>Base</b><span>{{model_base}}</span></div>
+      <div class="model reveal"><span class="model-size">464 MB</span><b>Small</b><span>{{model_small}}</span></div>
+      <div class="model model-hero reveal"><span class="model-tag">{{model_recommended}}</span><span class="model-size">1.5 GB</span><b>Large v3 Turbo</b><span>{{model_large}}</span></div>
+    </div>
+    <div class="gpu reveal">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="7" width="18" height="10" rx="2"/><path d="M7 7V4m4 3V4m4 3V4m-8 16v-3m4 3v-3m4 3v-3"/></svg>
+      <div><b>{{gpu_title}}</b><span>{{gpu_text}}</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- Free -->
+<section class="section">
+  <div class="wrap free reveal">
+    <h2>{{free_title}}</h2>
+    <p class="lead-sm">{{free_sub}}</p>
+    <div class="cta-row">
+      <a class="btn btn-ghost" href="{{github_url}}">{{free_source}}</a>
+      <a class="btn btn-ghost" href="{{donate_url}}">{{free_support}}</a>
+    </div>
+  </div>
+</section>
+
+<!-- Final -->
+<section class="final">
+  <div class="final-glow" aria-hidden="true"></div>
+  <div class="wrap final-inner reveal">
+    <img src="/assets/logo.svg" alt="" width="88" height="88">
+    <h2>{{final_title}}</h2>
+    <p class="lead">{{final_sub}}</p>
+    <div class="cta-row">
+      <a class="btn btn-primary" href="{{download_url}}">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5.5 10 4.5v7H3zm8-1.1L21 3v8.5H11zM3 12.5h7v7l-7-1zm8 0h10V21l-10-1.4z"/></svg>
+        {{cta_download}}
+      </a>
+    </div>
+    <p class="final-req">{{final_req}}</p>
+    <p class="fine final-note">{{final_note}}</p>
+  </div>
+</section>
+
+</main>
+
+<footer class="footer">
+  <div class="wrap footer-inner">
+    <span class="brand brand-sm"><img src="/assets/logo.svg" alt="" width="22" height="22"><span>SuperDictate</span></span>
+    <nav class="footer-links" aria-label="Footer">
+      <a href="{{github_url}}/blob/main/LICENSE">{{footer_license}}</a>
+      <a href="{{github_url}}/blob/main/PRIVACY.md">{{footer_privacy}}</a>
+      <a href="{{github_url}}/blob/main/SECURITY.md">{{footer_security}}</a>
+      <a href="{{github_url}}/releases">{{footer_releases}}</a>
+      <a href="{{github_url}}">{{nav_github}}</a>
+    </nav>
+    {{langswitch_html}}
+    <p class="footer-rights">{{footer_rights}}</p>
+  </div>
+</footer>
+</body>
+</html>
