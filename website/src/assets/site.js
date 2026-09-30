@@ -271,7 +271,7 @@ if (reduceMotion || !("IntersectionObserver" in window)) {
     row.classList.toggle("is-done", phase === "done");
     line.textContent = line.dataset[phase];
     if (button.dataset[phase]) button.textContent = button.dataset[phase];
-    row.querySelector(".aw-bar i").style.width = `${Math.round(progress * 100)}%`;
+    row.querySelector(".aw-bar i").style.transform = `scaleX(${progress})`;
   }
 
   function reset() {
