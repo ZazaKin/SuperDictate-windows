@@ -100,7 +100,8 @@ final class CaptionTests: XCTestCase {
         XCTAssertEqual(caption.words.map(\.text), ["hello", "there", "how", "is", "it"])
         XCTAssertEqual(caption.words[0].id, hello, "a word that didn't change is the same word")
         XCTAssertEqual(caption.words.filter(\.settled).count, 2)
-        XCTAssertEqual(caption.words.last?.delay ?? 0, 2 * Caption.stagger, accuracy: 1e-9,
+        // "how" was kept; "is" and "it" are new and arrive one after the other.
+        XCTAssertEqual(caption.words.suffix(2).map(\.delay), [0, Caption.stagger],
                        "new words arrive one after another")
     }
 

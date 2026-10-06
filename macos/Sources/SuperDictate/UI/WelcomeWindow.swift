@@ -80,7 +80,7 @@ private struct WelcomeView: View {
         .task {
             // Ticks rows off as permissions arrive, without waiting for the app-wide check.
             while !Task.isCancelled {
-                await model.refreshPermissions()
+                model.refreshPermissions()
                 try? await Task.sleep(for: .seconds(0.5))
             }
         }
