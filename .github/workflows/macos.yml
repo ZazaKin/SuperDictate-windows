@@ -40,3 +40,16 @@ jobs:
           name: SuperDictate-macOS
           path: ${{ runner.temp }}/SuperDictate-macOS.zip
           retention-days: 7
+
+      # Pictures of the main screens, light and dark, drawn by the app itself.
+      - name: Snapshots
+        timeout-minutes: 3
+        run: |
+          "$RUNNER_TEMP/SuperDictate.app/Contents/MacOS/SuperDictate" --snapshot "$RUNNER_TEMP/snapshots"
+          ls -l "$RUNNER_TEMP/snapshots"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SuperDictate-screenshots
+          path: ${{ runner.temp }}/snapshots
+          retention-days: 7

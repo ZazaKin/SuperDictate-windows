@@ -30,6 +30,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     let model = DictationModel()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        if let folder = Snapshots.folder {
+            Snapshots.render(to: folder)
+            NSApp.terminate(nil)
+            return
+        }
         model.launch()
     }
 }

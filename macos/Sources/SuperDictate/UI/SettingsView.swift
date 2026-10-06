@@ -23,7 +23,7 @@ struct SettingsView: View {
 
 // MARK: - General
 
-private struct GeneralPane: View {
+struct GeneralPane: View {
     @Environment(DictationModel.self) private var model
     @AppStorage(Preferences.Key.playSounds) private var playSounds = true
     @State private var openAtLogin = SMAppService.mainApp.status == .enabled
@@ -66,7 +66,7 @@ private struct GeneralPane: View {
 
 // MARK: - Dictation
 
-private struct DictationPane: View {
+struct DictationPane: View {
     @AppStorage(Preferences.Key.hotkey) private var hotkey = Hotkey.rightCommand
     @AppStorage(Preferences.Key.mode) private var mode = TriggerMode.toggle
     @AppStorage(Preferences.Key.language) private var language = DictationLanguage.auto
@@ -121,7 +121,7 @@ private struct DictationPane: View {
 
 // MARK: - Speech model
 
-private struct ModelPane: View {
+struct ModelPane: View {
     @Environment(DictationModel.self) private var model
 
     var body: some View {
@@ -194,7 +194,7 @@ struct ModelStatus: View {
 
 // MARK: - History
 
-private struct HistoryPane: View {
+struct HistoryPane: View {
     @Environment(DictationModel.self) private var model
     @State private var confirmClear = false
 
@@ -278,7 +278,7 @@ private struct HistoryRow: View {
 
 // MARK: - About
 
-private struct AboutPane: View {
+struct AboutPane: View {
     private var version: String {
         Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "–"
     }

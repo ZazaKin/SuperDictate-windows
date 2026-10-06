@@ -17,17 +17,22 @@ final class History {
 
     private(set) var entries: [HistoryEntry] = []
 
-    private let file: URL
+    private let file: URL?
 
-    init() {
-        let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-        let folder = support.appendingPathComponent("SuperDictate", isDirectory: true)
-        try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
-        file = folder.appendingPathComponent("history.json")
-        if let data = try? Data(contentsOf: file),
+    /// - Parameter file: Where the history is kept; nil keeps it in memory only.
+    init(file: URL? = History.defaultFile) {
+        self.file = file
+        if let file, let data = try? Data(contentsOf: file),
            let saved = try? JSONDecoder().decode([HistoryEntry].self, from: data) {
             entries = saved
         }
+    }
+
+    static var defaultFile: URL {
+        let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+        let folder = support.appendingPathComponent("SuperDictate", isDirectory: true)
+        try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        return folder.appendingPathComponent("history.json")
     }
 
     func add(_ text: String, seconds: Double) {
@@ -47,7 +52,7 @@ final class History {
     }
 
     private func save() {
-        guard let data = try? JSONEncoder().encode(entries) else { return }
+        guard let file, let data = try? JSONEncoder().encode(entries) else { return }
         try? data.write(to: file, options: .atomic)
     }
 }

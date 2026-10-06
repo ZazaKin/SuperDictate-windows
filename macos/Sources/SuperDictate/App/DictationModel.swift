@@ -35,7 +35,7 @@ final class DictationModel {
     private(set) var caption = Caption()
     private(set) var lastTranscript: String?
     private(set) var granted: Set<Permission> = []
-    let history = History()
+    let history: History
 
     private let audio = AudioCapture()
     private let recognizer = SpeechRecognizer()
@@ -44,6 +44,10 @@ final class DictationModel {
     @ObservationIgnored private var panel: CapsulePanel?
     @ObservationIgnored private var welcome: WelcomeWindow?
     @ObservationIgnored private var noticeTimer: Task<Void, Never>?
+
+    init(history: History = History()) {
+        self.history = history
+    }
 
     var isModelReady: Bool { [.ready, .recording, .processing].contains(phase) }
     var hasAllPermissions: Bool { granted.count == Permission.allCases.count }
@@ -240,6 +244,29 @@ final class DictationModel {
             try? await Task.sleep(for: .seconds(1.8))
             guard let self, !Task.isCancelled, case .notice = self.overlay else { return }
             self.overlay = .hidden
+        }
+    }
+
+    // MARK: - Snapshots
+
+    /// Example states for the snapshot pictures (`--snapshot`): halfway through
+    /// setup, or set up and in the middle of a dictation. Never used otherwise.
+    func showcase(setUp: Bool) {
+        if setUp {
+            granted = Set(Permission.allCases)
+            phase = .ready
+            downloadProgress = nil
+            lastTranscript = "Let's move the design review to Thursday afternoon, and I'll send the new mockups tonight."
+            history.add("Let's move the design review to Thursday afternoon, and I'll send the new mockups tonight.", seconds: 6)
+            history.add("Picking up the kids at five, then dinner at Marco's.", seconds: 4)
+            history.add("Note for the release: the live preview now builds the sentence word by word.", seconds: 5)
+            overlay = .listening
+            caption = Caption()
+            caption.show(settled: "So the plan for tomorrow is simple:", tail: "we ship the Mac version first")
+        } else {
+            granted = [.microphone]
+            phase = .preparing("Downloading…")
+            downloadProgress = 0.42
         }
     }
 

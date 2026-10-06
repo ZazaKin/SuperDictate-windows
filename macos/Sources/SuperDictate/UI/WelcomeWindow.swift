@@ -28,7 +28,7 @@ final class WelcomeWindow {
     }
 }
 
-private struct WelcomeView: View {
+struct WelcomeView: View {
     @Environment(DictationModel.self) private var model
     let close: () -> Void
 
