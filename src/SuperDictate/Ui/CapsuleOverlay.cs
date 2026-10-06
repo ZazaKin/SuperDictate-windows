@@ -55,9 +55,13 @@ public sealed class CapsuleOverlay : Window
         TextTrimming = TextTrimming.CharacterEllipsis,
     };
 
+    // What's being said, building up under the bars while dictating; it takes the caption's place.
+    private readonly LiveCaption _live = new() { HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
+
     private readonly Border _shadow;
     private readonly Border _capsule;
-    private readonly Grid _body = new() { VerticalAlignment = VerticalAlignment.Top, HorizontalAlignment = HorizontalAlignment.Left };
+    // Centred in a window as wide as the widest capsule, so it can grow with the text without the window moving.
+    private readonly Grid _body = new() { VerticalAlignment = VerticalAlignment.Top, HorizontalAlignment = HorizontalAlignment.Center };
     private readonly TranslateTransform _slide = new();
     private readonly DispatcherTimer _noticeTimer = new() { Interval = TimeSpan.FromSeconds(1.6) };
     private readonly Stopwatch _clock = Stopwatch.StartNew();
@@ -101,7 +105,7 @@ public sealed class CapsuleOverlay : Window
             Background = CapsuleFill,
             BorderBrush = Hairline,
             BorderThickness = new Thickness(1),
-            Child = new StackPanel { VerticalAlignment = VerticalAlignment.Center, Children = { _barStrip, _caption } },
+            Child = new StackPanel { VerticalAlignment = VerticalAlignment.Center, Children = { _barStrip, new Grid { Children = { _caption, _live } } } },
         };
         _body.Children.Add(_shadow);
         _body.Children.Add(_capsule);
@@ -137,8 +141,9 @@ public sealed class CapsuleOverlay : Window
     {
         _scale = scale;
         var width = 168 * scale;
+        var widest = 460 * scale;
         _capsuleHeight = 48 * scale;
-        Width = width + (2 * ShadowRoom);
+        Width = widest + (2 * ShadowRoom);
         Height = TopGap + _capsuleHeight + ShadowRoom;
 
         Brush accentBrush;
@@ -165,10 +170,11 @@ public sealed class CapsuleOverlay : Window
         _caption.FontSize = 11 * scale;
         _caption.Margin = new Thickness(0, 1 * scale, 0, 0);
         _caption.MaxWidth = width - (28 * scale);
+        _live.Apply(12.5 * scale, widest - (30 * scale));
         _shadow.CornerRadius = new CornerRadius(14 * scale);
         _capsule.CornerRadius = new CornerRadius(14 * scale);
         _capsule.Padding = new Thickness(14 * scale, 5 * scale, 14 * scale, 5 * scale);
-        _body.Width = width;
+        _body.MinWidth = width;
         _body.Height = _capsuleHeight;
         _body.Margin = new Thickness(ShadowRoom, TopGap, ShadowRoom, 0);
 
@@ -192,6 +198,8 @@ public sealed class CapsuleOverlay : Window
             return;
         }
 
+        // A new dictation starts with an empty line; while processing, the words heard so far stay.
+        if (state == OverlayState.Recording) _live.Clear();
         ShowContent(bars: true, caption, processing: state == OverlayState.Transcribing);
 
         // Screen readers hear what happens after recording. "Listening" is not
@@ -203,6 +211,7 @@ public sealed class CapsuleOverlay : Window
     /// <summary>A short message such as "Copied last transcript" that slides away by itself.</summary>
     public void Notify(string message)
     {
+        _live.Clear();
         ShowContent(bars: false, message, processing: false);
         Announce(message);
         SlideIn();
@@ -213,11 +222,19 @@ public sealed class CapsuleOverlay : Window
     /// <summary>The capsule as it looks while listening, for the settings preview.</summary>
     public void Preview()
     {
+        _live.Clear();
         ShowContent(bars: true, "Listening…", processing: false);
         _level = 0.6;
         SlideIn();
         _noticeTimer.Stop();
         _noticeTimer.Start();
+    }
+
+    /// <summary>The live draft of what's being said; the capsule widens to fit it.</summary>
+    public void ShowDraft(string settled, string tail)
+    {
+        _live.Show(settled, tail);
+        _caption.Visibility = _live.IsEmpty ? Visibility.Visible : Visibility.Collapsed;
     }
 
     public void UpdateLevel(double rootMeanSquare)
@@ -232,6 +249,7 @@ public sealed class CapsuleOverlay : Window
     {
         _barStrip.Visibility = bars ? Visibility.Visible : Visibility.Collapsed;
         _caption.Text = caption;
+        _caption.Visibility = _live.IsEmpty ? Visibility.Visible : Visibility.Collapsed;
         _processing = processing;
     }
 
@@ -255,6 +273,7 @@ public sealed class CapsuleOverlay : Window
         {
             if (_shown) return;
             StopRendering();
+            _live.Clear();
             _slide.BeginAnimation(TranslateTransform.YProperty, null);
             _slide.Y = HiddenOffset;
         });

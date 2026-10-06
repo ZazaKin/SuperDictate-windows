@@ -54,10 +54,19 @@ semibold. Addresses and licence text use Cascadia Mono.
   (`AccentButton`, Accent fill, white) per job; `DangerButton` for the second
   click of a delete; `GhostButton` for icon-only actions.
 - **Sidebar item:** icon 18 + label; selected is a solid Accent pill with white
-  text; hover is Control.
+  text; hover is a light wash.
 - **Switch:** Accent track with white knob when on; Muted outline and knob when
-  off; the knob slides in 160 ms (ease-out) and rests in place when a window
-  opens.
+  off; the knob slides over 240 ms while the fill fades, and rests in place when
+  a window opens.
+- **Capsule:** a dark pill (#18181C, hairline edge) that slides down at the top
+  of the active screen while dictating: voice bars over a caption. Once speech is
+  heard, a live draft replaces the caption.
+  - Each new word rises half a line, sharpens out of a blur and fades in over
+    420 ms. Each word starts 55 ms after the one before.
+  - Words that may still change sit at 55 % opacity and brighten as they settle.
+  - The capsule widens with the text from 168 to 460 px. Past that, the line
+    glides left and the oldest words fade out at the left edge.
+  - The draft stays visible while processing, and the capsule never takes focus.
 - **Save:** applies and keeps the window open; the button reads "Saved" with a
   check for a moment.
 - **Setup needed:** until the runtime and chosen model are installed, the
@@ -80,7 +89,23 @@ semibold. Addresses and licence text use Cascadia Mono.
 
 ## Focus and motion
 
-Keyboard focus is a 2 px Accent ring outside buttons, switches and swatches,
-and a 2 px Accent outline inside fields; the selected sidebar item shows a
-white inner ring. Motion is limited to the switch knob and the capsule overlay;
-nothing animates on page changes.
+Keyboard focus is a 2 px Accent ring outside buttons, chips, switches, sliders
+and swatches, and a 2 px Accent outline inside fields; the focused sidebar item
+shows a light inner ring. Rings appear only when focus came from the keyboard
+(WPF's FocusVisualStyle), never after a click. Text fields always show theirs.
+
+Motion is feedback, never decoration:
+
+- Hover fades a 6 % white wash in over 100 ms and out over 240 ms.
+- Pressing shows a 16 % black shade at once and sinks the control to 97 % in
+  100 ms. Releasing eases both back over 240 ms. Darkening on press keeps white
+  text above 4.5:1.
+- A switch knob grows on press and slides across over 240 ms while the blue
+  fill fades in. The animations are additive, so a switch flipped back
+  mid-slide turns around where it is.
+- The slider knob grows while dragged, and the floating mic button sinks the
+  moment it's pressed. The Saved and Copied check marks grow into place.
+- Every animation starts from the control's current on-screen value. All of
+  it is transform and opacity only, and lands instantly when Windows'
+  animation effects are off.
+- Nothing animates on page changes.

@@ -10,6 +10,7 @@ using System.Windows.Controls.Primitives;
 using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
 using System.Windows.Media.Effects;
 using System.Windows.Shapes;
 using System.Windows.Shell;
@@ -1311,7 +1312,7 @@ public sealed class SettingsWindow : Window
     /// <summary>The window stays open after Save; the button confirms for a moment instead.</summary>
     private void ShowSaved()
     {
-        _save.Content = new StackPanel { Orientation = Orientation.Horizontal, Children = { Glyph("\uE73E", 12, new Thickness(0, 0, 8, 0)), new TextBlock { Text = "Saved" } } };
+        _save.Content = new StackPanel { Orientation = Orientation.Horizontal, Children = { Pop(Glyph("\uE73E", 12, new Thickness(0, 0, 8, 0))), new TextBlock { Text = "Saved" } } };
         AutomationProperties.SetName(_save, "Saved");
         var timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1.8) };
         timer.Tick += (_, _) =>
@@ -1631,6 +1632,20 @@ public sealed class SettingsWindow : Window
         VerticalAlignment = VerticalAlignment.Center,
     };
 
+    /// <summary>A check mark that grows into place, so it reads as a result rather than a flicker.</summary>
+    private static T Pop<T>(T element) where T : UIElement
+    {
+        if (!SystemParameters.ClientAreaAnimation) return element;
+        var scale = new ScaleTransform(0.4, 0.4);
+        element.RenderTransformOrigin = new Point(0.5, 0.5);
+        element.RenderTransform = scale;
+        var grow = new DoubleAnimation(1, TimeSpan.FromMilliseconds(260)) { EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut } };
+        scale.BeginAnimation(ScaleTransform.ScaleXProperty, grow);
+        scale.BeginAnimation(ScaleTransform.ScaleYProperty, grow);
+        element.BeginAnimation(UIElement.OpacityProperty, new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(140)));
+        return element;
+    }
+
     private Button IconButton(string glyph, string name, Action onClick, string style = "GhostButton", double size = 13)
     {
         var button = new Button { Content = glyph, Style = StyleOf(style), FontSize = size, ToolTip = name, VerticalAlignment = VerticalAlignment.Top };
@@ -1646,7 +1661,7 @@ public sealed class SettingsWindow : Window
         button = IconButton("\uE8C8", name, () =>
         {
             if (!Copy(text())) return;
-            button.Content = "\uE73E";
+            button.Content = Pop(new TextBlock { Text = "\uE73E" });
             button.ToolTip = "Copied";
             var timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1.5) };
             timer.Tick += (_, _) =>

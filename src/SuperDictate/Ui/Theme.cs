@@ -19,9 +19,9 @@ internal static class Theme
     public const string IconFont = "Segoe Fluent Icons, Segoe MDL2 Assets";
 
     /// <summary>
-    /// Telegram day (light) and night (dark) palettes. Telegram's own #3390EC is
-    /// deepened to #1E77CE so white text on it meets WCAG AA; every text pair
-    /// meets 4.5:1 and every control outline 3:1, which the self-test checks.
+    /// Telegram's night palette, with the accent deepened so white text on it
+    /// meets WCAG AA; every text pair meets 4.5:1 and every control outline 3:1,
+    /// which the self-test checks.
     /// </summary>
     public static readonly IReadOnlyDictionary<string, string> Palette = new Dictionary<string, string>
     {
@@ -48,8 +48,9 @@ internal static class Theme
         // Fill behind white text (Stop button); Bad itself is for text and dots.
         ["BadFill"] = "#C93A42",
         ["BadSoft"] = "#301A1E",
-        // Hover and press overlay on buttons.
+        // Hover lightens a control a touch; a press darkens it, which keeps white text above 4.5:1.
         ["Wash"] = "#FFFFFF",
+        ["Shade"] = "#000000",
     };
 
     public static string Color(string key) => Palette[key];
@@ -63,17 +64,110 @@ internal static class Theme
             Interop.NativeMethods.DWMWA_USE_IMMERSIVE_DARK_MODE, ref on, sizeof(int));
     };
 
-    public static ResourceDictionary Create() => (ResourceDictionary)XamlReader.Parse(Xaml.Replace(
-        "<!-- palette -->",
-        string.Join("\n    ", Palette.Select(pair => $"<SolidColorBrush x:Key='{pair.Key}' Color='{pair.Value}'/>"))));
+    public static ResourceDictionary Create()
+    {
+        // Quick: feedback arriving under the pointer. Settle: everything easing back.
+        // With Windows' animation effects off, every change lands at once.
+        var motion = SystemParameters.ClientAreaAnimation;
+        var entries = Palette.Select(pair => $"<SolidColorBrush x:Key='{pair.Key}' Color='{pair.Value}'/>")
+            .Append($"<Duration x:Key='Quick'>{(motion ? "0:0:0.1" : "0:0:0")}</Duration>")
+            .Append($"<Duration x:Key='Settle'>{(motion ? "0:0:0.24" : "0:0:0")}</Duration>");
+        return (ResourceDictionary)XamlReader.Parse(Xaml.Replace("<!-- palette -->", string.Join("\n    ", entries)));
+    }
 
+    /// <summary>
+    /// Motion follows two rules. Feedback starts on the press, not the release.
+    /// Every animation starts from where the control is on screen, so moving
+    /// the pointer off or flipping a switch back mid-move never jumps.
+    /// </summary>
     private const string Xaml = @"
 <ResourceDictionary xmlns='http://schemas.microsoft.com/winfx/2006/xaml/presentation'
                     xmlns:x='http://schemas.microsoft.com/winfx/2006/xaml'>
     <!-- palette -->
+    <!-- Fast start, soft landing: close to a critically damped spring. -->
+    <CubicEase x:Key='Out' EasingMode='EaseOut'/>
+
+    <!-- Pressable controls name their parts Hover (light wash), Down (shade) and Root
+         (the part that sinks), and run these. None sets From, so each one starts
+         from wherever the last left off. -->
+    <Storyboard x:Key='HoverIn'>
+        <DoubleAnimation Storyboard.TargetName='Hover' Storyboard.TargetProperty='Opacity' To='0.06' Duration='{StaticResource Quick}'/>
+    </Storyboard>
+    <Storyboard x:Key='HoverOut'>
+        <DoubleAnimation Storyboard.TargetName='Hover' Storyboard.TargetProperty='Opacity' To='0' Duration='{StaticResource Settle}'/>
+    </Storyboard>
+    <!-- The press shows at once; only the release fades. -->
+    <Storyboard x:Key='ShadeIn'>
+        <DoubleAnimation Storyboard.TargetName='Down' Storyboard.TargetProperty='Opacity' To='0.16' Duration='0:0:0'/>
+    </Storyboard>
+    <Storyboard x:Key='ShadeOut'>
+        <DoubleAnimation Storyboard.TargetName='Down' Storyboard.TargetProperty='Opacity' To='0' Duration='{StaticResource Settle}'/>
+    </Storyboard>
+    <Storyboard x:Key='SinkIn'>
+        <DoubleAnimation Storyboard.TargetName='Root' Storyboard.TargetProperty='(UIElement.RenderTransform).(ScaleTransform.ScaleX)'
+                         To='0.97' Duration='{StaticResource Quick}' EasingFunction='{StaticResource Out}'/>
+        <DoubleAnimation Storyboard.TargetName='Root' Storyboard.TargetProperty='(UIElement.RenderTransform).(ScaleTransform.ScaleY)'
+                         To='0.97' Duration='{StaticResource Quick}' EasingFunction='{StaticResource Out}'/>
+    </Storyboard>
+    <Storyboard x:Key='SinkOut'>
+        <DoubleAnimation Storyboard.TargetName='Root' Storyboard.TargetProperty='(UIElement.RenderTransform).(ScaleTransform.ScaleX)'
+                         To='1' Duration='{StaticResource Settle}' EasingFunction='{StaticResource Out}'/>
+        <DoubleAnimation Storyboard.TargetName='Root' Storyboard.TargetProperty='(UIElement.RenderTransform).(ScaleTransform.ScaleY)'
+                         To='1' Duration='{StaticResource Settle}' EasingFunction='{StaticResource Out}'/>
+    </Storyboard>
+
+    <!-- Focus rings. Windows draws a FocusVisualStyle only when focus arrives from the
+         keyboard, so a ring marks where Tab went and never lingers after a click. -->
+    <Style x:Key='FocusRing'>
+        <Setter Property='Control.Template'>
+            <Setter.Value>
+                <ControlTemplate>
+                    <Border Margin='-3' CornerRadius='13' BorderThickness='2' BorderBrush='{StaticResource Accent}'/>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    <Style x:Key='FocusPill'>
+        <Setter Property='Control.Template'>
+            <Setter.Value>
+                <ControlTemplate>
+                    <Border Margin='-3' CornerRadius='14' BorderThickness='2' BorderBrush='{StaticResource Accent}'/>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    <!-- On the sidebar the ring sits on the item itself, light so it shows on the blue pill. -->
+    <Style x:Key='FocusInset'>
+        <Setter Property='Control.Template'>
+            <Setter.Value>
+                <ControlTemplate>
+                    <Border CornerRadius='10' BorderThickness='2' BorderBrush='{StaticResource Text}'/>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    <Style x:Key='FocusField'>
+        <Setter Property='Control.Template'>
+            <Setter.Value>
+                <ControlTemplate>
+                    <Border CornerRadius='10' BorderThickness='2' BorderBrush='{StaticResource Accent}'/>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    <Style x:Key='FocusDot'>
+        <Setter Property='Control.Template'>
+            <Setter.Value>
+                <ControlTemplate>
+                    <Ellipse Margin='-3' Stroke='{StaticResource Accent}' StrokeThickness='2'/>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
 
     <!-- Buttons are soft blue with blue text; one solid blue button per job (AccentButton).
-         A Wash overlay gives hover/press feedback; an outer ring shows keyboard focus. -->
+         Hover fades a light wash in. Pressing darkens the button at once and sinks it
+         to 97 %; letting go eases it back. -->
     <Style TargetType='Button'>
         <Setter Property='Foreground' Value='{StaticResource Link}'/>
         <Setter Property='Background' Value='{StaticResource AccentSoft}'/>
@@ -83,30 +177,35 @@ internal static class Theme
         <Setter Property='FontSize' Value='13'/>
         <Setter Property='FontWeight' Value='SemiBold'/>
         <Setter Property='Cursor' Value='Hand'/>
-        <Setter Property='FocusVisualStyle' Value='{x:Null}'/>
+        <Setter Property='FocusVisualStyle' Value='{StaticResource FocusRing}'/>
         <Setter Property='Template'>
             <Setter.Value>
                 <ControlTemplate TargetType='Button'>
-                    <Grid>
-                        <Border x:Name='Ring' Margin='-3' CornerRadius='13' BorderThickness='2'
-                                BorderBrush='{StaticResource Accent}' Visibility='Hidden'/>
+                    <Grid x:Name='Root' RenderTransformOrigin='0.5,0.5'>
+                        <Grid.RenderTransform><ScaleTransform/></Grid.RenderTransform>
                         <Border x:Name='Bd' Background='{TemplateBinding Background}' BorderBrush='{TemplateBinding BorderBrush}'
                                 BorderThickness='1' CornerRadius='10' SnapsToDevicePixels='True'>
                             <Grid>
-                                <Border x:Name='Wash' Background='{StaticResource Wash}' Opacity='0' CornerRadius='9'/>
+                                <Border x:Name='Hover' Background='{StaticResource Wash}' Opacity='0' CornerRadius='9'/>
+                                <Border x:Name='Down' Background='{StaticResource Shade}' Opacity='0' CornerRadius='9'/>
                                 <ContentPresenter Margin='{TemplateBinding Padding}' HorizontalAlignment='Center' VerticalAlignment='Center'/>
                             </Grid>
                         </Border>
                     </Grid>
                     <ControlTemplate.Triggers>
                         <Trigger Property='IsMouseOver' Value='True'>
-                            <Setter TargetName='Wash' Property='Opacity' Value='0.05'/>
+                            <Trigger.EnterActions><BeginStoryboard Storyboard='{StaticResource HoverIn}'/></Trigger.EnterActions>
+                            <Trigger.ExitActions><BeginStoryboard Storyboard='{StaticResource HoverOut}'/></Trigger.ExitActions>
                         </Trigger>
                         <Trigger Property='IsPressed' Value='True'>
-                            <Setter TargetName='Wash' Property='Opacity' Value='0.11'/>
-                        </Trigger>
-                        <Trigger Property='IsKeyboardFocused' Value='True'>
-                            <Setter TargetName='Ring' Property='Visibility' Value='Visible'/>
+                            <Trigger.EnterActions>
+                                <BeginStoryboard Storyboard='{StaticResource ShadeIn}'/>
+                                <BeginStoryboard Storyboard='{StaticResource SinkIn}'/>
+                            </Trigger.EnterActions>
+                            <Trigger.ExitActions>
+                                <BeginStoryboard Storyboard='{StaticResource ShadeOut}'/>
+                                <BeginStoryboard Storyboard='{StaticResource SinkOut}'/>
+                            </Trigger.ExitActions>
                         </Trigger>
                         <Trigger Property='IsEnabled' Value='False'>
                             <Setter Property='Opacity' Value='0.45'/>
@@ -180,23 +279,28 @@ internal static class Theme
         <Setter Property='SelectionBrush' Value='{StaticResource Accent}'/>
     </Style>
 
-    <!-- Boolean settings are Telegram switches: the knob slides over in 160 ms. -->
+    <!-- Boolean settings are Telegram switches. Pressing grows the knob a little;
+         flipping slides it across while the blue fill fades in under it. -->
     <Style TargetType='CheckBox'>
         <Setter Property='Foreground' Value='{StaticResource Text}'/>
         <Setter Property='Cursor' Value='Hand'/>
-        <Setter Property='FocusVisualStyle' Value='{x:Null}'/>
+        <Setter Property='FocusVisualStyle' Value='{StaticResource FocusPill}'/>
         <Setter Property='Template'>
             <Setter.Value>
                 <ControlTemplate TargetType='CheckBox'>
                     <StackPanel Orientation='Horizontal' Background='Transparent'>
-                        <Grid VerticalAlignment='Center'>
-                            <Border x:Name='Ring' Margin='-3' CornerRadius='14' BorderThickness='2'
-                                    BorderBrush='{StaticResource Accent}' Visibility='Hidden'/>
-                            <Border x:Name='Track' Width='40' Height='22' CornerRadius='11'
-                                    Background='{StaticResource Control}' BorderBrush='{StaticResource Muted}' BorderThickness='1.5'>
-                                <Ellipse x:Name='Knob' Width='14' Height='14' Margin='3,0,0,0' HorizontalAlignment='Left'
-                                         Fill='{StaticResource Muted}'/>
-                            </Border>
+                        <Grid Width='40' Height='22' VerticalAlignment='Center'>
+                            <Border x:Name='Track' CornerRadius='11' Background='{StaticResource Control}'
+                                    BorderBrush='{StaticResource Muted}' BorderThickness='1.5'/>
+                            <Border x:Name='On' CornerRadius='11' Background='{StaticResource Accent}' Opacity='0'/>
+                            <Grid x:Name='Knob' Width='14' Height='14' Margin='4,0,0,0' HorizontalAlignment='Left'>
+                                <Grid.RenderTransform><TranslateTransform/></Grid.RenderTransform>
+                                <Grid x:Name='Face' RenderTransformOrigin='0.5,0.5'>
+                                    <Grid.RenderTransform><ScaleTransform/></Grid.RenderTransform>
+                                    <Ellipse Fill='{StaticResource Muted}'/>
+                                    <Ellipse Fill='White' Opacity='{Binding Opacity, ElementName=On}'/>
+                                </Grid>
+                            </Grid>
                         </Grid>
                         <ContentPresenter x:Name='Label' Margin='10,0,0,0' VerticalAlignment='Center'/>
                     </StackPanel>
@@ -205,37 +309,57 @@ internal static class Theme
                             <Setter TargetName='Label' Property='Visibility' Value='Collapsed'/>
                         </Trigger>
                         <Trigger Property='IsMouseOver' Value='True'>
-                            <Setter TargetName='Knob' Property='Fill' Value='{StaticResource Text}'/>
+                            <Setter TargetName='Track' Property='BorderBrush' Value='{StaticResource Text}'/>
                         </Trigger>
+                        <!-- The resting state, so a switch that opens checked is simply on. -->
                         <Trigger Property='IsChecked' Value='True'>
-                            <Setter TargetName='Track' Property='Background' Value='{StaticResource Accent}'/>
-                            <Setter TargetName='Track' Property='BorderBrush' Value='{StaticResource Accent}'/>
-                            <Setter TargetName='Knob' Property='Fill' Value='White'/>
-                            <!-- The resting position, so a switch that opens checked doesn't slide in. -->
-                            <Setter TargetName='Knob' Property='Margin' Value='20,0,0,0'/>
+                            <Setter TargetName='On' Property='Opacity' Value='1'/>
+                            <Setter TargetName='Knob' Property='Margin' Value='22,0,0,0'/>
+                        </Trigger>
+                        <!-- A flip jumps to the new resting state, and an additive animation starts
+                             at the old one and fades to nothing. Composed, the animations add up:
+                             a switch flipped back mid-slide turns around where it is. -->
+                        <EventTrigger RoutedEvent='ToggleButton.Checked'>
+                            <BeginStoryboard HandoffBehavior='Compose'>
+                                <Storyboard FillBehavior='Stop'>
+                                    <DoubleAnimation Storyboard.TargetName='Knob' Storyboard.TargetProperty='(UIElement.RenderTransform).(TranslateTransform.X)'
+                                                     From='-18' To='0' IsAdditive='True' Duration='{StaticResource Settle}' EasingFunction='{StaticResource Out}'/>
+                                    <DoubleAnimation Storyboard.TargetName='On' Storyboard.TargetProperty='Opacity'
+                                                     From='-1' To='0' IsAdditive='True' Duration='{StaticResource Settle}' EasingFunction='{StaticResource Out}'/>
+                                </Storyboard>
+                            </BeginStoryboard>
+                        </EventTrigger>
+                        <EventTrigger RoutedEvent='ToggleButton.Unchecked'>
+                            <BeginStoryboard HandoffBehavior='Compose'>
+                                <Storyboard FillBehavior='Stop'>
+                                    <DoubleAnimation Storyboard.TargetName='Knob' Storyboard.TargetProperty='(UIElement.RenderTransform).(TranslateTransform.X)'
+                                                     From='18' To='0' IsAdditive='True' Duration='{StaticResource Settle}' EasingFunction='{StaticResource Out}'/>
+                                    <DoubleAnimation Storyboard.TargetName='On' Storyboard.TargetProperty='Opacity'
+                                                     From='1' To='0' IsAdditive='True' Duration='{StaticResource Settle}' EasingFunction='{StaticResource Out}'/>
+                                </Storyboard>
+                            </BeginStoryboard>
+                        </EventTrigger>
+                        <Trigger Property='IsPressed' Value='True'>
                             <Trigger.EnterActions>
                                 <BeginStoryboard>
                                     <Storyboard>
-                                        <ThicknessAnimation Storyboard.TargetName='Knob' Storyboard.TargetProperty='Margin'
-                                                            To='20,0,0,0' Duration='0:0:0.16'>
-                                            <ThicknessAnimation.EasingFunction><CubicEase EasingMode='EaseOut'/></ThicknessAnimation.EasingFunction>
-                                        </ThicknessAnimation>
+                                        <DoubleAnimation Storyboard.TargetName='Face' Storyboard.TargetProperty='(UIElement.RenderTransform).(ScaleTransform.ScaleX)'
+                                                         To='1.2' Duration='{StaticResource Quick}' EasingFunction='{StaticResource Out}'/>
+                                        <DoubleAnimation Storyboard.TargetName='Face' Storyboard.TargetProperty='(UIElement.RenderTransform).(ScaleTransform.ScaleY)'
+                                                         To='1.2' Duration='{StaticResource Quick}' EasingFunction='{StaticResource Out}'/>
                                     </Storyboard>
                                 </BeginStoryboard>
                             </Trigger.EnterActions>
                             <Trigger.ExitActions>
                                 <BeginStoryboard>
                                     <Storyboard>
-                                        <ThicknessAnimation Storyboard.TargetName='Knob' Storyboard.TargetProperty='Margin'
-                                                            To='3,0,0,0' Duration='0:0:0.16'>
-                                            <ThicknessAnimation.EasingFunction><CubicEase EasingMode='EaseOut'/></ThicknessAnimation.EasingFunction>
-                                        </ThicknessAnimation>
+                                        <DoubleAnimation Storyboard.TargetName='Face' Storyboard.TargetProperty='(UIElement.RenderTransform).(ScaleTransform.ScaleX)'
+                                                         To='1' Duration='{StaticResource Settle}' EasingFunction='{StaticResource Out}'/>
+                                        <DoubleAnimation Storyboard.TargetName='Face' Storyboard.TargetProperty='(UIElement.RenderTransform).(ScaleTransform.ScaleY)'
+                                                         To='1' Duration='{StaticResource Settle}' EasingFunction='{StaticResource Out}'/>
                                     </Storyboard>
                                 </BeginStoryboard>
                             </Trigger.ExitActions>
-                        </Trigger>
-                        <Trigger Property='IsKeyboardFocused' Value='True'>
-                            <Setter TargetName='Ring' Property='Visibility' Value='Visible'/>
                         </Trigger>
                         <Trigger Property='IsEnabled' Value='False'>
                             <Setter Property='Opacity' Value='0.45'/>
@@ -250,34 +374,31 @@ internal static class Theme
     <Style x:Key='Nav' TargetType='RadioButton'>
         <Setter Property='Foreground' Value='{StaticResource Text}'/>
         <Setter Property='Cursor' Value='Hand'/>
-        <Setter Property='FocusVisualStyle' Value='{x:Null}'/>
+        <Setter Property='FocusVisualStyle' Value='{StaticResource FocusInset}'/>
         <Setter Property='Margin' Value='0,2'/>
         <Setter Property='Template'>
             <Setter.Value>
                 <ControlTemplate TargetType='RadioButton'>
-                    <Border x:Name='Bd' Height='42' CornerRadius='10' Background='Transparent'
-                            BorderBrush='Transparent' BorderThickness='2'>
-                        <ContentPresenter Margin='10,0' VerticalAlignment='Center'
+                    <Grid Height='42'>
+                        <Border x:Name='Bd' CornerRadius='10' Background='Transparent'/>
+                        <Border x:Name='Hover' CornerRadius='10' Background='{StaticResource Wash}' Opacity='0'/>
+                        <Border x:Name='Down' CornerRadius='10' Background='{StaticResource Shade}' Opacity='0'/>
+                        <ContentPresenter Margin='12,0' VerticalAlignment='Center'
                                           HorizontalAlignment='{TemplateBinding HorizontalContentAlignment}'/>
-                    </Border>
+                    </Grid>
                     <ControlTemplate.Triggers>
                         <Trigger Property='IsMouseOver' Value='True'>
-                            <Setter TargetName='Bd' Property='Background' Value='{StaticResource Control}'/>
+                            <Trigger.EnterActions><BeginStoryboard Storyboard='{StaticResource HoverIn}'/></Trigger.EnterActions>
+                            <Trigger.ExitActions><BeginStoryboard Storyboard='{StaticResource HoverOut}'/></Trigger.ExitActions>
                         </Trigger>
-                        <Trigger Property='IsKeyboardFocused' Value='True'>
-                            <Setter TargetName='Bd' Property='BorderBrush' Value='{StaticResource Accent}'/>
+                        <Trigger Property='IsPressed' Value='True'>
+                            <Trigger.EnterActions><BeginStoryboard Storyboard='{StaticResource ShadeIn}'/></Trigger.EnterActions>
+                            <Trigger.ExitActions><BeginStoryboard Storyboard='{StaticResource ShadeOut}'/></Trigger.ExitActions>
                         </Trigger>
                         <Trigger Property='IsChecked' Value='True'>
                             <Setter TargetName='Bd' Property='Background' Value='{StaticResource Accent}'/>
                             <Setter Property='Foreground' Value='White'/>
                         </Trigger>
-                        <MultiTrigger>
-                            <MultiTrigger.Conditions>
-                                <Condition Property='IsChecked' Value='True'/>
-                                <Condition Property='IsKeyboardFocused' Value='True'/>
-                            </MultiTrigger.Conditions>
-                            <Setter TargetName='Bd' Property='BorderBrush' Value='White'/>
-                        </MultiTrigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
             </Setter.Value>
@@ -288,25 +409,29 @@ internal static class Theme
     <Style x:Key='Chip' TargetType='CheckBox'>
         <Setter Property='Foreground' Value='{StaticResource Muted}'/>
         <Setter Property='Cursor' Value='Hand'/>
-        <Setter Property='FocusVisualStyle' Value='{x:Null}'/>
+        <Setter Property='FocusVisualStyle' Value='{StaticResource FocusRing}'/>
         <Setter Property='Template'>
             <Setter.Value>
                 <ControlTemplate TargetType='CheckBox'>
-                    <Border x:Name='Bd' Height='40' CornerRadius='10' Background='{StaticResource Control}'
-                            BorderBrush='Transparent' BorderThickness='2'>
-                        <ContentPresenter HorizontalAlignment='Center' VerticalAlignment='Center'/>
+                    <Border x:Name='Root' Height='40' RenderTransformOrigin='0.5,0.5'>
+                        <Border.RenderTransform><ScaleTransform/></Border.RenderTransform>
+                        <Border x:Name='Bd' CornerRadius='10' Background='{StaticResource Control}'
+                                BorderBrush='Transparent' BorderThickness='2'>
+                            <ContentPresenter HorizontalAlignment='Center' VerticalAlignment='Center'/>
+                        </Border>
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property='IsMouseOver' Value='True'>
                             <Setter TargetName='Bd' Property='BorderBrush' Value='{StaticResource StrokeHover}'/>
                         </Trigger>
+                        <Trigger Property='IsPressed' Value='True'>
+                            <Trigger.EnterActions><BeginStoryboard Storyboard='{StaticResource SinkIn}'/></Trigger.EnterActions>
+                            <Trigger.ExitActions><BeginStoryboard Storyboard='{StaticResource SinkOut}'/></Trigger.ExitActions>
+                        </Trigger>
                         <Trigger Property='IsChecked' Value='True'>
                             <Setter TargetName='Bd' Property='Background' Value='{StaticResource AccentSoft}'/>
                             <Setter TargetName='Bd' Property='BorderBrush' Value='{StaticResource Accent}'/>
                             <Setter Property='Foreground' Value='{StaticResource Link}'/>
-                        </Trigger>
-                        <Trigger Property='IsKeyboardFocused' Value='True'>
-                            <Setter TargetName='Bd' Property='BorderBrush' Value='{StaticResource Text}'/>
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -317,22 +442,18 @@ internal static class Theme
     <!-- Accent swatches: Background carries the color. -->
     <Style x:Key='Swatch' TargetType='RadioButton'>
         <Setter Property='Cursor' Value='Hand'/>
-        <Setter Property='FocusVisualStyle' Value='{x:Null}'/>
+        <Setter Property='FocusVisualStyle' Value='{StaticResource FocusDot}'/>
         <Setter Property='Margin' Value='0,0,6,0'/>
         <Setter Property='Template'>
             <Setter.Value>
                 <ControlTemplate TargetType='RadioButton'>
                     <Grid Width='28' Height='28' Background='Transparent'>
-                        <Ellipse x:Name='Focus' Margin='-3' Stroke='{StaticResource Accent}' StrokeThickness='2' Visibility='Hidden'/>
                         <Ellipse x:Name='Ring' Stroke='{StaticResource Text}' StrokeThickness='2' Opacity='0'/>
                         <Ellipse Margin='5' Fill='{TemplateBinding Background}'/>
                     </Grid>
                     <ControlTemplate.Triggers>
                         <Trigger Property='IsMouseOver' Value='True'>
                             <Setter TargetName='Ring' Property='Opacity' Value='0.3'/>
-                        </Trigger>
-                        <Trigger Property='IsKeyboardFocused' Value='True'>
-                            <Setter TargetName='Focus' Property='Visibility' Value='Visible'/>
                         </Trigger>
                         <Trigger Property='IsChecked' Value='True'>
                             <Setter TargetName='Ring' Property='Opacity' Value='1'/>
@@ -345,7 +466,7 @@ internal static class Theme
 
     <Style TargetType='ComboBox'>
         <Setter Property='Foreground' Value='{StaticResource Text}'/>
-        <Setter Property='FocusVisualStyle' Value='{x:Null}'/>
+        <Setter Property='FocusVisualStyle' Value='{StaticResource FocusField}'/>
         <Setter Property='FontSize' Value='13'/>
         <Setter Property='Height' Value='34'/>
         <Setter Property='Template'>
@@ -374,8 +495,6 @@ internal static class Theme
                                 </ControlTemplate>
                             </ToggleButton.Template>
                         </ToggleButton>
-                        <Border x:Name='FocusBd' CornerRadius='10' BorderThickness='2' BorderBrush='{StaticResource Accent}'
-                                IsHitTestVisible='False' Visibility='Hidden'/>
                         <ContentPresenter IsHitTestVisible='False' Margin='12,0,30,0'
                                           VerticalAlignment='Center' HorizontalAlignment='Left'
                                           Content='{TemplateBinding SelectionBoxItem}'
@@ -405,9 +524,6 @@ internal static class Theme
                         </Popup>
                     </Grid>
                     <ControlTemplate.Triggers>
-                        <Trigger Property='IsKeyboardFocusWithin' Value='True'>
-                            <Setter TargetName='FocusBd' Property='Visibility' Value='Visible'/>
-                        </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
             </Setter.Value>
@@ -464,7 +580,7 @@ internal static class Theme
     </Style>
     <Style TargetType='Slider'>
         <Setter Property='Cursor' Value='Hand'/>
-        <Setter Property='FocusVisualStyle' Value='{x:Null}'/>
+        <Setter Property='FocusVisualStyle' Value='{StaticResource FocusRing}'/>
         <Setter Property='Template'>
             <Setter.Value>
                 <ControlTemplate TargetType='Slider'>
@@ -476,23 +592,36 @@ internal static class Theme
                             <RepeatButton Style='{StaticResource SliderPart}' Background='{StaticResource Control}' Command='Slider.IncreaseLarge'/>
                         </Track.IncreaseRepeatButton>
                         <Track.Thumb>
-                            <Thumb x:Name='Thumb' BorderBrush='Transparent'>
+                            <Thumb>
                                 <Thumb.Template>
+                                    <!-- The knob grows while it's held, so the hand can feel it's got it. -->
                                     <ControlTemplate TargetType='Thumb'>
-                                        <Grid Width='24' Height='24'>
-                                            <Ellipse Stroke='{TemplateBinding BorderBrush}' StrokeThickness='2'/>
-                                            <Ellipse Width='16' Height='16' Fill='White' Stroke='{StaticResource Accent}' StrokeThickness='3'/>
+                                        <Grid Width='24' Height='24' Background='Transparent'>
+                                            <Ellipse x:Name='Root' Width='16' Height='16' Fill='White' Stroke='{StaticResource Accent}' StrokeThickness='3'
+                                                     RenderTransformOrigin='0.5,0.5'>
+                                                <Ellipse.RenderTransform><ScaleTransform/></Ellipse.RenderTransform>
+                                            </Ellipse>
                                         </Grid>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property='IsDragging' Value='True'>
+                                                <Trigger.EnterActions>
+                                                    <BeginStoryboard>
+                                                        <Storyboard>
+                                                            <DoubleAnimation Storyboard.TargetName='Root' Storyboard.TargetProperty='(UIElement.RenderTransform).(ScaleTransform.ScaleX)'
+                                                                             To='1.25' Duration='{StaticResource Quick}' EasingFunction='{StaticResource Out}'/>
+                                                            <DoubleAnimation Storyboard.TargetName='Root' Storyboard.TargetProperty='(UIElement.RenderTransform).(ScaleTransform.ScaleY)'
+                                                                             To='1.25' Duration='{StaticResource Quick}' EasingFunction='{StaticResource Out}'/>
+                                                        </Storyboard>
+                                                    </BeginStoryboard>
+                                                </Trigger.EnterActions>
+                                                <Trigger.ExitActions><BeginStoryboard Storyboard='{StaticResource SinkOut}'/></Trigger.ExitActions>
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
                                     </ControlTemplate>
                                 </Thumb.Template>
                             </Thumb>
                         </Track.Thumb>
                     </Track>
-                    <ControlTemplate.Triggers>
-                        <Trigger Property='IsKeyboardFocused' Value='True'>
-                            <Setter TargetName='Thumb' Property='BorderBrush' Value='{StaticResource Accent}'/>
-                        </Trigger>
-                    </ControlTemplate.Triggers>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>

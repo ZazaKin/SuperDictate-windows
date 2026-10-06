@@ -73,7 +73,15 @@ The status at the bottom left of the settings window changes to **Ready**.
   the settings.
 
 While you speak, a small capsule slides down at the top of the screen; its bars
-follow your voice. While the text is prepared it says **Processing…**.
+follow your voice. A live preview of your words builds up under them as you
+talk. The newest words are dimmer until they settle, and the capsule widens to
+fit them. The preview is a quick draft: when you finish, the whole recording
+is transcribed again, so what gets typed can be a little better than the
+preview. On a slow computer the preview switches itself off so it never
+delays your text. While the text is prepared it says **Processing…**.
+
+If you say nothing for a minute, SuperDictate finishes the dictation by itself
+and types what it heard, without pressing Enter.
 
 Other hotkeys:
 

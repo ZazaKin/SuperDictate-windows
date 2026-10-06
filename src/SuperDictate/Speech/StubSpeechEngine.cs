@@ -21,7 +21,7 @@ public sealed class StubSpeechEngine : ISpeechEngine
         return Task.CompletedTask;
     }
 
-    public Task<string> TranscribeAsync(float[] samples, CancellationToken cancellationToken)
+    public Task<string> TranscribeAsync(float[] samples, CancellationToken cancellationToken, bool draft = false)
     {
         var seconds = (double)samples.Length / Audio.MicrophoneCapture.TargetSampleRate;
         var text = string.Format(

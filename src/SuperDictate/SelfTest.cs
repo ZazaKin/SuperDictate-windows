@@ -404,6 +404,79 @@ internal static class SelfTest
             Assert("engine.transcribe", false, ex.Message);
         }
 
+        // --- live session: driven with made-up audio, 100 ms per tick, like its timer ---
+        {
+            var random = new Random(7);
+            float Noise(double amplitude) => (float)(((random.NextDouble() * 2) - 1) * amplitude);
+            float Quiet(double t) => Noise(0.002);
+            // Syllables: a quarter second of voice, then a short gap.
+            float Talk(double t) => t * 1000 % 350 < 250 ? (float)(Math.Sin(2 * Math.PI * 220 * t) * 0.12) + Noise(0.002) : Quiet(t);
+
+            (double? LimitAt, string Settled, string Tail, int Passes, bool SawTail) Drive(Func<double, float> signal, double seconds)
+            {
+                var audio = new System.Collections.Generic.List<float>();
+                double? limitAt = null;
+                string settled = "", tail = "";
+                var passes = 0;
+                var sawTail = false;
+                using var live = new LiveSession(
+                    start => start >= audio.Count ? Array.Empty<float>() : audio.GetRange(start, audio.Count - start).ToArray(),
+                    _ =>
+                    {
+                        passes++;
+                        return System.Threading.Tasks.Task.FromResult("phrase");
+                    });
+                live.SilenceLimitReached += () => limitAt ??= audio.Count / 16000.0;
+                live.DraftChanged += (s, t) =>
+                {
+                    (settled, tail) = (s, t);
+                    sawTail |= s == "" && t == "phrase";
+                };
+                for (var tick = 0; tick < seconds * 10; tick++)
+                {
+                    for (var i = 0; i < 1600; i++) audio.Add(signal(audio.Count / 16000.0));
+                    live.Tick();
+                }
+
+                return (limitAt, settled, tail, passes, sawTail);
+            }
+
+            var quiet = Drive(Quiet, 61);
+            var spoke = Drive(t => t < 3 ? Talk(t) : Quiet(t), 61);
+            var fan = Drive(_ => Noise(0.05), 61);
+            var clicks = Drive(t => t * 1000 % 500 < 15 ? Noise(0.3) : Quiet(t), 61);
+            Assert("live.silence_limit",
+                quiet.LimitAt is >= 59.9 and <= 60.3 && spoke.LimitAt is null && fan.LimitAt is not null && clicks.LimitAt is not null,
+                $"quiet={quiet.LimitAt}, after speech={spoke.LimitAt}, fan={fan.LimitAt}, clicks={clicks.LimitAt}");
+
+            // Two phrases with a pause after each: each shows as a tail first, then settles.
+            // The long silence between them runs no passes (it would take about 30).
+            var phrases = Drive(t => t is < 2 or (>= 20 and < 22) ? Talk(t) : Quiet(t), 25);
+            Assert("live.draft",
+                phrases.Settled == "phrase phrase" && phrases.Tail == "" && phrases.SawTail && phrases.Passes <= 10,
+                $"settled='{phrases.Settled}', tail='{phrases.Tail}', passes={phrases.Passes}, sawTail={phrases.SawTail}");
+            Assert("live.no_speech", Drive(Quiet, 5).Passes == 0 && Drive(_ => Noise(0.05), 5).Passes == 0);
+        }
+
+        // --- live caption: unchanged words stay, settled ones are marked, old ones are let go ---
+        try
+        {
+            var caption = new Ui.LiveCaption();
+            caption.Apply(12.5, 300);
+            caption.Show("", "hello");
+            caption.Show("hello there", "");
+            caption.Show("hello there", "how are");
+            caption.Show("hello there", "how is it");
+            var revised = caption.Shown == "hello there how is it" && caption.SettledShown == 2;
+            caption.Show(string.Join(" ", Enumerable.Range(0, 100).Select(i => $"w{i}")), "tail");
+            var trimmed = caption.Shown.EndsWith("w99 tail") && caption.Shown.Split(' ').Length <= 48;
+            Assert("live.caption", revised && trimmed, caption.Shown);
+        }
+        catch (Exception ex)
+        {
+            Assert("live.caption", false, ex.Message);
+        }
+
         // --- whisper engine: needs the speech runtime and a model in the install folder ---
         if (!SpeechRuntime.IsInstalled || !ModelLibrary.All.Any(model => ModelLibrary.IsPresent(AppPaths.Models, model.Id)))
         {
@@ -424,6 +497,9 @@ internal static class SelfTest
                 Assert("whisper.loaded", whisper.IsLoaded);
                 var text = whisper.TranscribeAsync(new float[16000], default).Result;
                 Assert("whisper.transcribe", text is not null);
+                // A draft of silence stays empty: the live preview must never invent words.
+                var draft = whisper.TranscribeAsync(new float[16000], default, draft: true).Result;
+                Assert("whisper.draft", draft == "", $"Got: {draft}");
             }
             catch (Exception ex)
             {
@@ -532,6 +608,66 @@ internal static class SelfTest
                 .Select(pair => $"{pair.Item1} on {pair.Item2}")
                 .ToList();
             Assert("theme.contrast", weak.Count == 0, string.Join(", ", weak));
+        }
+
+        // --- theme templates: each applies, and every animation in it finds its target ---
+        // A broken name or property path would otherwise only throw when someone hovers or clicks.
+        {
+            var resources = Ui.Theme.Create();
+            System.Windows.Controls.Control Styled(System.Windows.Controls.Control control, string? key)
+            {
+                if (key is not null) control.Style = (System.Windows.Style)resources[key];
+                return control;
+            }
+
+            var controls = new (string Name, System.Windows.Controls.Control Control)[]
+            {
+                ("Button", Styled(new System.Windows.Controls.Button(), null)),
+                ("GhostButton", Styled(new System.Windows.Controls.Button(), "GhostButton")),
+                ("Switch", Styled(new System.Windows.Controls.CheckBox(), null)),
+                ("Chip", Styled(new System.Windows.Controls.CheckBox(), "Chip")),
+                ("Nav", Styled(new System.Windows.Controls.RadioButton(), "Nav")),
+                ("Slider", Styled(new System.Windows.Controls.Slider(), null)),
+            };
+            var host = new System.Windows.Controls.StackPanel { Resources = resources };
+            var broken = new System.Collections.Generic.List<string>();
+            foreach (var (name, control) in controls)
+            {
+                try
+                {
+                    host.Children.Add(control);
+                    if (!control.ApplyTemplate()) throw new InvalidOperationException("no template");
+                    var parts = new System.Collections.Generic.List<(System.Windows.FrameworkElement Owner, System.Windows.FrameworkTemplate Template)> { (control, control.Template) };
+                    if (control is System.Windows.Controls.Slider slider)
+                    {
+                        // The thumb's own template carries the drag animation.
+                        var thumb = ((System.Windows.Controls.Primitives.Track)slider.Template.FindName("PART_Track", slider)).Thumb;
+                        thumb.ApplyTemplate();
+                        parts.Add((thumb, thumb.Template));
+                    }
+
+                    foreach (var (owner, template) in parts)
+                    {
+                        var triggers = template is System.Windows.Controls.ControlTemplate t ? t.Triggers : null;
+                        foreach (var trigger in triggers ?? Enumerable.Empty<System.Windows.TriggerBase>())
+                        {
+                            var actions = trigger is System.Windows.EventTrigger events
+                                ? events.Actions
+                                : trigger.EnterActions.Concat(trigger.ExitActions);
+                            foreach (var begin in actions.OfType<System.Windows.Media.Animation.BeginStoryboard>())
+                            {
+                                begin.Storyboard.Begin(owner, template);
+                            }
+                        }
+                    }
+                }
+                catch (Exception error)
+                {
+                    broken.Add($"{name}: {error.Message}");
+                }
+            }
+
+            Assert("theme.templates", broken.Count == 0, string.Join("; ", broken));
         }
 
         try

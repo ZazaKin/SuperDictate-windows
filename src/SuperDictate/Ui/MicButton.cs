@@ -38,6 +38,7 @@ public sealed class MicButton : Window
     private readonly TextBlock _glyph;
     private readonly Ellipse _ring;
     private readonly ScaleTransform _ringScale = new(1, 1);
+    private readonly ScaleTransform _press = new(1, 1);
 
     private DictationState _state;
     private NativeMethods.POINT _pressedAt;
@@ -97,7 +98,8 @@ public sealed class MicButton : Window
             Child = _glyph,
             Cursor = Cursors.Hand,
         };
-        Content = new Grid { Children = { _ring, shadow, _face } };
+        var body = new Grid { RenderTransformOrigin = new Point(0.5, 0.5), RenderTransform = _press, Children = { shadow, _face } };
+        Content = new Grid { Children = { _ring, body } };
 
         _face.MouseEnter += (_, _) => ShowState(_state);
         _face.MouseLeave += (_, _) => ShowState(_state);
@@ -192,6 +194,7 @@ public sealed class MicButton : Window
         var handle = new WindowInteropHelper(this).Handle;
         if (!NativeMethods.GetCursorPos(out _pressedAt) || !NativeMethods.GetWindowRect(handle, out _windowAtPress)) return;
         _dragging = false;
+        Squeeze(0.92, 90);
         if (_tracking) return;
         _tracking = true;
         CompositionTarget.Rendering += Track;
@@ -205,7 +208,11 @@ public sealed class MicButton : Window
         var dx = cursor.X - _pressedAt.X;
         var dy = cursor.Y - _pressedAt.Y;
 
-        if (!_dragging && (Math.Abs(dx) > DragThreshold || Math.Abs(dy) > DragThreshold)) _dragging = true;
+        if (!_dragging && (Math.Abs(dx) > DragThreshold || Math.Abs(dy) > DragThreshold))
+        {
+            _dragging = true;
+            Squeeze(1, 240);
+        }
         if (_dragging)
         {
             NativeMethods.SetWindowPos(new WindowInteropHelper(this).Handle, IntPtr.Zero,
@@ -215,6 +222,7 @@ public sealed class MicButton : Window
 
         if (held) return;
         EndTracking();
+        Squeeze(1, 240);
 
         if (_dragging)
         {
@@ -225,6 +233,18 @@ public sealed class MicButton : Window
             // Before setup, Toggle doesn't record: it says so and opens the setup page.
             _controller.Toggle(_settings.PressEnterAfterPaste);
         }
+    }
+
+    /// <summary>
+    /// Sinks the button the moment it's pressed and lets it back out on release,
+    /// from whatever size it has on screen. With animations off it just changes size.
+    /// </summary>
+    private void Squeeze(double to, int milliseconds)
+    {
+        var time = SystemParameters.ClientAreaAnimation ? TimeSpan.FromMilliseconds(milliseconds) : TimeSpan.Zero;
+        var scale = new DoubleAnimation(to, time) { EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut } };
+        _press.BeginAnimation(ScaleTransform.ScaleXProperty, scale);
+        _press.BeginAnimation(ScaleTransform.ScaleYProperty, scale);
     }
 
     private void EndTracking()

@@ -196,6 +196,17 @@ public sealed class MicrophoneCapture : IDisposable
         }
     }
 
+    /// <summary>A copy of what has been recorded from sample <paramref name="start"/> on; empty if nothing yet.</summary>
+    public float[] Since(int start)
+    {
+        lock (_gate)
+        {
+            return start >= _samples.Count
+                ? Array.Empty<float>()
+                : System.Runtime.InteropServices.CollectionsMarshal.AsSpan(_samples)[start..].ToArray();
+        }
+    }
+
     public double RecordedSeconds
     {
         get

@@ -164,6 +164,9 @@ def main():
             audio_path = req.get("path")
             lang_hint = req.get("language")
             selected_langs = req.get("selected_languages") or ["en", "ru", "de", "pl"]
+            # A draft feeds the live preview while the user is still talking: it must be
+            # quick, and it must stay empty rather than guess at noise.
+            draft = bool(req.get("draft"))
 
             if not audio_path or not os.path.exists(audio_path):
                 emit(text="", error="Audio file not found")
@@ -240,13 +243,15 @@ def main():
                 temperature=0.0,
                 condition_on_previous_text=False,
                 vad_filter=True,
+                without_timestamps=draft,
             )
 
             pieces = [s.text.strip() for s in segments if s.text.strip()]
             text = " ".join(pieces)
 
-            # Robust fallback: if VAD dropped everything, but audio has audible signal, retry without VAD
-            if not text and isinstance(audio, np.ndarray) and len(audio) > 4000:
+            # Robust fallback: if VAD dropped everything, but audio has audible signal, retry without VAD.
+            # Never for a draft: without VAD, Whisper tends to invent words for room noise.
+            if not text and not draft and isinstance(audio, np.ndarray) and len(audio) > 4000:
                 max_amp = float(np.max(np.abs(audio)))
                 if max_amp > 0.008:
                     segments, _ = model.transcribe(

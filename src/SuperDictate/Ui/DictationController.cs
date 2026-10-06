@@ -35,6 +35,7 @@ public sealed class DictationController : IDisposable
     private readonly object _engineGate = new();
     private int _engineGeneration;
     private Task _micStart = Task.CompletedTask;
+    private LiveSession? _live;
     private bool _disposed;
 
     public string? LastTranscript { get; private set; }
@@ -326,6 +327,7 @@ public sealed class DictationController : IDisposable
             if (task.Exception?.GetBaseException() is not { } ex)
             {
                 AppLogger.Info($"Recording started on: {_mic.CurrentDeviceName ?? "Default"} (ID: {_mic.CurrentDeviceId})");
+                if (State == DictationState.Recording) StartLive(); // Not if a quick stop already ended it.
                 return;
             }
 
@@ -337,7 +339,36 @@ public sealed class DictationController : IDisposable
         }), TaskScheduler.Default);
     }
 
-    private async Task FinishAsync(bool pressEnter)
+    /// <summary>
+    /// The live side of the recording: drafts of what's said so far go to the
+    /// capsule, and a minute without speech finishes the dictation on its own.
+    /// </summary>
+    private void StartLive()
+    {
+        LiveSession live = null!;
+        live = new LiveSession(_mic.Since, samples => _engine.TranscribeAsync(samples, _cts.Token, draft: true));
+        live.DraftChanged += (settled, tail) => _dispatcher.BeginInvoke(() =>
+        {
+            if (_live == live) _overlay.ShowDraft(settled, tail);
+        });
+        live.SilenceLimitReached += () => _dispatcher.BeginInvoke(() =>
+        {
+            if (_live != live || State != DictationState.Recording) return;
+            AppLogger.Info("No speech for a minute: finishing the dictation.");
+            // Nobody may be watching, so it pastes but never presses Enter.
+            _ = FinishAsync(pressEnter: false, "No speech for a minute");
+        });
+        _live = live;
+        live.Start();
+    }
+
+    private void StopLive()
+    {
+        _live?.Stop();
+        _live = null;
+    }
+
+    private async Task FinishAsync(bool pressEnter, string status = "Processing…")
     {
         // A stop pressed while the microphone is still opening waits for it.
         try
@@ -357,8 +388,10 @@ public sealed class DictationController : IDisposable
             return;
         }
 
+        // The draft on screen stays while the whole recording is transcribed again.
+        StopLive();
         State = DictationState.Transcribing;
-        _overlay.SetState(OverlayState.Transcribing, "Processing…");
+        _overlay.SetState(OverlayState.Transcribing, status);
 
         var samples = _mic.Stop();
         var duration = (double)samples.Length / MicrophoneCapture.TargetSampleRate;
@@ -496,6 +529,7 @@ public sealed class DictationController : IDisposable
         _hook.Released -= OnHotkeyReleased;
         _mic.LevelChanged -= OnLevel;
 
+        StopLive();
         _hook.Dispose();
         _mic.Dispose();
         _engine.Dispose();

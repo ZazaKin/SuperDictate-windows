@@ -138,19 +138,16 @@ public sealed class WhisperSpeechEngine : ISpeechEngine
         }
     }
 
-    public async Task<string> TranscribeAsync(float[] samples, CancellationToken cancellationToken)
+    public async Task<string> TranscribeAsync(float[] samples, CancellationToken cancellationToken, bool draft = false)
     {
         if (samples.Length == 0) return string.Empty;
 
         await _lock.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            if (!IsLoaded)
-            {
-                await LoadAsync(cancellationToken).ConfigureAwait(false);
-            }
-
-            if (_process is null || _process.HasExited || _stdin is null || _stdout is null)
+            // No reload from here: LoadAsync takes this same lock, so it would wait forever.
+            // A crashed worker fails the call, and the next dictation restarts the engine.
+            if (!IsLoaded || _process is null || _stdin is null || _stdout is null)
             {
                 throw new InvalidOperationException("Speech worker process is not running.");
             }
@@ -170,6 +167,7 @@ public sealed class WhisperSpeechEngine : ISpeechEngine
                     path = tempAudioPath,
                     language = _preferredLanguage == "auto" ? null : _preferredLanguage,
                     selected_languages = _selectedLanguages,
+                    draft,
                 };
                 var requestJson = JsonSerializer.Serialize(request);
 
