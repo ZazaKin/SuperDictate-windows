@@ -45,8 +45,9 @@ final class DictationModel {
     @ObservationIgnored private var welcome: WelcomeWindow?
     @ObservationIgnored private var noticeTimer: Task<Void, Never>?
 
-    init(history: History = History()) {
-        self.history = history
+    /// - Parameter history: Left out, the history on disk.
+    init(history: History? = nil) {
+        self.history = history ?? History()
     }
 
     var isModelReady: Bool { [.ready, .recording, .processing].contains(phase) }

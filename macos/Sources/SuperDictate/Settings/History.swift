@@ -28,7 +28,7 @@ final class History {
         }
     }
 
-    static var defaultFile: URL {
+    nonisolated static var defaultFile: URL {
         let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
         let folder = support.appendingPathComponent("SuperDictate", isDirectory: true)
         try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
