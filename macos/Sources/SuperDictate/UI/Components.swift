@@ -79,6 +79,7 @@ struct Footnote: View {
         Text(text)
             .font(.callout)
             .foregroundStyle(.secondary)
+            .multilineTextAlignment(.leading)
             .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
