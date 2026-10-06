@@ -1,0 +1,42 @@
+# Builds and tests the Mac app on GitHub's Apple Silicon runners whenever the
+# macos/ folder changes. The unsigned app is kept for a week as a download.
+name: macOS app
+
+on:
+  push:
+    paths: ["macos/**", ".github/workflows/macos.yml"]
+  pull_request:
+    paths: ["macos/**", ".github/workflows/macos.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: macos-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: macos-15
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Toolchain
+        run: |
+          sw_vers
+          xcodebuild -version
+          swift --version
+
+      - name: Test
+        run: swift test --package-path macos
+
+      - name: Build the app
+        run: bash macos/scripts/build-app.sh "$RUNNER_TEMP/SuperDictate.app"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SuperDictate-macOS
+          path: ${{ runner.temp }}/SuperDictate-macOS.zip
+          retention-days: 7

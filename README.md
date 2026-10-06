@@ -8,7 +8,8 @@ Private dictation for any Windows app: press a hotkey or the floating
 microphone button, speak, and the text appears where your cursor is. Speech is
 recognized on your PC with faster-whisper; your voice never leaves it.
 
-This is the Windows edition; the macOS version lives in its own repository.
+This is the Windows edition. The Mac version, for Apple Silicon, is in
+[`macos/`](macos/README.md).
 
 ## Install in a minute
 

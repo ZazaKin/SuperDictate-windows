@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!--
+	  Microphone access under the Hardened Runtime. macOS checks
+	  audio-input before the app can appear in Privacy & Security ›
+	  Microphone; the sandbox key is kept as a fallback for older
+	  releases, as in the original Mac app. Nothing else: every key
+	  here widens what the app may do.
+	-->
+	<key>com.apple.security.device.audio-input</key>
+	<true/>
+	<key>com.apple.security.device.microphone</key>
+	<true/>
+</dict>
+</plist>

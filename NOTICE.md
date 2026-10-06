@@ -17,6 +17,16 @@ app's settings:
   [mobiuslabsgmbh/faster-whisper-large-v3-turbo](https://huggingface.co/mobiuslabsgmbh/faster-whisper-large-v3-turbo):
   MIT license.
 
+## Mac version (`macos/`)
+
+- [FluidAudio](https://github.com/FluidInference/FluidAudio): Apache 2.0,
+  built into the app.
+- Speech model, downloaded in the app:
+  [NVIDIA Parakeet TDT 0.6B v3](https://huggingface.co/nvidia/parakeet-tdt-0.6b-v3)
+  in the Core ML conversion
+  [FluidInference/parakeet-tdt-0.6b-v3-coreml](https://huggingface.co/FluidInference/parakeet-tdt-0.6b-v3-coreml),
+  under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
+
 ## Libraries
 
 - [NAudio](https://github.com/naudio/NAudio): MIT, built into the exe.
