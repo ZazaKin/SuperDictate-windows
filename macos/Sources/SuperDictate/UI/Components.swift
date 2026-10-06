@@ -66,3 +66,19 @@ struct PermissionRow: View {
         .animation(.spring(duration: 0.35, bounce: 0), value: granted)
     }
 }
+
+/// A section's footnote, as in System Settings: secondary text, aligned with the rows above it.
+struct Footnote: View {
+    let text: String
+
+    init(_ text: String) {
+        self.text = text
+    }
+
+    var body: some View {
+        Text(text)
+            .font(.callout)
+            .foregroundStyle(.secondary)
+            .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}

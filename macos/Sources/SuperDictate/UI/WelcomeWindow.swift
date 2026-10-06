@@ -97,7 +97,7 @@ private struct ModelRow: View {
                 IconTile(symbol: "waveform", color: .purple)
                 VStack(alignment: .leading, spacing: 1) {
                     Text("Speech Model")
-                    Text("About 460 MB, downloaded once. Then it all works offline.")
+                    Text("About 460 MB, downloaded once.")
                         .font(.callout)
                         .foregroundStyle(.secondary)
                 }

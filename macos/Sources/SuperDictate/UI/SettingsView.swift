@@ -45,7 +45,7 @@ struct GeneralPane: View {
                     }
                 Toggle("Play sounds", isOn: $playSounds)
             } footer: {
-                Text("A soft sound when dictation starts and stops.")
+                Footnote("A soft sound when dictation starts and stops.")
             }
 
             Section {
@@ -55,7 +55,7 @@ struct GeneralPane: View {
             } header: {
                 Text("Permissions")
             } footer: {
-                Text("Your voice is recognized on this Mac and never sent anywhere.")
+                Footnote("Your voice is recognized on this Mac and never sent anywhere.")
             }
         }
         .formStyle(.grouped)
@@ -85,7 +85,7 @@ struct DictationPane: View {
             } header: {
                 Text("Shortcut")
             } footer: {
-                Text("Press Escape while dictating to cancel.")
+                Footnote("Press Escape while dictating to cancel.")
             }
 
             Section {
@@ -93,7 +93,7 @@ struct DictationPane: View {
                     ForEach(DictationLanguage.allCases) { Text($0.title).tag($0) }
                 }
             } footer: {
-                Text("Automatic works across 25 European languages. Choose one if short phrases come out in the wrong alphabet.")
+                Footnote("Automatic works across 25 European languages. Choose one if short phrases come out in the wrong alphabet.")
             }
 
             Section {
@@ -102,7 +102,7 @@ struct DictationPane: View {
             } header: {
                 Text("While You Speak")
             } footer: {
-                Text("The preview is a quick draft. When you finish, the whole recording is transcribed again, so the typed text can be a little better.")
+                Footnote("The preview is a quick draft. When you finish, the whole recording is transcribed again, so the typed text can be a little better.")
             }
 
             Section {
@@ -110,7 +110,7 @@ struct DictationPane: View {
             } header: {
                 Text("When You Finish")
             } footer: {
-                Text("Sends a chat message right away. Never when dictation stopped by itself.")
+                Footnote("Sends a chat message right away. Never when dictation stopped by itself.")
             }
         }
         .formStyle(.grouped)
@@ -160,7 +160,7 @@ struct ModelPane: View {
                     .disabled(!SpeechRecognizer.isDownloaded)
                 }
             } footer: {
-                Text("The model comes from Hugging Face. After that, dictation works without the internet.")
+                Footnote("The model comes from Hugging Face. After that, dictation works without the internet.")
             }
         }
         .formStyle(.grouped)
