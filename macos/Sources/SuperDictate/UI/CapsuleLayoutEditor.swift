@@ -89,7 +89,7 @@ struct CapsuleLayoutView: View {
             Color.black.opacity(0.55)
             GuideLines(area: area, lit: guides, dragging: grab != nil)
 
-            Capsule(style: .continuous)
+            Capsule()
                 .strokeBorder(.white.opacity(0.5), style: StrokeStyle(lineWidth: 1.5, dash: [4, 3]))
                 .frame(width: reach.width, height: reach.height)
                 .offset(x: reach.minX, y: reach.minY)

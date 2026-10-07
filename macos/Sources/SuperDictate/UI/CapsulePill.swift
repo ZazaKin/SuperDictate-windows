@@ -126,9 +126,10 @@ struct CapsulePill: View {
         .foregroundStyle(Color(skin.text))
         .padding(.horizontal, 18 * scale)
         .frame(minWidth: CapsuleStyle.narrowest * scale, minHeight: CapsuleStyle.height * scale)
+        // Circular ends: a continuous capsule leaves marks at its ends once its rim shows.
         .background(LinearGradient(colors: [Color(skin.fill), Color(skin.fillEnd)], startPoint: .top, endPoint: .bottom),
-                    in: Capsule(style: .continuous))
-        .overlay(Capsule(style: .continuous).strokeBorder(rim, lineWidth: skin.borderWidth))
+                    in: Capsule())
+        .overlay(Capsule().strokeBorder(rim, lineWidth: skin.borderWidth))
         // A see-through skin would show its own shadow through itself; it floats on its rim instead.
         .shadow(color: .black.opacity(skin.isTranslucent ? 0 : 0.3), radius: 16 * scale, y: 6 * scale)
         .opacity(style.opacity)
