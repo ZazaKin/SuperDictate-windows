@@ -5,8 +5,9 @@
 // Apple Neural Engine through FluidAudio. macOS 14 (Sonoma) or newer.
 //
 // SuperDictateCore holds the logic that needs no Mac frameworks (the rules of
-// a dictation, the live preview, voice detection, the caption model), so its tests run anywhere
-// Swift does. The app target adds audio, speech, input and the interface.
+// a dictation, the live preview, voice detection, the caption model), so its
+// tests run anywhere Swift does. The app target adds audio, speech, input and
+// the interface.
 import PackageDescription
 
 let package = Package(

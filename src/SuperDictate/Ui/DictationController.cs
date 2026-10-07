@@ -8,6 +8,7 @@ using SuperDictate.Audio;
 using SuperDictate.Input;
 using SuperDictate.Speech;
 using SuperDictate.Storage;
+using static SuperDictate.Ui.DictationSession;
 
 namespace SuperDictate.Ui;
 
@@ -15,7 +16,8 @@ public sealed record DictationResultArgs(string Text, double DurationSeconds, st
 
 /// <summary>
 /// Orchestrates the full dictation pipeline: keyboard hook → mic capture →
-/// speech engine → text injection. All UI callbacks are dispatched on the
+/// speech engine → text injection. The rules are <see cref="DictationSession"/>'s;
+/// this carries out what it asks for. All UI callbacks are dispatched on the
 /// WPF dispatcher thread.
 /// </summary>
 public sealed class DictationController : IDisposable
@@ -28,14 +30,14 @@ public sealed class DictationController : IDisposable
     private readonly Dispatcher _dispatcher;
     private readonly CancellationTokenSource _cts = new();
 
-    private DictationState _state = DictationState.Loading;
+    private readonly DictationSession _session = new();
 
     // Engine restarts can overlap (a save while the engine still loads); only the newest
     // one may install its engine, so the engine in use is never one already disposed.
     private readonly object _engineGate = new();
     private int _engineGeneration;
-    private Task _micStart = Task.CompletedTask;
     private LiveSession? _live;
+    private float[] _recorded = Array.Empty<float>();
     private bool _disposed;
 
     public string? LastTranscript { get; private set; }
@@ -103,17 +105,7 @@ public sealed class DictationController : IDisposable
 
     public event EventHandler<DictationState>? StateChanged;
 
-    public DictationState State
-    {
-        get => _state;
-        private set
-        {
-            if (_state == value) return;
-            _state = value;
-            AppLogger.Info($"DictationState -> {value}");
-            StateChanged?.Invoke(this, value);
-        }
-    }
+    public DictationState State => _session.State;
 
     public void Start()
     {
@@ -138,41 +130,7 @@ public sealed class DictationController : IDisposable
         _micButton.ShowAtSavedSpot();
     }
 
-    public void Toggle(bool pressEnter)
-    {
-        if (State == DictationState.Recording)
-        {
-            _ = FinishAsync(pressEnter);
-            return;
-        }
-
-        // Nothing records until the speech runtime and the chosen model are in place.
-        if (!IsSetUp)
-        {
-            State = DictationState.NeedsSetup;
-            _overlay.Notify("Finish setup in Settings");
-            SetupNeeded?.Invoke(this, EventArgs.Empty);
-            return;
-        }
-
-        if (State == DictationState.NeedsSetup)
-        {
-            RestartEngine(); // Setup just finished outside the app's own buttons.
-        }
-        else if (State is DictationState.Ready or DictationState.Error)
-        {
-            // Don't let the user talk into a recording nothing can transcribe. A reload
-            // recovers a crashed worker; with no model it just reports Error again.
-            if (!_engine.IsLoaded)
-            {
-                _overlay.Notify("Speech model unavailable");
-                RestartEngine();
-                return;
-            }
-
-            StartRecording();
-        }
-    }
+    public void Toggle(bool pressEnter) => Send(new Event.Toggle(pressEnter, IsSetUp, _engine.IsLoaded));
 
     /// <summary>
     /// Installs the speech runtime (and optionally the GPU pack); the engine then
@@ -183,10 +141,7 @@ public sealed class DictationController : IDisposable
         var install = RuntimeInstall.Start(includeGpu);
         _ = install.Finished.ContinueWith(task => _dispatcher.BeginInvoke(() =>
         {
-            if (task.Result is null && State is DictationState.Ready or DictationState.Error or DictationState.NeedsSetup)
-            {
-                RestartEngine();
-            }
+            if (task.Result is null) Send(new Event.Installed(IsSetUp));
         }), TaskScheduler.Default);
         return install;
     }
@@ -201,10 +156,7 @@ public sealed class DictationController : IDisposable
         _ = download.Finished.ContinueWith(task => _dispatcher.BeginInvoke(() =>
         {
             AppLogger.Info(task.Result is null ? $"Downloaded {model.Id}" : $"Download of {model.Id} ended: {task.Result}");
-            if (task.Result is null && model.Id == _settings.ModelId && State is DictationState.Ready or DictationState.Error or DictationState.NeedsSetup)
-            {
-                RestartEngine();
-            }
+            if (task.Result is null && model.Id == _settings.ModelId) Send(new Event.Installed(IsSetUp));
         }), TaskScheduler.Default);
         return download;
     }
@@ -213,7 +165,7 @@ public sealed class DictationController : IDisposable
     public void ShowHistory()
     {
         // While dictating, the capsule shows the recording; the copy still happens silently.
-        var busy = State is DictationState.Recording or DictationState.Transcribing;
+        var busy = _session.IsBusy;
         var entries = HistoryStore.Recent(1);
         if (entries.Count == 0)
         {
@@ -240,13 +192,9 @@ public sealed class DictationController : IDisposable
     /// Shows the capsule on screen as a live sample for the Capsule settings page,
     /// unless it is showing a dictation; ApplyCapsule then changes it in place.
     /// </summary>
-    public void StageCapsule()
-    {
-        if (State is DictationState.Recording or DictationState.Transcribing) return;
-        _overlay.BeginStage();
-    }
+    public void StageCapsule() => Send(new Event.Sample(true));
 
-    public void UnstageCapsule() => _overlay.EndStage();
+    public void UnstageCapsule() => Send(new Event.Sample(false));
 
     /// <param name="restartEngine">Only when language or model changed: a reload takes seconds.</param>
     public void ApplySettings(Settings newSettings, bool restartEngine = true)
@@ -268,16 +216,42 @@ public sealed class DictationController : IDisposable
         if (restartEngine) RestartEngine();
     }
 
-    public void RestartEngine()
+    public void RestartEngine() => Send(new Event.LoadEngine(IsSetUp));
+
+    private void Send(Event happened)
     {
-        var generation = Interlocked.Increment(ref _engineGeneration);
-        if (!IsSetUp)
+        var before = _session.State;
+        var effects = _session.Handle(happened);
+        if (_session.State != before)
         {
-            State = DictationState.NeedsSetup;
-            return;
+            AppLogger.Info($"DictationState -> {_session.State}");
+            StateChanged?.Invoke(this, _session.State);
         }
 
-        State = DictationState.Loading;
+        foreach (var effect in effects)
+        {
+            switch (effect)
+            {
+                case Effect.LoadEngine: LoadEngine(); break;
+                case Effect.ShowSetup: SetupNeeded?.Invoke(this, EventArgs.Empty); break;
+                case Effect.Notice(var text): _overlay.Notify(text); break;
+                case Effect.Record: Record(); break;
+                case Effect.StartLive: StartLive(); break;
+                case Effect.StopRecording(var status): StopRecording(status); break;
+                case Effect.Transcribe: _ = TranscribeAsync(); break;
+                case Effect.Deliver deliver: _ = DeliverAsync(deliver); break;
+                case Effect.Failed(var error, var seconds):
+                    DictationCompleted?.Invoke(this, new DictationResultArgs("", seconds, _engine.ModelId, error));
+                    break;
+                case Effect.StartSample: _overlay.BeginStage(); break;
+                case Effect.StopSample: _overlay.EndStage(); break;
+            }
+        }
+    }
+
+    private void LoadEngine()
+    {
+        var generation = Interlocked.Increment(ref _engineGeneration);
         _ = Task.Run(async () =>
         {
             // A failed load keeps the previous engine and reports Error. The stub engine
@@ -291,7 +265,7 @@ public sealed class DictationController : IDisposable
             {
                 newEngine.Dispose();
                 AppLogger.Error("Engine load failed", ex);
-                if (generation == Volatile.Read(ref _engineGeneration)) _dispatcher.Invoke(() => State = DictationState.Error);
+                if (generation == Volatile.Read(ref _engineGeneration)) _dispatcher.Invoke(() => Send(new Event.EngineFailed()));
                 return;
             }
 
@@ -307,40 +281,34 @@ public sealed class DictationController : IDisposable
 
             if (replaced is null)
             {
-                newEngine.Dispose(); // A newer restart has taken over.
+                newEngine.Dispose(); // A newer load has taken over.
                 return;
             }
 
             replaced.Dispose();
-            _dispatcher.Invoke(() => State = DictationState.Ready);
+            _dispatcher.Invoke(() => Send(new Event.EngineLoaded()));
         });
     }
 
-    private void StartRecording()
+    private void Record()
     {
-        State = DictationState.Recording;
         _overlay.SetState(OverlayState.Recording, "Listening…");
 
         // Opening the microphone takes about half a second on some devices. Off the UI
         // thread, the capsule appears at once instead of after it, so a press never
-        // looks ignored. FinishAsync waits for this before stopping.
+        // looks ignored. A stop pressed meanwhile waits for it (DictationSession).
         var deviceId = _settings.MicrophoneId;
-        var opening = Task.Run(() => _mic.Start(deviceId));
-        _micStart = opening;
-        _ = opening.ContinueWith(task => _dispatcher.BeginInvoke(() =>
+        _ = Task.Run(() => _mic.Start(deviceId)).ContinueWith(task => _dispatcher.BeginInvoke(() =>
         {
-            if (task.Exception?.GetBaseException() is not { } ex)
+            if (task.Exception?.GetBaseException() is { } ex)
             {
-                AppLogger.Info($"Recording started on: {_mic.CurrentDeviceName ?? "Default"} (ID: {_mic.CurrentDeviceId})");
-                if (State == DictationState.Recording) StartLive(); // Not if a quick stop already ended it.
+                AppLogger.Error("Failed to start microphone capture", ex);
+                Send(new Event.MicrophoneFailed(ex.Message));
                 return;
             }
 
-            AppLogger.Error("Failed to start microphone capture", ex);
-            if (State != DictationState.Recording) return; // Already stopped; FinishAsync bailed out.
-            _overlay.Notify("Microphone unavailable");
-            State = DictationState.Error;
-            DictationCompleted?.Invoke(this, new DictationResultArgs("", 0, _engine.ModelId, $"Microphone error: {ex.Message}"));
+            AppLogger.Info($"Recording started on: {_mic.CurrentDeviceName ?? "Default"} (ID: {_mic.CurrentDeviceId})");
+            Send(new Event.MicrophoneOpened());
         }), TaskScheduler.Default);
     }
 
@@ -359,10 +327,9 @@ public sealed class DictationController : IDisposable
         });
         live.SilenceLimitReached += () => _dispatcher.BeginInvoke(() =>
         {
-            if (_live != live || State != DictationState.Recording) return;
+            if (_live != live) return;
             AppLogger.Info("No speech for a minute: finishing the dictation.");
-            // Nobody may be watching, so it pastes but never presses Enter.
-            _ = FinishAsync(pressEnter: false, "No speech for a minute");
+            Send(new Event.SilenceLimit());
         });
         _live = live;
         live.Start();
@@ -374,29 +341,10 @@ public sealed class DictationController : IDisposable
         _live = null;
     }
 
-    private async Task FinishAsync(bool pressEnter, string status = "Processing…")
+    private void StopRecording(string status)
     {
-        // A stop pressed while the microphone is still opening waits for it.
-        try
-        {
-            await _micStart;
-        }
-        catch
-        {
-            // The open failed. Whichever notices first, this or StartRecording's
-            // continuation, reports it; the other sees Error and stays quiet.
-            if (State == DictationState.Recording)
-            {
-                _overlay.Notify("Microphone unavailable");
-                State = DictationState.Error;
-            }
-
-            return;
-        }
-
         // The draft on screen stays while the whole recording is transcribed again.
         StopLive();
-        State = DictationState.Transcribing;
         _overlay.SetState(OverlayState.Transcribing, status);
 
         var samples = _mic.Stop();
@@ -404,79 +352,71 @@ public sealed class DictationController : IDisposable
         var maxAmp = samples.Length > 0 ? samples.Max(Math.Abs) : 0f;
         var rms = samples.Length > 0 ? Math.Sqrt(samples.Average(s => s * s)) : 0.0;
         AppLogger.Info($"Recording stopped: {samples.Length} samples ({duration:0.00}s), Peak: {maxAmp:F4}, RMS: {rms:F4}");
+        if (samples.Length == 0) AppLogger.Warn("Microphone returned 0 samples. Audio buffer was empty.");
 
-        if (samples.Length == 0)
-        {
-            AppLogger.Warn("Microphone returned 0 samples. Audio buffer was empty.");
-            _overlay.Notify("No audio recorded");
-            State = DictationState.Ready;
-            DictationCompleted?.Invoke(this, new DictationResultArgs("", 0, _engine.ModelId, "No audio recorded (0 samples)."));
-            return;
-        }
+        _recorded = samples;
+        Send(new Event.Recorded(duration));
+    }
 
+    /// <summary>Runs on the dispatcher; the awaits come back to it.</summary>
+    private async Task TranscribeAsync()
+    {
+        var samples = _recorded;
+        _recorded = Array.Empty<float>();
         try
         {
             var sw = Stopwatch.StartNew();
-            var text = await _engine.TranscribeAsync(samples, _cts.Token).ConfigureAwait(false);
+            var text = await _engine.TranscribeAsync(samples, _cts.Token);
             sw.Stop();
             // Logs never hold what was said: lengths and timings only.
             AppLogger.Info($"Speech engine ({_engine.ModelId}) transcribed in {sw.ElapsedMilliseconds}ms: {text.Length} characters");
 
-            if (string.IsNullOrWhiteSpace(text))
-            {
-                AppLogger.Warn($"No speech recognized from {duration:0.00}s of audio (peak: {maxAmp:F4}).");
-
-                // The notice hides itself, so the next dictation can start right away.
-                await _dispatcher.InvokeAsync(() =>
-                {
-                    _overlay.Notify("No speech detected");
-                    State = DictationState.Ready;
-                    DictationCompleted?.Invoke(this, new DictationResultArgs("", duration, _engine.ModelId, "No speech recognized."));
-                });
-                return;
-            }
-
-            if (_settings.AiCleanupEnabled)
+            if (_settings.AiCleanupEnabled && !string.IsNullOrWhiteSpace(text))
             {
                 var cleanSw = Stopwatch.StartNew();
-                text = await Speech.AiCleanupService.CleanAsync(text, _settings, _cts.Token).ConfigureAwait(false);
+                text = await Speech.AiCleanupService.CleanAsync(text, _settings, _cts.Token);
                 cleanSw.Stop();
                 AppLogger.Info($"AI Cleanup completed in {cleanSw.ElapsedMilliseconds}ms: {text.Length} characters");
             }
 
-            await _dispatcher.InvokeAsync(async () =>
-            {
-                _overlay.SetState(OverlayState.Hidden, "");
-
-                // Collect held hotkey modifiers so they can be released
-                // before the paste chord to avoid ghost modifiers.
-                var held = _hook.Suspended ? Array.Empty<int>() :
-                    new[] { 0xA0, 0xA1, 0xA2, 0xA3, 0xA4, 0xA5 }
-                        .Where(IsKeyDown)
-                        .ToArray();
-
-                AppLogger.Info($"Injecting {text.Length} characters into active application...");
-                await TextInjector.PasteAsync(text, pressEnter, held);
-
-                HistoryStore.Append(new HistoryEntry(
-                    DateTimeOffset.UtcNow, text, duration, _engine.ModelId));
-                AppLogger.Info("History entry appended successfully.");
-
-                LastTranscript = text;
-                DictationCompleted?.Invoke(this, new DictationResultArgs(text, duration, _engine.ModelId, null));
-
-                State = DictationState.Ready;
-            });
+            if (string.IsNullOrWhiteSpace(text)) AppLogger.Warn($"No speech recognized from {samples.Length / (double)MicrophoneCapture.TargetSampleRate:0.00}s of audio.");
+            Send(new Event.Transcribed(text));
         }
         catch (Exception ex)
         {
             AppLogger.Error("Dictation processing exception", ex);
-            _dispatcher.Invoke(() =>
-            {
-                _overlay.Notify("Transcription failed");
-                State = DictationState.Error;
-                DictationCompleted?.Invoke(this, new DictationResultArgs("", duration, _engine.ModelId, ex.Message));
-            });
+            Send(new Event.TranscriptionFailed(ex.Message));
+        }
+    }
+
+    private async Task DeliverAsync(Effect.Deliver deliver)
+    {
+        try
+        {
+            _overlay.SetState(OverlayState.Hidden, "");
+
+            // Collect held hotkey modifiers so they can be released
+            // before the paste chord to avoid ghost modifiers.
+            var held = _hook.Suspended ? Array.Empty<int>() :
+                new[] { 0xA0, 0xA1, 0xA2, 0xA3, 0xA4, 0xA5 }
+                    .Where(IsKeyDown)
+                    .ToArray();
+
+            AppLogger.Info($"Injecting {deliver.Text.Length} characters into active application...");
+            await TextInjector.PasteAsync(deliver.Text, deliver.PressEnter, held);
+
+            HistoryStore.Append(new HistoryEntry(
+                DateTimeOffset.UtcNow, deliver.Text, deliver.Seconds, _engine.ModelId));
+            AppLogger.Info("History entry appended successfully.");
+
+            LastTranscript = deliver.Text;
+            DictationCompleted?.Invoke(this, new DictationResultArgs(deliver.Text, deliver.Seconds, _engine.ModelId, null));
+            Send(new Event.Delivered());
+        }
+        catch (Exception ex)
+        {
+            AppLogger.Error("Dictation processing exception", ex);
+            Send(new Event.TranscriptionFailed(ex.Message));
         }
     }
 
@@ -489,10 +429,7 @@ public sealed class DictationController : IDisposable
                 Toggle(_settings.PressEnterAfterPaste);
                 break;
             case HotkeyKind.Alternate:
-                if (State == DictationState.Recording)
-                {
-                    _ = FinishAsync(!_settings.PressEnterAfterPaste);
-                }
+                Send(new Event.Finish(!_settings.PressEnterAfterPaste));
                 break;
             case HotkeyKind.History:
                 ShowHistory();
@@ -505,7 +442,7 @@ public sealed class DictationController : IDisposable
         if (_settings.PressAndHold && kind == HotkeyKind.Primary && State == DictationState.Recording)
         {
             AppLogger.Info($"Hotkey released in HoldMode: finishing dictation.");
-            _ = FinishAsync(_settings.PressEnterAfterPaste);
+            Send(new Event.Finish(_settings.PressEnterAfterPaste));
         }
     }
 
