@@ -31,12 +31,12 @@ It is the same app as SuperDictate for Windows, made the Mac way:
 
 ## Install
 
-**From GitHub.** Every change to `macos/` is built automatically: open
-[Actions › macOS app](https://github.com/ZazaKin/SuperDictate-windows/actions/workflows/macos.yml),
-pick the latest successful run and download **SuperDictate-macOS**. Unzip it
-and move SuperDictate to Applications.
+**Download.** From the [latest release](https://github.com/ZazaKin/SuperDictate-windows/releases/latest),
+download `SuperDictate-macOS-<version>.zip`. Unzip it and move SuperDictate to
+Applications. Every change to `macos/` is also built automatically, under
+[Actions › macOS app](https://github.com/ZazaKin/SuperDictate-windows/actions/workflows/macos.yml).
 
-These builds aren't notarized by Apple yet. The first time, right-click
+The app isn't notarized by Apple yet. The first time, right-click
 SuperDictate in Applications, choose **Open**, then **Open** again. If macOS
 still refuses, open **System Settings › Privacy & Security** and click
 **Open Anyway**.
