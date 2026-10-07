@@ -153,25 +153,37 @@ struct CapsulePill: View {
 }
 
 /// The capsule's body: the skin's fill and rim. A Liquid Glass skin is Apple's
-/// own glass on macOS 26 and later, tinted with the skin's fill; before that it
-/// is painted as on Windows, over a blur of whatever is behind it.
+/// own glass on macOS 26 and later, in its dark variant so the white words read
+/// over anything; before that it is painted as on Windows, over a blur of
+/// whatever is behind it.
 private struct CapsuleSurface: ViewModifier {
     let style: CapsuleStyle
     let rim: AnyShapeStyle
+    @Environment(\.paintsGlass) private var paintsGlass
 
     func body(content: Content) -> some View {
         if style.skin.isGlass {
-            if #available(macOS 26, *) {
-                content.glassEffect(.regular.tint(Color(style.skin.fill)), in: Capsule())
+            if paintsGlass {
+                paintedGlass(content)
             } else {
-                painted(content)
-                    .background(.ultraThinMaterial, in: Capsule())
+                if #available(macOS 26, *) {
+                    content
+                        .glassEffect(.regular, in: Capsule())
+                        .environment(\.colorScheme, .dark)
+                } else {
+                    paintedGlass(content)
+                }
             }
         } else {
             painted(content)
                 // A see-through skin would show its own shadow through itself; it floats on its rim instead.
                 .shadow(color: .black.opacity(style.skin.isTranslucent ? 0 : 0.3), radius: 16 * style.scale, y: 6 * style.scale)
         }
+    }
+
+    private func paintedGlass(_ content: Content) -> some View {
+        painted(content)
+            .background(.ultraThinMaterial, in: Capsule())
     }
 
     private func painted(_ content: Content) -> some View {
@@ -200,6 +212,19 @@ private struct CapsuleRim: Shape {
         var path = Capsule().path(in: rect)
         path.addPath(Capsule().path(in: rect.insetBy(dx: width, dy: width)))
         return path
+    }
+}
+
+private struct PaintsGlass: EnvironmentKey {
+    static let defaultValue = false
+}
+
+extension EnvironmentValues {
+    /// Liquid Glass drawn as the recreation even where real glass exists: for the
+    /// snapshot pictures, since glass is drawn by the window server, not in a file.
+    var paintsGlass: Bool {
+        get { self[PaintsGlass.self] }
+        set { self[PaintsGlass.self] = newValue }
     }
 }
 

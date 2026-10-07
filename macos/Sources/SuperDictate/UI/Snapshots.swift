@@ -127,7 +127,9 @@ enum Snapshots {
     }
 
     private static func write<V: View>(_ view: V, to file: URL, appearance: NSAppearance.Name) {
-        let host = NSHostingView(rootView: view.background(Color(nsColor: .windowBackgroundColor)))
+        let host = NSHostingView(rootView: view
+            .environment(\.paintsGlass, true)
+            .background(Color(nsColor: .windowBackgroundColor)))
         let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 600, height: 600),
                               styleMask: [.borderless], backing: .buffered, defer: false)
         window.appearance = NSAppearance(named: appearance)
