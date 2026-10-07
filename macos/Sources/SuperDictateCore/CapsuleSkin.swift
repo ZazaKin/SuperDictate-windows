@@ -53,6 +53,8 @@ public struct CapsuleSkin: Identifiable, Equatable, Sendable {
         case accent
         /// From the accent through violet to teal.
         case rainbow
+        /// Catching the light at the top and bottom, as glass does.
+        case glass
     }
 
     public let id: String
@@ -83,9 +85,16 @@ public struct CapsuleSkin: Identifiable, Equatable, Sendable {
     /// The fill shows what's behind it, so it gets no shadow.
     public var isTranslucent: Bool { fill.alpha < 255 }
 
+    /// Liquid Glass: the real thing on macOS 26 and later, its fill the tint.
+    public var isGlass: Bool { rim == .glass }
+
     public static let all = [
         // The original: near-black with a hairline, readable over anything.
         CapsuleSkin("midnight", "Midnight", fill: RGBA(0x18181C), border: RGBA(0xFFFFFF, alpha: 40), muted: RGBA(0xB4B4BE)),
+        // Apple's Liquid Glass. Before macOS 26, and on Windows, a recreation: smoky
+        // see-through glass, a rim that catches the light, a sheen across the top.
+        CapsuleSkin("liquid", "Liquid Glass", fill: RGBA(0x161A24, alpha: 120), fillEnd: RGBA(0x0E1018, alpha: 165),
+                    border: .white, borderWidth: 1.2, muted: RGBA(0xD8DCE4), rim: .glass),
         // Brushed dark grey, lit slightly from above.
         CapsuleSkin("graphite", "Graphite", fill: RGBA(0x3A3D44), fillEnd: RGBA(0x25272C), border: RGBA(0xFFFFFF, alpha: 26),
                     muted: RGBA(0xC6C9D0)),

@@ -23,6 +23,13 @@ internal static class Program
             return SelfTest.Run(args);
         }
 
+        // Pictures of the settings and the capsule for the README; see Snapshots.
+        if (args.Length > 0 && args[0] == "--snapshot")
+        {
+            UseParentConsole();
+            return Snapshots.Run(args);
+        }
+
         // scripts\install-local.ps1 installs a fresh build through the same code as customers:
         // --install [folder]; without a folder, the current install folder or the suggested one.
         if (args.Length > 0 && args[0] == "--install")

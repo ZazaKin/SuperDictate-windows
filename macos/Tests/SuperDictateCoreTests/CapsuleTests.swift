@@ -70,7 +70,8 @@ final class CapsuleTests: XCTestCase {
                 XCTAssertGreaterThanOrEqual(RGBA.contrast(text, fill), 4.5, skin.name)
             }
         }
-        XCTAssertEqual(Set(CapsuleSkin.all.map(\.id)).count, 12)
+        XCTAssertEqual(Set(CapsuleSkin.all.map(\.id)).count, 13)
+        XCTAssertEqual(CapsuleSkin.all.filter(\.isGlass).map(\.id), ["liquid"])
         XCTAssertEqual(CapsuleSkin.find("nonsense").id, "midnight")
     }
 }

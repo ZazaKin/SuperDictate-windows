@@ -18,12 +18,17 @@ public sealed record CapsuleSkin(
     Color Text,
     Color Muted,
     bool Rainbow = false,
-    bool AccentRim = false)
+    bool AccentRim = false,
+    bool Glass = false)
 {
     public static readonly CapsuleSkin[] All =
     {
         // The original: near-black with a hairline, readable over anything.
         new("midnight", "Midnight", Rgb(0x18, 0x18, 0x1C), Rgb(0x18, 0x18, 0x1C), Argb(40, 255, 255, 255), 1, Colors.White, Rgb(0xB4, 0xB4, 0xBE)),
+        // Apple's Liquid Glass, recreated: smoky see-through glass, a rim that catches
+        // the light at the top and bottom, and a sheen across the top. On a Mac with
+        // macOS 26 the same skin is the real thing.
+        new("liquid", "Liquid Glass", Argb(120, 0x16, 0x1A, 0x24), Argb(165, 0x0E, 0x10, 0x18), Colors.White, 1.2, Colors.White, Rgb(0xD8, 0xDC, 0xE4), Glass: true),
         // Brushed dark grey, lit slightly from above.
         new("graphite", "Graphite", Rgb(0x3A, 0x3D, 0x44), Rgb(0x25, 0x27, 0x2C), Argb(26, 255, 255, 255), 1, Colors.White, Rgb(0xC6, 0xC9, 0xD0)),
         // Light, for light themes and bright apps.
@@ -54,7 +59,15 @@ public sealed record CapsuleSkin(
         ? Frozen(new SolidColorBrush(Fill))
         : Frozen(new LinearGradientBrush(Fill, FillEnd, 90));
 
-    public Brush BorderBrush(Color accent) => AccentRim
+    public Brush BorderBrush(Color accent) => Glass
+        ? Frozen(new LinearGradientBrush(
+            new GradientStopCollection
+            {
+                new(Color.FromArgb(200, 255, 255, 255), 0),
+                new(Color.FromArgb(30, 255, 255, 255), 0.5),
+                new(Color.FromArgb(110, 255, 255, 255), 1),
+            }, 90))
+        : AccentRim
         ? Frozen(new SolidColorBrush(accent))
         : Rainbow
         ? Frozen(new LinearGradientBrush(

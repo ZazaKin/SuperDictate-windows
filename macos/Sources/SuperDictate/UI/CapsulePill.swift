@@ -24,6 +24,12 @@ struct CapsuleStyle: Equatable {
         }
     }
 
+    /// Liquid Glass where the Mac has it, Midnight before.
+    static var defaultSkin: String {
+        if #available(macOS 26, *) { return "liquid" }
+        return "midnight"
+    }
+
     var skin = CapsuleSkin.all[0]
     /// "system", or "#RRGGBB".
     var accent = "system"
@@ -60,7 +66,7 @@ struct CapsuleAccent: Identifiable {
 
 /// The style as saved, kept up to date as the settings change.
 struct StoredCapsuleStyle: DynamicProperty {
-    @AppStorage(Preferences.Key.skin) var skin = "midnight"
+    @AppStorage(Preferences.Key.skin) var skin = CapsuleStyle.defaultSkin
     @AppStorage(Preferences.Key.accent) var accent = "system"
     @AppStorage(Preferences.Key.scale) var scale = 1.0
     @AppStorage(Preferences.Key.opacity) var opacity = 1.0
@@ -126,11 +132,7 @@ struct CapsulePill: View {
         .foregroundStyle(Color(skin.text))
         .padding(.horizontal, 18 * scale)
         .frame(minWidth: CapsuleStyle.narrowest * scale, minHeight: CapsuleStyle.height * scale)
-        .background(LinearGradient(colors: [Color(skin.fill), Color(skin.fillEnd)], startPoint: .top, endPoint: .bottom),
-                    in: Capsule())
-        .overlay(CapsuleRim(width: skin.borderWidth).fill(rim, style: FillStyle(eoFill: true)))
-        // A see-through skin would show its own shadow through itself; it floats on its rim instead.
-        .shadow(color: .black.opacity(skin.isTranslucent ? 0 : 0.3), radius: 16 * scale, y: 6 * scale)
+        .modifier(CapsuleSurface(style: style, rim: rim))
         .opacity(style.opacity)
     }
 
@@ -143,7 +145,50 @@ struct CapsulePill: View {
         case .rainbow:
             AnyShapeStyle(LinearGradient(colors: [style.accentColor, Color(RGBA(0xB36BFF)), Color(RGBA(0x3DD6C4))],
                                          startPoint: .leading, endPoint: .trailing))
+        case .glass:
+            AnyShapeStyle(LinearGradient(colors: [.white.opacity(0.78), .white.opacity(0.12), .white.opacity(0.43)],
+                                         startPoint: .top, endPoint: .bottom))
         }
+    }
+}
+
+/// The capsule's body: the skin's fill and rim. A Liquid Glass skin is Apple's
+/// own glass on macOS 26 and later, tinted with the skin's fill; before that it
+/// is painted as on Windows, over a blur of whatever is behind it.
+private struct CapsuleSurface: ViewModifier {
+    let style: CapsuleStyle
+    let rim: AnyShapeStyle
+
+    func body(content: Content) -> some View {
+        if style.skin.isGlass {
+            if #available(macOS 26, *) {
+                content.glassEffect(.regular.tint(Color(style.skin.fill)), in: Capsule())
+            } else {
+                painted(content)
+                    .background(.ultraThinMaterial, in: Capsule())
+            }
+        } else {
+            painted(content)
+                // A see-through skin would show its own shadow through itself; it floats on its rim instead.
+                .shadow(color: .black.opacity(style.skin.isTranslucent ? 0 : 0.3), radius: 16 * style.scale, y: 6 * style.scale)
+        }
+    }
+
+    private func painted(_ content: Content) -> some View {
+        let skin = style.skin
+        return content
+            .background(LinearGradient(colors: [Color(skin.fill), Color(skin.fillEnd)], startPoint: .top, endPoint: .bottom),
+                        in: Capsule())
+            .overlay {
+                if skin.isGlass {
+                    // The sheen glass catches across its top.
+                    Capsule()
+                        .fill(LinearGradient(colors: [.white.opacity(0.28), .white.opacity(0)], startPoint: .top, endPoint: .center))
+                        .padding(skin.borderWidth)
+                        .allowsHitTesting(false)
+                }
+            }
+            .overlay(CapsuleRim(width: skin.borderWidth).fill(rim, style: FillStyle(eoFill: true)))
     }
 }
 

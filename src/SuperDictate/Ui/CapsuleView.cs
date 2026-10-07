@@ -50,11 +50,15 @@ internal sealed class CapsuleView : Grid
     private readonly Grid _frame = new();
     private readonly Border _shadow = new();
     private readonly Border _body = new();
+    private readonly Border _sheen = new() { IsHitTestVisible = false, VerticalAlignment = VerticalAlignment.Top };
     private readonly Grid _meter = new() { HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
     private readonly List<FrameworkElement> _marks = new();
     private readonly TextBlock _timer = new() { HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Center };
     private readonly TextBlock _caption = new() { HorizontalAlignment = HorizontalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis };
     private readonly LiveCaption _live = new() { HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
+
+    private static readonly Brush Sheen = Frozen(new LinearGradientBrush(
+        Color.FromArgb(70, 255, 255, 255), Color.FromArgb(0, 255, 255, 255), 90));
 
     private CapsuleStyle _style = new("midnight", "#5B8DEF", 1, 1, "bars", false);
     private double _level;
@@ -75,6 +79,7 @@ internal sealed class CapsuleView : Grid
         _shadow.Effect = new DropShadowEffect { BlurRadius = 16, ShadowDepth = 3, Direction = 270, Opacity = 0.35 };
         _frame.Children.Add(_shadow);
         _frame.Children.Add(_body);
+        _frame.Children.Add(_sheen);
         Children.Add(_frame);
         Apply(_style);
     }
@@ -110,6 +115,13 @@ internal sealed class CapsuleView : Grid
         _body.BorderBrush = skin.BorderBrush(accent.Color);
         _body.BorderThickness = new Thickness(skin.BorderWidth);
         _body.Padding = new Thickness(14 * scale, 5 * scale, 14 * scale, 5 * scale);
+
+        // Glass catches the light: a soft sheen over its top half.
+        _sheen.Visibility = skin.Glass ? Visibility.Visible : Visibility.Collapsed;
+        _sheen.Margin = new Thickness(skin.BorderWidth);
+        _sheen.Height = BaseHeight * scale * 0.55;
+        _sheen.CornerRadius = new CornerRadius(14 * scale - skin.BorderWidth, 14 * scale - skin.BorderWidth, 0, 0);
+        _sheen.Background = Sheen;
 
         _caption.Foreground = muted;
         _caption.FontSize = 11 * scale;
@@ -258,6 +270,12 @@ internal sealed class CapsuleView : Grid
         }
 
         _meter.Children.Add(strip);
+    }
+
+    private static T Frozen<T>(T freezable) where T : Freezable
+    {
+        freezable.Freeze();
+        return freezable;
     }
 
     private static SolidColorBrush Accent(string hex)
