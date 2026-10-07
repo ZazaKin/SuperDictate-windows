@@ -106,10 +106,10 @@ struct CapsulePill: View {
         let skin = style.skin
         HStack(spacing: 12 * scale) {
             switch overlay {
-            case .notice(let message, let symbol):
-                Image(systemName: symbol)
+            case .notice(let notice):
+                Image(systemName: notice.symbol)
                     .font(.system(size: 13 * scale, weight: .semibold))
-                Text(message)
+                Text(notice.text)
                     .font(.system(size: 13 * scale, weight: .medium))
             default:
                 let processing = overlay == .processing
