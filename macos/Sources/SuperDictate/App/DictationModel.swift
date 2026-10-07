@@ -34,6 +34,8 @@ final class DictationModel {
     private(set) var overlay: Overlay = .hidden
     private(set) var caption = Caption()
     private(set) var lastTranscript: String?
+    /// When the recording started, for the capsule's time.
+    private(set) var recordingStarted: Date?
     private(set) var granted: Set<Permission> = []
     let history: History
 
@@ -44,6 +46,8 @@ final class DictationModel {
     @ObservationIgnored private var panel: CapsulePanel?
     @ObservationIgnored private var welcome: WelcomeWindow?
     @ObservationIgnored private var noticeTimer: Task<Void, Never>?
+    @ObservationIgnored private var isStaged = false
+    @ObservationIgnored private var stageTask: Task<Void, Never>?
 
     /// - Parameter history: Left out, the history on disk.
     init(history: History? = nil) {
@@ -54,8 +58,12 @@ final class DictationModel {
     var hasAllPermissions: Bool { granted.count == Permission.allCases.count }
     var isSetUp: Bool { isModelReady && hasAllPermissions }
 
-    /// The microphone level for the capsule's bars, read every frame while it shows.
-    func currentLevel() -> Float { audio.currentLevel }
+    /// The microphone level for the capsule's meter, read every frame while it shows.
+    func currentLevel() -> Float {
+        guard isStaged else { return audio.currentLevel }
+        // The sample on the settings page: a voice that rises and falls.
+        return Float(0.08 + 0.05 * sin(Date.timeIntervalSinceReferenceDate * 2.2))
+    }
 
     func launch() {
         Preferences.register()
@@ -149,7 +157,11 @@ final class DictationModel {
             return
         }
 
+        // A real dictation takes over from the settings page's sample.
+        stageTask?.cancel()
+        isStaged = false
         phase = .recording
+        recordingStarted = Date()
         caption = Caption()
         overlay = .listening
         panel?.present()
@@ -157,7 +169,7 @@ final class DictationModel {
 
         let audio = self.audio
         let recognizer = self.recognizer
-        let language = Preferences.language.hint
+        let language = Preferences.languageHint
         let session = LiveSession(
             drafting: Preferences.livePreview,
             audioSince: { audio.since($0) },
@@ -180,6 +192,7 @@ final class DictationModel {
         guard phase == .recording else { return }
         live?.stop()
         live = nil
+        recordingStarted = nil
         let samples = audio.stop()
         if Preferences.playSounds { NSSound(named: "Pop")?.play() }
 
@@ -193,7 +206,7 @@ final class DictationModel {
 
         phase = .processing
         overlay = .processing
-        let language = Preferences.language.hint
+        let language = Preferences.languageHint
         Task {
             do {
                 let text = try await recognizer.transcribe(samples, language: language)
@@ -210,6 +223,7 @@ final class DictationModel {
         guard phase == .recording else { return }
         live?.stop()
         live = nil
+        recordingStarted = nil
         _ = audio.stop()
         phase = .ready
         notice("Cancelled", symbol: "xmark")
@@ -248,6 +262,47 @@ final class DictationModel {
         }
     }
 
+    // MARK: - Settings sample
+
+    /// While the Capsule settings page is open, the capsule shows on screen with
+    /// sample words building up in it, so every change shows on it at once.
+    /// A real dictation takes over from it.
+    func stage(_ on: Bool) {
+        guard panel != nil, on != isStaged, phase != .recording, phase != .processing else { return }
+        isStaged = on
+        stageTask?.cancel()
+        caption = Caption()
+        guard on else {
+            recordingStarted = nil
+            overlay = .hidden
+            return
+        }
+
+        recordingStarted = Date()
+        overlay = .listening
+        panel?.present()
+        stageTask = Task { [weak self] in
+            let words = "Every change you make shows up right here, as you make it.".split(separator: " ").map(String.init)
+            while !Task.isCancelled {
+                for count in 0 ... words.count {
+                    try? await Task.sleep(for: .seconds(0.3))
+                    guard let self, !Task.isCancelled else { return }
+                    // The last two words are still settling, as in a real dictation.
+                    let shown = Preferences.livePreview ? Array(words.prefix(count)) : []
+                    let unsure = count == words.count ? 0 : min(2, shown.count)
+                    withAnimation(.spring(duration: 0.45, bounce: 0)) {
+                        self.caption.show(settled: shown.dropLast(unsure).joined(separator: " "),
+                                          tail: shown.suffix(unsure).joined(separator: " "))
+                    }
+                }
+                try? await Task.sleep(for: .seconds(1.8))
+                guard let self, !Task.isCancelled else { return }
+                withAnimation(.easeOut(duration: 0.3)) { self.caption = Caption() }
+                try? await Task.sleep(for: .seconds(0.5))
+            }
+        }
+    }
+
     // MARK: - Snapshots
 
     /// Example states for the snapshot pictures (`--snapshot`): halfway through
@@ -262,6 +317,7 @@ final class DictationModel {
             history.add("Picking up the kids at five, then dinner at Marco's.", seconds: 4)
             history.add("Note for the release: the live preview now builds the sentence word by word.", seconds: 5)
             overlay = .listening
+            recordingStarted = Date(timeIntervalSinceNow: -14)
             caption = Caption()
             caption.show(settled: "So the plan for tomorrow is simple:", tail: "we ship the Mac version first")
         } else {

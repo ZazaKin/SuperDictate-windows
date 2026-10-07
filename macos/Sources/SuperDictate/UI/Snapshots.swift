@@ -1,4 +1,5 @@
 import AppKit
+import SuperDictateCore
 import SwiftUI
 
 /// `SuperDictate --snapshot <folder>`: draws the main screens, in light and
@@ -15,6 +16,8 @@ enum Snapshots {
 
     static func render(to folder: URL) {
         try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        // A few languages chosen, for the Languages tab. Registered defaults are never saved.
+        UserDefaults.standard.register(defaults: [Preferences.Key.languages: "en,de,fr,pl,ru,uk"])
 
         let setup = DictationModel(history: History(file: nil))
         setup.showcase(setUp: false)
@@ -29,16 +32,53 @@ enum Snapshots {
             write(WelcomeView(close: {}).environment(setup), to: folder.appendingPathComponent("welcome-\(name).png"),
                   appearance: appearance)
             save(MenuBarPanel(), "menu-bar")
-            save(GeneralPane().frame(width: 560), "settings-general")
-            save(DictationPane().frame(width: 560), "settings-dictation")
-            save(ModelPane().frame(width: 560), "settings-model")
-            save(HistoryPane().frame(width: 560), "settings-history")
-            save(AboutPane().frame(width: 560), "settings-about")
+            save(GeneralPane().frame(width: 620), "settings-general")
+            save(DictationPane().frame(width: 620), "settings-dictation")
+            save(LanguagesPane().frame(width: 620), "settings-languages")
+            save(CapsulePane().frame(width: 620), "settings-capsule")
+            save(ModelPane().frame(width: 620), "settings-model")
+            save(HistoryPane().frame(width: 620), "settings-history")
+            save(AboutPane().frame(width: 620), "settings-about")
             // The capsule over a stand-in for whatever app is underneath.
             save(CapsuleView()
                     .frame(width: 560, height: 120)
                     .background(LinearGradient(colors: [.indigo, .teal], startPoint: .topLeading, endPoint: .bottomTrailing)),
                  "capsule")
+        }
+
+        write(SkinSheet(), to: folder.appendingPathComponent("capsule-skins.png"), appearance: .darkAqua)
+        // The position editor on a 1440 × 900 screen with a menu bar, the capsule kept to the left edge.
+        write(CapsuleLayoutView(area: CGRect(x: 0, y: 24, width: 1440, height: 876),
+                                placement: CapsulePlacement(horizontal: .start, x: 0, vertical: .start, y: 0.28),
+                                style: CapsuleStyle(skin: .find("aurora")), finish: { _ in })
+                .frame(width: 1440, height: 900)
+                .background(wallpaper),
+              to: folder.appendingPathComponent("capsule-editor.png"), appearance: .darkAqua)
+    }
+
+    private static let wallpaper = LinearGradient(colors: [.indigo, .teal], startPoint: .topLeading, endPoint: .bottomTrailing)
+
+    /// Every skin with words in it, over a stand-in for whatever is underneath.
+    private struct SkinSheet: View {
+        var body: some View {
+            var caption = Caption()
+            caption.show(settled: "Lunch at noon, then", tail: "the design review")
+            return Grid(horizontalSpacing: 24, verticalSpacing: 18) {
+                ForEach(0 ..< CapsuleSkin.all.count / 2, id: \.self) { row in
+                    GridRow {
+                        ForEach(CapsuleSkin.all[row * 2 ... row * 2 + 1]) { skin in
+                            VStack(spacing: 6) {
+                                CapsulePill(style: CapsuleStyle(skin: skin, meter: row % 3 == 1 ? .wave : row % 3 == 2 ? .pulse : .bars,
+                                                                timer: row == 0),
+                                            caption: caption, started: Date(timeIntervalSinceNow: -14), live: false, level: { 0.1 })
+                                Text(skin.name).font(.caption).foregroundStyle(.white.opacity(0.85))
+                            }
+                        }
+                    }
+                }
+            }
+            .padding(32)
+            .background(wallpaper)
         }
     }
 

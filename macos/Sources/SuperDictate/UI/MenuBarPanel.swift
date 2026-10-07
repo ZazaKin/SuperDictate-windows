@@ -1,4 +1,5 @@
 import AppKit
+import SuperDictateCore
 import SwiftUI
 
 /// The menu bar icon: a waveform, filled while dictating.
@@ -15,6 +16,7 @@ struct MenuBarLabel: View {
 struct MenuBarPanel: View {
     @Environment(DictationModel.self) private var model
     @Environment(\.openSettings) private var openSettings
+    @AppStorage(Preferences.Key.settingsTab) private var settingsTab = "general"
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -28,6 +30,8 @@ struct MenuBarPanel: View {
 
             DictateButton()
 
+            LanguageMenu { showSettings("languages") }
+
             if let last = model.lastTranscript {
                 LastTranscript(text: last)
             }
@@ -38,15 +42,55 @@ struct MenuBarPanel: View {
                 if !model.isSetUp {
                     MenuItem(title: "Finish Setup…", symbol: "checklist") { model.showWelcome() }
                 }
-                MenuItem(title: "Settings…", symbol: "gearshape") {
-                    NSApp.activate(ignoringOtherApps: true)
-                    openSettings()
-                }
+                MenuItem(title: "Settings…", symbol: "gearshape") { showSettings(nil) }
                 MenuItem(title: "Quit SuperDictate", symbol: "power") { NSApp.terminate(nil) }
             }
         }
         .padding(14)
         .frame(width: 300)
+    }
+
+    /// Opens Settings, at a particular tab if one is given.
+    private func showSettings(_ tab: String?) {
+        if let tab { settingsTab = tab }
+        NSApp.activate(ignoringOtherApps: true)
+        openSettings()
+    }
+}
+
+/// The language to listen for, switched from the menu bar: automatic, or one of
+/// the user's languages. The full list is in Settings › Languages.
+private struct LanguageMenu: View {
+    @AppStorage(Preferences.Key.language) private var mode = "auto"
+    @AppStorage(Preferences.Key.languages) private var stored = Preferences.defaultLanguages
+    let chooseLanguages: () -> Void
+
+    var body: some View {
+        let chosen = SpokenLanguage.codes(stored).compactMap(SpokenLanguage.find)
+        let current = chosen.first { $0.code == mode }
+        HStack {
+            Label("Language", systemImage: "globe")
+                .foregroundStyle(.secondary)
+            Spacer()
+            Menu {
+                Picker("Language", selection: $mode) {
+                    Text("Automatic").tag("auto")
+                    ForEach(chosen) { language in
+                        Text("\(language.flag)  \(language.native)").tag(language.code)
+                    }
+                }
+                .pickerStyle(.inline)
+                .labelsHidden()
+                Divider()
+                Button("Choose Languages…", action: chooseLanguages)
+            } label: {
+                Text(current.map { "\($0.flag) \($0.native)" } ?? "Automatic")
+            }
+            .menuStyle(.borderlessButton)
+            .fixedSize()
+        }
+        .font(.callout)
+        .padding(.horizontal, 2)
     }
 }
 

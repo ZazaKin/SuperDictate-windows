@@ -4,20 +4,34 @@ import SwiftUI
 
 /// The Settings window (⌘,): toolbar tabs over grouped forms, the way Apple's own apps lay out their settings.
 struct SettingsView: View {
+    /// Remembered, and set by the menu bar panel to open a particular tab.
+    @AppStorage(Preferences.Key.settingsTab) private var tab = "general"
+
     var body: some View {
-        TabView {
+        TabView(selection: $tab) {
             GeneralPane()
                 .tabItem { Label("General", systemImage: "gearshape") }
+                .tag("general")
             DictationPane()
                 .tabItem { Label("Dictation", systemImage: "mic") }
+                .tag("dictation")
+            LanguagesPane()
+                .tabItem { Label("Languages", systemImage: "globe") }
+                .tag("languages")
+            CapsulePane()
+                .tabItem { Label("Capsule", systemImage: "capsule") }
+                .tag("capsule")
             ModelPane()
                 .tabItem { Label("Speech Model", systemImage: "waveform") }
+                .tag("model")
             HistoryPane()
                 .tabItem { Label("History", systemImage: "clock.arrow.circlepath") }
+                .tag("history")
             AboutPane()
                 .tabItem { Label("About", systemImage: "info.circle") }
+                .tag("about")
         }
-        .frame(width: 560)
+        .frame(width: 620)
     }
 }
 
@@ -69,8 +83,6 @@ struct GeneralPane: View {
 struct DictationPane: View {
     @AppStorage(Preferences.Key.hotkey) private var hotkey = Hotkey.rightCommand
     @AppStorage(Preferences.Key.mode) private var mode = TriggerMode.toggle
-    @AppStorage(Preferences.Key.language) private var language = DictationLanguage.auto
-    @AppStorage(Preferences.Key.livePreview) private var livePreview = true
     @AppStorage(Preferences.Key.pressReturn) private var pressReturn = false
 
     var body: some View {
@@ -89,20 +101,11 @@ struct DictationPane: View {
             }
 
             Section {
-                Picker("Language", selection: $language) {
-                    ForEach(DictationLanguage.allCases) { Text($0.title).tag($0) }
-                }
-            } footer: {
-                Footnote("Automatic works across 25 European languages. Choose one if short phrases come out in the wrong alphabet.")
-            }
-
-            Section {
-                Toggle("Show words as you speak", isOn: $livePreview)
                 LabeledContent("Stops by itself", value: "After a minute without speech")
             } header: {
                 Text("While You Speak")
             } footer: {
-                Footnote("The preview is a quick draft. When you finish, the whole recording is transcribed again, so the typed text can be a little better.")
+                Footnote("If you walk away, dictation ends by itself and types what you said. Languages and the capsule have tabs of their own.")
             }
 
             Section {
@@ -115,7 +118,7 @@ struct DictationPane: View {
         }
         .formStyle(.grouped)
         .toggleStyle(.switch)
-        .frame(height: 520)
+        .frame(height: 420)
     }
 }
 

@@ -1,60 +1,11 @@
 import FluidAudio
 import Foundation
+import SuperDictateCore
 
-/// The language to listen for. Parakeet recognizes 25 European languages and
-/// tells them apart by itself; naming one helps short phrases come out in the
-/// right alphabet.
-enum DictationLanguage: String, CaseIterable, Identifiable {
-    case auto
-    case english = "en"
-    case german = "de"
-    case russian = "ru"
-    case ukrainian = "uk"
-    case polish = "pl"
-    case spanish = "es"
-    case french = "fr"
-    case italian = "it"
-    case portuguese = "pt"
-    case czech = "cs"
-    case romanian = "ro"
-    case bulgarian = "bg"
-
-    var id: Self { self }
-
-    var title: String {
-        switch self {
-        case .auto: "Automatic"
-        case .english: "English"
-        case .german: "German"
-        case .russian: "Russian"
-        case .ukrainian: "Ukrainian"
-        case .polish: "Polish"
-        case .spanish: "Spanish"
-        case .french: "French"
-        case .italian: "Italian"
-        case .portuguese: "Portuguese"
-        case .czech: "Czech"
-        case .romanian: "Romanian"
-        case .bulgarian: "Bulgarian"
-        }
-    }
-
-    var hint: Language? {
-        switch self {
-        case .auto: nil
-        case .english: .english
-        case .german: .german
-        case .russian: .russian
-        case .ukrainian: .ukrainian
-        case .polish: .polish
-        case .spanish: .spanish
-        case .french: .french
-        case .italian: .italian
-        case .portuguese: .portuguese
-        case .czech: .czech
-        case .romanian: .romanian
-        case .bulgarian: .bulgarian
-        }
+extension Preferences {
+    /// The alphabet to hold recognition to, from the user's languages; nil lets it hear anything.
+    static var languageHint: Language? {
+        SpokenLanguage.filter(mode: language, chosen: languages).flatMap(Language.init(rawValue:))
     }
 }
 
