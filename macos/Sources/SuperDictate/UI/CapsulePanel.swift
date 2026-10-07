@@ -48,7 +48,7 @@ final class CapsulePanel {
     private func place() {
         let screens = NSScreen.screens
         guard let screen = Preferences.capsuleOnMainScreen ? screens.first : NSScreen.main ?? screens.first else { return }
-        let size = CGSize(width: CapsuleStyle.widestAtOne * Preferences.capsuleScale,
+        let size = CGSize(width: CapsuleStyle(scale: Preferences.capsuleScale, maxWidth: Preferences.capsuleMaxWidth).widest,
                           height: CapsuleStyle.height * Preferences.capsuleScale)
 
         // Placement works top down; AppKit counts up from the bottom of the main screen.

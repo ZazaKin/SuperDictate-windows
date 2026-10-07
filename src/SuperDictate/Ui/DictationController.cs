@@ -100,6 +100,7 @@ public sealed class DictationController : IDisposable
 
         _hook.Pressed += OnHotkeyPressed;
         _hook.Released += OnHotkeyReleased;
+        _hook.Cancelled += OnCancelled;
         _mic.LevelChanged += OnLevel;
     }
 
@@ -238,6 +239,12 @@ public sealed class DictationController : IDisposable
                 case Effect.Record: Record(); break;
                 case Effect.StartLive: StartLive(); break;
                 case Effect.StopRecording(var status): StopRecording(status); break;
+                case Effect.DropRecording:
+                    StopLive();
+                    _mic.Stop();
+                    AppLogger.Info("Recording cancelled.");
+                    break;
+                case Effect.Hide: _overlay.SetState(OverlayState.Hidden, ""); break;
                 case Effect.Transcribe: _ = TranscribeAsync(); break;
                 case Effect.Deliver deliver: _ = DeliverAsync(deliver); break;
                 case Effect.Failed(var error, var seconds):
@@ -446,6 +453,8 @@ public sealed class DictationController : IDisposable
         }
     }
 
+    private void OnCancelled(object? sender, EventArgs e) => Send(new Event.Cancel());
+
     private void OnLevel(object? sender, double level)
     {
         LastAudioLevel = level;
@@ -470,6 +479,7 @@ public sealed class DictationController : IDisposable
         _cts.Cancel();
         _hook.Pressed -= OnHotkeyPressed;
         _hook.Released -= OnHotkeyReleased;
+        _hook.Cancelled -= OnCancelled;
         _mic.LevelChanged -= OnLevel;
 
         StopLive();

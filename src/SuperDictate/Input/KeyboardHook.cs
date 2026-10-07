@@ -27,6 +27,8 @@ public sealed class KeyboardHook : IDisposable
     private readonly Dictionary<HotkeyKind, Hotkey> _hotkeys = new();
     private readonly HashSet<HotkeyKind> _armed = new();
 
+    private const int VkEscape = 0x1B;
+
     private IntPtr _hook;
     private HotkeyKind? _held;
     private bool _suspended;
@@ -42,6 +44,9 @@ public sealed class KeyboardHook : IDisposable
 
     /// <summary>Fires when a held chord is released. Only used in hold mode.</summary>
     public event EventHandler<HotkeyKind>? Released;
+
+    /// <summary>Escape, or in hold mode another key pressed while the chord is held: drop the recording.</summary>
+    public event EventHandler? Cancelled;
 
     /// <summary>Hold to dictate. When false, chords use tap-on-release.</summary>
     public bool HoldMode { get; set; }
@@ -127,6 +132,15 @@ public sealed class KeyboardHook : IDisposable
         if (repeat || _suspended)
         {
             return;
+        }
+
+        // Typing during a hold cancels, as on the Mac; modifiers and the hotkeys' own keys
+        // don't. The dictation decides whether there is anything to cancel.
+        if (virtualKey == VkEscape
+            || (HoldMode && _held is not null && !Hotkey.IsModifier(virtualKey)
+                && !_hotkeys.Values.Any(hotkey => hotkey.AllKeys.Contains(virtualKey))))
+        {
+            Cancelled?.Invoke(this, EventArgs.Empty);
         }
 
         foreach (var (kind, hotkey) in _hotkeys)

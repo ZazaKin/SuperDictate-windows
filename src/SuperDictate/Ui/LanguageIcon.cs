@@ -77,6 +77,67 @@ internal static class LanguageIcon
             Fill(g, "#FFFFFF", 22.2, 0, 11.1, 55.6);
             Fill(g, "#FFFFFF", 0, 22.2, 55.6, 11.1);
         },
+        ["ro"] = g => Vertical(g, "#002B7F", "#FCD116", "#CE1126"),
+        ["hu"] = g => Horizontal(g, "#CE2939", "#FFFFFF", "#477050"),
+        ["bg"] = g => Horizontal(g, "#FFFFFF", "#00966E", "#D62612"),
+        ["da"] = g =>
+        {
+            Fill(g, "#C8102E", 0, 0, 100, 100);
+            Fill(g, "#FFFFFF", 28, 0, 14, 100);
+            Fill(g, "#FFFFFF", 0, 43, 100, 14);
+        },
+        ["fi"] = g =>
+        {
+            Fill(g, "#FFFFFF", 0, 0, 100, 100);
+            Fill(g, "#002F6C", 26, 0, 18, 100);
+            Fill(g, "#002F6C", 0, 41, 100, 18);
+        },
+        ["sk"] = g =>
+        {
+            Horizontal(g, "#FFFFFF", "#0B4EA2", "#EE1C25");
+            // The shield: a white double cross on red, over blue hills.
+            Polygon(g, "#FFFFFF", new Point(20, 22), new Point(56, 22), new Point(56, 58), new Point(38, 80), new Point(20, 58));
+            Polygon(g, "#EE1C25", new Point(23, 25), new Point(53, 25), new Point(53, 57), new Point(38, 76), new Point(23, 57));
+            Fill(g, "#FFFFFF", 36, 30, 4, 30);
+            Fill(g, "#FFFFFF", 29, 36, 18, 3.5);
+            Fill(g, "#FFFFFF", 31, 44, 14, 3.5);
+            Polygon(g, "#0B4EA2", new Point(26, 60), new Point(50, 60), new Point(38, 74));
+        },
+        ["hr"] = g =>
+        {
+            Horizontal(g, "#FF0000", "#FFFFFF", "#171796");
+            // The chequy shield in the middle.
+            for (var row = 0; row < 5; row++)
+            {
+                for (var column = 0; column < 5; column++)
+                {
+                    Fill(g, (row + column) % 2 == 0 ? "#FF0000" : "#FFFFFF", 37.5 + (column * 5), 28 + (row * 6), 5, 6);
+                }
+            }
+        },
+        ["lt"] = g => Horizontal(g, "#FDB913", "#006A44", "#C1272D"),
+        ["sl"] = g =>
+        {
+            Horizontal(g, "#FFFFFF", "#005DA4", "#ED1C24");
+            // The shield: Triglav in white on blue, edged in red.
+            Polygon(g, "#ED1C24", new Point(18, 20), new Point(42, 20), new Point(42, 48), new Point(30, 58), new Point(18, 48));
+            Polygon(g, "#005DA4", new Point(20, 22), new Point(40, 22), new Point(40, 47), new Point(30, 55), new Point(20, 47));
+            Polygon(g, "#FFFFFF", new Point(21, 46), new Point(26, 37), new Point(30, 42), new Point(34, 37), new Point(39, 46), new Point(30, 53));
+        },
+        ["lv"] = g =>
+        {
+            Fill(g, "#9E3039", 0, 0, 100, 100);
+            Fill(g, "#FFFFFF", 0, 40, 100, 20);
+        },
+        ["et"] = g => Horizontal(g, "#0072CE", "#000000", "#FFFFFF"),
+        ["mt"] = g =>
+        {
+            Vertical(g, "#FFFFFF", "#CF142B");
+            // The George Cross, in its corner.
+            Fill(g, "#A0A0A0", 14, 18, 18, 18);
+            Fill(g, "#FFFFFF", 21, 18, 4, 18);
+            Fill(g, "#FFFFFF", 14, 25, 18, 4);
+        },
         ["hi"] = g =>
         {
             Horizontal(g, "#FF9933", "#FFFFFF", "#138808");

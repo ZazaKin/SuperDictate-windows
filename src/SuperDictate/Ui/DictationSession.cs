@@ -12,6 +12,9 @@ namespace SuperDictate.Ui;
 /// </summary>
 public sealed class DictationSession
 {
+    /// <summary>A recording shorter than this is a tap of the key, not a dictation.</summary>
+    public const double Shortest = 0.3;
+
     public abstract record Event
     {
         /// <summary>(Re)load the engine. SetUp: the speech runtime and the chosen model are installed.</summary>
@@ -31,10 +34,13 @@ public sealed class DictationSession
         /// <summary>A minute without speech. Nobody may be watching, so it never presses Enter.</summary>
         public sealed record SilenceLimit : Event;
 
+        /// <summary>Escape, or another key during a hold: the recording is dropped.</summary>
+        public sealed record Cancel : Event;
+
         public sealed record MicrophoneOpened : Event;
         public sealed record MicrophoneFailed(string Message) : Event;
 
-        /// <summary>How long the recording that just stopped is; 0 when the microphone gave nothing.</summary>
+        /// <summary>How long the recording that just stopped is.</summary>
         public sealed record Recorded(double Seconds) : Event;
         public sealed record Transcribed(string Text) : Event;
         public sealed record TranscriptionFailed(string Message) : Event;
@@ -60,6 +66,10 @@ public sealed class DictationSession
         /// <summary>Stop the live preview and the microphone, keep the audio; report Recorded.</summary>
         public sealed record StopRecording(string Status) : Effect;
 
+        /// <summary>Stop the live preview and the microphone, and throw the audio away.</summary>
+        public sealed record DropRecording : Effect;
+        public sealed record Hide : Effect;
+
         /// <summary>Turn the kept audio into text; report Transcribed or TranscriptionFailed.</summary>
         public sealed record Transcribe : Effect;
 
@@ -76,6 +86,7 @@ public sealed class DictationSession
 
     private bool _micOpen;
     private (bool PressEnter, string Status)? _finishWhenOpen;
+    private bool _cancelWhenOpen;
     private bool _pressEnter;
     private double _seconds;
 
@@ -131,15 +142,33 @@ public sealed class DictationSession
                 State = DictationState.Recording;
                 _micOpen = false;
                 _finishWhenOpen = null;
+                _cancelWhenOpen = false;
                 return [new Effect.Record()];
             case Event.Finish(var pressEnter):
                 return Stop(pressEnter, "Processing…");
             case Event.SilenceLimit:
                 return Stop(pressEnter: false, "No speech for a minute");
+            case Event.Cancel:
+                if (State != DictationState.Recording || _cancelWhenOpen) return None;
+                if (!_micOpen)
+                {
+                    // The microphone is still opening: it closes as soon as it is open.
+                    _cancelWhenOpen = true;
+                    return [new Effect.Notice("Cancelled")];
+                }
+
+                State = DictationState.Ready;
+                return [new Effect.DropRecording(), new Effect.Notice("Cancelled")];
 
             case Event.MicrophoneOpened:
                 if (State != DictationState.Recording) return None;
                 _micOpen = true;
+                if (_cancelWhenOpen)
+                {
+                    State = DictationState.Ready;
+                    return [new Effect.DropRecording()];
+                }
+
                 return _finishWhenOpen is (var enter, var status) ? Stop(enter, status) : [new Effect.StartLive()];
             case Event.MicrophoneFailed(var message):
                 if (State != DictationState.Recording) return None;
@@ -149,9 +178,10 @@ public sealed class DictationSession
             case Event.Recorded(var seconds):
                 if (State != DictationState.Transcribing) return None;
                 _seconds = seconds;
-                if (seconds > 0) return [new Effect.Transcribe()];
+                if (seconds >= Shortest) return [new Effect.Transcribe()];
+                // A tap rather than a dictation.
                 State = DictationState.Ready;
-                return [new Effect.Notice("No audio recorded"), new Effect.Failed("No audio recorded (0 samples).", 0)];
+                return [new Effect.Hide()];
             case Event.Transcribed(var text):
                 if (State != DictationState.Transcribing) return None;
                 if (!string.IsNullOrWhiteSpace(text)) return [new Effect.Deliver(text, _seconds, _pressEnter)];
@@ -177,7 +207,7 @@ public sealed class DictationSession
 
     private IReadOnlyList<Effect> Stop(bool pressEnter, string status)
     {
-        if (State != DictationState.Recording) return None;
+        if (State != DictationState.Recording || _cancelWhenOpen) return None;
 
         // A stop pressed while the microphone is still opening waits for it.
         if (!_micOpen)

@@ -80,7 +80,78 @@ internal static class Snapshots
 
         await DrawSkins(Path.Combine(folder, "capsule-skins.png"));
         await DrawSentence(Path.Combine(folder, "capsule-frames"));
+        await DrawLiveGlass(Path.Combine(folder, "capsule-live-glass.png"));
         Console.WriteLine($"Snapshots written to {folder}");
+    }
+
+    /// <summary>
+    /// Liquid Glass over a busy window: live (the experimental setting) above, painted
+    /// below. The live one is fed a picture of the stage, as the app feeds it the screen.
+    /// </summary>
+    private static async Task DrawLiveGlass(string file)
+    {
+        var page = new Canvas { Width = 760, Height = 300, Background = Wallpaper, ClipToBounds = true };
+        void Place(System.Windows.Shapes.Shape shape, double left, double top)
+        {
+            Canvas.SetLeft(shape, left);
+            Canvas.SetTop(shape, top);
+            page.Children.Add(shape);
+        }
+
+        Place(new System.Windows.Shapes.Rectangle { Width = 560, Height = 260, RadiusX = 12, RadiusY = 12, Fill = Brushes.White }, 100, 20);
+        Place(new System.Windows.Shapes.Ellipse { Width = 120, Height = 120, Fill = new SolidColorBrush(Color.FromRgb(0xFF, 0x8A, 0x3D)) }, 150, 0);
+        Place(new System.Windows.Shapes.Rectangle { Width = 150, Height = 70, RadiusX = 8, RadiusY = 8, Fill = new SolidColorBrush(Color.FromRgb(0xE1, 0x3B, 0x7A)) }, 470, 150);
+        for (var line = 0; line < 9; line++)
+        {
+            var text = new TextBlock
+            {
+                Text = line % 3 == 0 ? "Quarterly review: ship the Mac version first" : "Notes, numbers and a few links to read before Thursday",
+                FontSize = line % 3 == 0 ? 22 : 15,
+                FontWeight = line % 3 == 0 ? FontWeights.SemiBold : FontWeights.Normal,
+                Foreground = new SolidColorBrush(Color.FromRgb(0x1F, 0x23, 0x2B)),
+            };
+            Canvas.SetLeft(text, 130);
+            Canvas.SetTop(text, 34 + (line * 27));
+            page.Children.Add(text);
+        }
+
+        var glass = new LiveGlass();
+        var live = Capsule(VerticalAlignment.Top);
+        var painted = Capsule(VerticalAlignment.Bottom);
+        var stage = new Grid { Width = page.Width, Height = page.Height, Children = { page, glass, live, painted } };
+        var window = Host(stage);
+        await ShowOffScreen(window);
+        await Task.Delay(1500); // The words finish arriving.
+
+        live.Visibility = painted.Visibility = Visibility.Hidden;
+        stage.UpdateLayout();
+        var picture = new RenderTargetBitmap((int)page.Width, (int)page.Height, 96, 96, PixelFormats.Pbgra32);
+        picture.Render(page);
+        live.Visibility = painted.Visibility = Visibility.Visible;
+        stage.UpdateLayout();
+
+        // The live one's own fill and rim stay; underneath, the glass shows the page.
+        var body = live.Body;
+        glass.Show(picture);
+        glass.Follow(IntPtr.Zero, body.TransformToAncestor(stage).TransformBounds(new Rect(body.RenderSize)), live.Rounding);
+        foreach (var view in new[] { live, painted })
+        {
+            for (var frame = 0; frame < 12; frame++) view.Render(0.35);
+        }
+
+        Save(stage, file);
+        window.Close();
+
+        static CapsuleView Capsule(VerticalAlignment edge)
+        {
+            var view = new CapsuleView { HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = edge, Margin = new Thickness(0, 40, 0, 40) };
+            view.Apply(new CapsuleStyle("liquid", "#5B8DEF", 1.25, 1, "bars", true));
+            view.ShowText("Listening…", meter: true);
+            view.ShowDraft("So the plan for tomorrow is simple:", "we ship the Mac version first");
+            view.Elapsed = TimeSpan.FromSeconds(14);
+            view.SetPreviewLevel(0.6);
+            return view;
+        }
     }
 
     /// <summary>Every skin with words in it, over a stand-in for whatever is underneath.</summary>

@@ -85,6 +85,10 @@ delays your text. While the text is prepared it says **Processing…**.
 If you say nothing for a minute, SuperDictate finishes the dictation by itself
 and types what it heard, without pressing Enter.
 
+**Escape** while dictating cancels it; nothing is typed. With **Press and
+hold**, typing another key while you hold the hotkey cancels too. A press too
+short to be speech (under a third of a second) is ignored.
+
 Other hotkeys:
 
 - **Right Ctrl + Right Alt** finishes dictation with the opposite of **Press
@@ -101,7 +105,7 @@ the tray icon. **Save** applies your changes and keeps the window open.
 
 - **Dictation:** microphone, hotkeys, hold-to-talk, pressing Enter after paste,
   and a button to try it out.
-- **Languages:** pick the languages you speak from 20 widely used ones,
+- **Languages:** pick the languages you speak from 32 widely used ones,
   including English, Spanish, French, German, Portuguese, Russian, Arabic,
   Hindi, Chinese, Japanese and Korean. Type in the search box to find one.
   Automatic detection only chooses among the languages you picked, so fewer
@@ -124,8 +128,12 @@ the tray icon. **Save** applies your changes and keeps the window open.
   - **Skin:** 13 looks, from Midnight and Liquid Glass to Paper, Neon and
     High contrast. Liquid Glass recreates Apple's glass: see-through, with a
     rim that catches the light and a sheen across the top.
-  - **Look:** size, opacity, accent color and the voice meter (bars, wave or
-    pulse).
+  - **Look:** size, opacity, accent color, the voice meter (bars, wave or
+    pulse), and **Widest**: how far the capsule grows as your words arrive.
+    **Live glass (experimental)** makes Liquid Glass show the screen behind it,
+    blurred and bent at the rim, darker over bright windows so the words stay
+    readable. While it's on, the capsule stays out of screenshots and screen
+    sharing. It needs Windows 10 version 2004 or later.
   - **Position:** presets, or **Move…** to drag it anywhere. The screen dims,
     the capsule snaps to the edges and the center, and arrow keys nudge it.
     Next to the left or right edge it grows away from that edge as your
