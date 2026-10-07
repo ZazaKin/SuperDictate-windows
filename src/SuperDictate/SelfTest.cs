@@ -4,6 +4,8 @@ using System.Linq;
 using SuperDictate.Input;
 using SuperDictate.Speech;
 using SuperDictate.Storage;
+using SessionEffect = SuperDictate.Ui.DictationSession.Effect;
+using SessionEvent = SuperDictate.Ui.DictationSession.Event;
 
 namespace SuperDictate;
 
@@ -506,6 +508,111 @@ internal static class SelfTest
         catch (Exception ex)
         {
             Assert("live.caption", false, ex.Message);
+        }
+
+        // --- dictation session: the rules from key press to pasted text (the Mac app's DictationSessionTests) ---
+        {
+            static bool Gives(System.Collections.Generic.IReadOnlyList<SessionEffect> effects, params SessionEffect[] expected) =>
+                effects.SequenceEqual(expected);
+
+            static Ui.DictationSession Ready()
+            {
+                var ready = new Ui.DictationSession();
+                ready.Handle(new SessionEvent.LoadEngine(true));
+                ready.Handle(new SessionEvent.EngineLoaded());
+                return ready;
+            }
+
+            // Recording, with the microphone open.
+            static Ui.DictationSession Recording()
+            {
+                var recording = Ready();
+                recording.Handle(new SessionEvent.Toggle(false, true, true));
+                recording.Handle(new SessionEvent.MicrophoneOpened());
+                return recording;
+            }
+
+            var session = new Ui.DictationSession();
+            var gate = Gives(session.Handle(new SessionEvent.Toggle(false, false, false)),
+                           new SessionEffect.Notice("Finish setup in Settings"), new SessionEffect.ShowSetup())
+                       && session.State == Ui.DictationState.NeedsSetup;
+            var loads = Gives(session.Handle(new SessionEvent.Toggle(false, true, false)), new SessionEffect.LoadEngine())
+                        && session.State == Ui.DictationState.Loading
+                        && Gives(session.Handle(new SessionEvent.Toggle(false, true, true)))
+                        && session.State == Ui.DictationState.Loading;
+            Assert("session.setup_gate", gate && loads, session.State.ToString());
+
+            session = new Ui.DictationSession();
+            session.Handle(new SessionEvent.LoadEngine(true));
+            session.Handle(new SessionEvent.LoadEngine(false));
+            session.Handle(new SessionEvent.EngineLoaded());
+            var overtaken = session.State == Ui.DictationState.NeedsSetup;
+            session = Ready();
+            var unloaded = Gives(session.Handle(new SessionEvent.Toggle(false, true, false)),
+                               new SessionEffect.Notice("Speech model unavailable"), new SessionEffect.LoadEngine());
+            session.Handle(new SessionEvent.EngineFailed());
+            Assert("session.engine", overtaken && unloaded && session.State == Ui.DictationState.Error, session.State.ToString());
+
+            session = Ready();
+            var record = Gives(session.Handle(new SessionEvent.Toggle(true, true, true)), new SessionEffect.Record())
+                         && session.State == Ui.DictationState.Recording;
+            // A stop pressed while the microphone is still opening waits for it, then stops without a live preview.
+            var waits = Gives(session.Handle(new SessionEvent.Toggle(true, true, true)))
+                        && Gives(session.Handle(new SessionEvent.MicrophoneOpened()), new SessionEffect.StopRecording("Processing…"));
+            var busy = Gives(session.Handle(new SessionEvent.Toggle(true, true, true)))
+                       && Gives(session.Handle(new SessionEvent.Sample(true)));
+            var transcribe = Gives(session.Handle(new SessionEvent.Recorded(4)), new SessionEffect.Transcribe());
+            var deliver = Gives(session.Handle(new SessionEvent.Transcribed("Hello there")),
+                              new SessionEffect.Deliver("Hello there", 4, true))
+                          && session.State == Ui.DictationState.Transcribing;
+            session.Handle(new SessionEvent.Delivered());
+            Assert("session.dictation", record && waits && busy && transcribe && deliver && session.State == Ui.DictationState.Ready,
+                $"record={record}, waits={waits}, busy={busy}, transcribe={transcribe}, deliver={deliver}, state={session.State}");
+
+            session = Recording();
+            var silence = Gives(session.Handle(new SessionEvent.SilenceLimit()),
+                              new SessionEffect.StopRecording("No speech for a minute"));
+            session.Handle(new SessionEvent.Recorded(60));
+            Assert("session.silence_limit",
+                silence && Gives(session.Handle(new SessionEvent.Transcribed("Done")), new SessionEffect.Deliver("Done", 60, false)));
+
+            session = Ready();
+            session.Handle(new SessionEvent.Toggle(false, true, true));
+            var micFailed = Gives(session.Handle(new SessionEvent.MicrophoneFailed("busy")),
+                                new SessionEffect.Notice("Microphone unavailable"), new SessionEffect.Failed("Microphone error: busy", 0))
+                            && session.State == Ui.DictationState.Error
+                            && Gives(session.Handle(new SessionEvent.MicrophoneOpened()));
+            Assert("session.microphone", micFailed, session.State.ToString());
+
+            session = Recording();
+            session.Handle(new SessionEvent.Finish(false));
+            var noAudio = Gives(session.Handle(new SessionEvent.Recorded(0)),
+                              new SessionEffect.Notice("No audio recorded"), new SessionEffect.Failed("No audio recorded (0 samples).", 0));
+            session = Recording();
+            session.Handle(new SessionEvent.Finish(false));
+            session.Handle(new SessionEvent.Recorded(2));
+            var noSpeech = Gives(session.Handle(new SessionEvent.Transcribed("  ")),
+                               new SessionEffect.Notice("No speech detected"), new SessionEffect.Failed("No speech recognized.", 2))
+                           && session.State == Ui.DictationState.Ready;
+            session = Recording();
+            session.Handle(new SessionEvent.Finish(false));
+            session.Handle(new SessionEvent.Recorded(2));
+            var broke = Gives(session.Handle(new SessionEvent.TranscriptionFailed("worker exited")),
+                             new SessionEffect.Notice("Transcription failed"), new SessionEffect.Failed("worker exited", 2))
+                         && session.State == Ui.DictationState.Error;
+            Assert("session.no_text", noAudio && noSpeech && broke, $"noAudio={noAudio}, noSpeech={noSpeech}, failed={broke}");
+
+            // A dictation under way finishes on the engine it started with; a reload doesn't strand the microphone.
+            session = Recording();
+            var reload = Gives(session.Handle(new SessionEvent.LoadEngine(true)), new SessionEffect.LoadEngine())
+                         && session.State == Ui.DictationState.Recording
+                         && Gives(session.Handle(new SessionEvent.Finish(true)), new SessionEffect.StopRecording("Processing…"));
+            Assert("session.reload_while_recording", reload, session.State.ToString());
+
+            session = Ready();
+            var sample = Gives(session.Handle(new SessionEvent.Sample(true)), new SessionEffect.StartSample())
+                         && Gives(session.Handle(new SessionEvent.Sample(false)), new SessionEffect.StopSample());
+            Assert("session.sample", sample);
         }
 
         // --- whisper engine: needs the speech runtime and a model in the install folder ---
