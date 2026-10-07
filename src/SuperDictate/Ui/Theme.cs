@@ -30,7 +30,7 @@ internal static class Theme
         ["Side"] = "#17212B",
         ["Card"] = "#17212B",
         ["Field"] = "#242F3D",
-        // Hover fill, slider and progress tracks.
+        // Hover fill, slider and progress tracks, tiles.
         ["Control"] = "#202B36",
         ["Stroke"] = "#243140",
         ["StrokeHover"] = "#34424F",
@@ -155,6 +155,15 @@ internal static class Theme
             </Setter.Value>
         </Setter>
     </Style>
+    <Style x:Key='FocusTile'>
+        <Setter Property='Control.Template'>
+            <Setter.Value>
+                <ControlTemplate>
+                    <Border Margin='-3' CornerRadius='15' BorderThickness='2' BorderBrush='{StaticResource Accent}'/>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
     <Style x:Key='FocusDot'>
         <Setter Property='Control.Template'>
             <Setter.Value>
@@ -172,8 +181,8 @@ internal static class Theme
         <Setter Property='Foreground' Value='{StaticResource Link}'/>
         <Setter Property='Background' Value='{StaticResource AccentSoft}'/>
         <Setter Property='BorderBrush' Value='Transparent'/>
-        <Setter Property='Height' Value='32'/>
-        <Setter Property='Padding' Value='14,0'/>
+        <Setter Property='Height' Value='34'/>
+        <Setter Property='Padding' Value='16,0'/>
         <Setter Property='FontSize' Value='13'/>
         <Setter Property='FontWeight' Value='SemiBold'/>
         <Setter Property='Cursor' Value='Hand'/>
@@ -229,7 +238,7 @@ internal static class Theme
         <Setter Property='FontFamily' Value='Segoe Fluent Icons, Segoe MDL2 Assets'/>
         <Setter Property='FontWeight' Value='Normal'/>
         <Setter Property='FontSize' Value='12'/>
-        <Setter Property='Width' Value='32'/>
+        <Setter Property='Width' Value='34'/>
         <Setter Property='Padding' Value='0'/>
     </Style>
     <Style x:Key='CloseButton' TargetType='Button' BasedOn='{StaticResource GhostButton}'>
@@ -432,6 +441,103 @@ internal static class Theme
                             <Setter TargetName='Bd' Property='Background' Value='{StaticResource AccentSoft}'/>
                             <Setter TargetName='Bd' Property='BorderBrush' Value='{StaticResource Accent}'/>
                             <Setter Property='Foreground' Value='{StaticResource Link}'/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Capsule skins: one tile per look, the chosen one ringed in the accent. -->
+    <Style x:Key='SkinTile' TargetType='RadioButton'>
+        <Setter Property='Foreground' Value='{StaticResource Text}'/>
+        <Setter Property='Cursor' Value='Hand'/>
+        <Setter Property='FocusVisualStyle' Value='{StaticResource FocusRing}'/>
+        <Setter Property='Margin' Value='0,0,10,10'/>
+        <Setter Property='Template'>
+            <Setter.Value>
+                <ControlTemplate TargetType='RadioButton'>
+                    <Border x:Name='Root' CornerRadius='12' Background='{StaticResource Control}' RenderTransformOrigin='0.5,0.5'>
+                        <Border.RenderTransform><ScaleTransform/></Border.RenderTransform>
+                        <Grid>
+                            <Border x:Name='Bd' CornerRadius='12' BorderThickness='2' BorderBrush='Transparent'/>
+                            <ContentPresenter Margin='12,14,12,10' HorizontalAlignment='Center'/>
+                        </Grid>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property='IsMouseOver' Value='True'>
+                            <Setter TargetName='Bd' Property='BorderBrush' Value='{StaticResource StrokeHover}'/>
+                        </Trigger>
+                        <Trigger Property='IsPressed' Value='True'>
+                            <Trigger.EnterActions><BeginStoryboard Storyboard='{StaticResource SinkIn}'/></Trigger.EnterActions>
+                            <Trigger.ExitActions><BeginStoryboard Storyboard='{StaticResource SinkOut}'/></Trigger.ExitActions>
+                        </Trigger>
+                        <Trigger Property='IsChecked' Value='True'>
+                            <Setter TargetName='Root' Property='Background' Value='{StaticResource AccentSoft}'/>
+                            <Setter TargetName='Bd' Property='BorderBrush' Value='{StaticResource Accent}'/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Languages: a tile per language; choosing one fills its tray in soft blue and
+         pops a tick into the circle on its right. -->
+    <Style x:Key='LanguageTile' TargetType='CheckBox'>
+        <Setter Property='Foreground' Value='{StaticResource Text}'/>
+        <Setter Property='Cursor' Value='Hand'/>
+        <Setter Property='FocusVisualStyle' Value='{StaticResource FocusTile}'/>
+        <Setter Property='Template'>
+            <Setter.Value>
+                <ControlTemplate TargetType='CheckBox'>
+                    <Border x:Name='Root' CornerRadius='12' Background='{StaticResource Control}' RenderTransformOrigin='0.5,0.5'>
+                        <Border.RenderTransform><ScaleTransform/></Border.RenderTransform>
+                        <Grid>
+                            <Border x:Name='Bd' CornerRadius='12' BorderThickness='1.5' BorderBrush='Transparent'/>
+                            <Border x:Name='Hover' CornerRadius='12' Background='{StaticResource Wash}' Opacity='0'/>
+                            <DockPanel Margin='12,10,12,10'>
+                                <Grid DockPanel.Dock='Right' Width='20' Height='20' Margin='10,0,0,0' VerticalAlignment='Center'>
+                                    <Ellipse x:Name='Box' Stroke='{StaticResource StrokeHover}' StrokeThickness='1.5'/>
+                                    <Grid x:Name='Tick' Opacity='0' RenderTransformOrigin='0.5,0.5'>
+                                        <Grid.RenderTransform><ScaleTransform/></Grid.RenderTransform>
+                                        <Ellipse Fill='{StaticResource Accent}'/>
+                                        <TextBlock Text='&#xE73E;' FontFamily='Segoe Fluent Icons, Segoe MDL2 Assets' FontSize='10'
+                                                   Foreground='White' HorizontalAlignment='Center' VerticalAlignment='Center'/>
+                                    </Grid>
+                                </Grid>
+                                <ContentPresenter VerticalAlignment='Center'/>
+                            </DockPanel>
+                        </Grid>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property='IsMouseOver' Value='True'>
+                            <Trigger.EnterActions><BeginStoryboard Storyboard='{StaticResource HoverIn}'/></Trigger.EnterActions>
+                            <Trigger.ExitActions><BeginStoryboard Storyboard='{StaticResource HoverOut}'/></Trigger.ExitActions>
+                        </Trigger>
+                        <Trigger Property='IsPressed' Value='True'>
+                            <Trigger.EnterActions><BeginStoryboard Storyboard='{StaticResource SinkIn}'/></Trigger.EnterActions>
+                            <Trigger.ExitActions><BeginStoryboard Storyboard='{StaticResource SinkOut}'/></Trigger.ExitActions>
+                        </Trigger>
+                        <Trigger Property='IsChecked' Value='True'>
+                            <Setter TargetName='Root' Property='Background' Value='{StaticResource AccentSoft}'/>
+                            <Setter TargetName='Bd' Property='BorderBrush' Value='{StaticResource Accent}'/>
+                            <Setter TargetName='Box' Property='Stroke' Value='{StaticResource Accent}'/>
+                            <Setter TargetName='Tick' Property='Opacity' Value='1'/>
+                        </Trigger>
+                        <!-- Only a real check pops the tick in; a tile that opens checked just shows it. -->
+                        <EventTrigger RoutedEvent='ToggleButton.Checked'>
+                            <BeginStoryboard>
+                                <Storyboard>
+                                    <DoubleAnimation Storyboard.TargetName='Tick' Storyboard.TargetProperty='(UIElement.RenderTransform).(ScaleTransform.ScaleX)'
+                                                     From='0.4' To='1' Duration='{StaticResource Settle}' EasingFunction='{StaticResource Out}'/>
+                                    <DoubleAnimation Storyboard.TargetName='Tick' Storyboard.TargetProperty='(UIElement.RenderTransform).(ScaleTransform.ScaleY)'
+                                                     From='0.4' To='1' Duration='{StaticResource Settle}' EasingFunction='{StaticResource Out}'/>
+                                </Storyboard>
+                            </BeginStoryboard>
+                        </EventTrigger>
+                        <Trigger Property='IsEnabled' Value='False'>
+                            <Setter Property='Opacity' Value='0.45'/>
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>

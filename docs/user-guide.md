@@ -99,9 +99,11 @@ the tray icon. **Save** applies your changes and keeps the window open.
 
 - **Dictation:** microphone, hotkeys, hold-to-talk, pressing Enter after paste,
   and a button to try it out.
-- **Languages:** the languages SuperDictate recognizes (English, Russian,
-  German, Polish). Removing languages you don't speak means fewer
-  wrong-language detections.
+- **Languages:** pick the languages you speak from 20 widely used ones,
+  including English, Spanish, French, German, Portuguese, Russian, Arabic,
+  Hindi, Chinese, Japanese and Korean. Type in the search box to find one.
+  Automatic detection only chooses among the languages you picked, so fewer
+  means fewer mix-ups. **Mode** can fix one language, which skips detection.
 - **Speech model:** which model to use, the speech engine, GPU acceleration,
   model downloads (**Download**, **Cancel**, **Delete**) and the model folder.
   Models always live in `Models` inside the install folder; **Open** shows it.
@@ -114,9 +116,20 @@ the tray icon. **Save** applies your changes and keeps the window open.
     opens its download page.
   - **Cloud LLM** sends the finished text (never audio) to an
     OpenAI-compatible service you choose, with your own API key.
+- **Capsule:** how the capsule looks and where it appears. While this page is
+  open, the real capsule shows on your screen with example words, and every
+  change shows on it at once; **Save** keeps it.
+  - **Skin:** 12 looks, from Midnight and Glass to Paper, Neon and High
+    contrast.
+  - **Look:** size, opacity, accent color and the voice meter (bars, wave or
+    pulse).
+  - **Position:** presets, or **Move…** to drag it anywhere. The screen dims,
+    the capsule snaps to the edges and the center, and arrow keys nudge it.
+    Next to the left or right edge it grows away from that edge as your
+    words appear. **Screen** picks where you're working or the main screen.
+  - **While you dictate:** the live words, and an optional recording time.
 - **History:** recent transcripts with copy buttons.
-- **General:** the microphone button, the capsule's size and color (**Preview**
-  shows it), and the SuperDictate folder.
+- **General:** the microphone button and the SuperDictate folder.
 - **Support:** support the project, check for updates, open this guide, report
   a problem, read the license and third-party notices.
 

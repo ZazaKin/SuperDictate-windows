@@ -182,12 +182,30 @@ def main():
             else:
                 audio = audio_path
 
-            # Multilingual prompts tailored for clean formatting and punctuation
+            # A short, well punctuated sentence in the language nudges Whisper toward
+            # clean punctuation. A language without one gets no prompt: an English
+            # prompt would pull other languages toward English.
             prompts = {
                 "ru": "Привет, как дела? Запятая, точка.",
                 "en": "Hello, how are you? Punctuation, period.",
                 "de": "Hallo, wie geht's? Komma, Punkt.",
                 "pl": "Cześć, jak się masz? Przecinek, kropka.",
+                "es": "Hola, ¿cómo estás? Muy bien, gracias.",
+                "fr": "Bonjour, comment ça va ? Très bien, merci.",
+                "it": "Ciao, come stai? Bene, grazie.",
+                "pt": "Olá, tudo bem? Sim, obrigado.",
+                "nl": "Hallo, hoe gaat het? Goed, dank je.",
+                "uk": "Привіт, як справи? Добре, дякую.",
+                "cs": "Ahoj, jak se máš? Dobře, děkuji.",
+                "sv": "Hej, hur mår du? Bra, tack.",
+                "tr": "Merhaba, nasılsın? İyiyim, teşekkürler.",
+                "el": "Γεια σου, τι κάνεις; Καλά, ευχαριστώ.",
+                "ar": "مرحبا، كيف حالك؟ بخير، شكرا.",
+                "hi": "नमस्ते, आप कैसे हैं? मैं ठीक हूँ, धन्यवाद।",
+                "zh": "你好，你好吗？我很好，谢谢。",
+                "ja": "こんにちは、お元気ですか？元気です、ありがとう。",
+                "ko": "안녕하세요, 잘 지내세요? 네, 감사합니다.",
+                "vi": "Xin chào, bạn khỏe không? Tôi khỏe, cảm ơn.",
             }
 
             # Language selection logic:
@@ -196,43 +214,37 @@ def main():
                 _, _, all_probs = model.detect_language(audio)
                 probs = dict(all_probs)
 
-                ru_score = probs.get("ru", 0.0) + probs.get("uk", 0.0) * 0.8 + probs.get("be", 0.0) * 0.8
-                pl_score = probs.get("pl", 0.0) + probs.get("cs", 0.0) * 0.7 + probs.get("sk", 0.0) * 0.7
-                de_score = probs.get("de", 0.0) + probs.get("nl", 0.0) * 0.6 + probs.get("lb", 0.0) * 0.5
-                en_score = probs.get("en", 0.0)
+                # Close relatives Whisper confuses lend their weight to a selected
+                # language, unless the user selected the relative too.
+                relatives = {
+                    "ru": (("uk", 0.8), ("be", 0.8)),
+                    "pl": (("cs", 0.7), ("sk", 0.7)),
+                    "de": (("nl", 0.6), ("lb", 0.5)),
+                }
+                candidates = {}
+                for lang in selected_langs:
+                    score = probs.get(lang, 0.0)
+                    for relative, weight in relatives.get(lang, ()):
+                        if relative not in selected_langs:
+                            score += probs.get(relative, 0.0) * weight
+                    candidates[lang] = score
 
                 top_lang, top_prob = all_probs[0]
 
-                # Whisper quirk: Slavic phonetics are notoriously misclassified as Portuguese (pt) or Spanish (es)
-                if top_lang in ("pt", "es", "ca"):
-                    if "ru" in selected_langs and "pl" in selected_langs:
-                        if ru_score >= pl_score:
-                            ru_score += top_prob * 0.75
-                        else:
-                            pl_score += top_prob * 0.75
-                    elif "ru" in selected_langs:
-                        ru_score += top_prob * 0.75
-                    elif "pl" in selected_langs:
-                        pl_score += top_prob * 0.75
-
-                candidates = {}
-                for lang in selected_langs:
-                    if lang == "ru":
-                        candidates["ru"] = ru_score
-                    elif lang == "pl":
-                        candidates["pl"] = pl_score
-                    elif lang == "de":
-                        candidates["de"] = de_score
-                    elif lang == "en":
-                        candidates["en"] = en_score
-                    else:
-                        candidates[lang] = probs.get(lang, 0.0)
+                # Whisper quirk: Slavic speech is often taken for Portuguese, Spanish or
+                # Catalan. Only when the user doesn't speak that language does it count
+                # for Russian or Polish.
+                if top_lang in ("pt", "es", "ca") and top_lang not in selected_langs:
+                    slavic = [lang for lang in ("ru", "pl") if lang in candidates]
+                    if slavic:
+                        best = max(slavic, key=candidates.get)
+                        candidates[best] += top_prob * 0.75
 
                 chosen_lang = max(candidates, key=candidates.get) if candidates else top_lang
             else:
                 chosen_lang = lang_hint
 
-            prompt = prompts.get(chosen_lang, "Hello, how are you? Punctuation, period.")
+            prompt = prompts.get(chosen_lang)
 
             segments, info = model.transcribe(
                 audio,

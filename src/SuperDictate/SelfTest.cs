@@ -361,12 +361,43 @@ internal static class SelfTest
             Ui.SettingsWindow.ChordFromKeys(new[] { System.Windows.Input.Key.LeftCtrl, System.Windows.Input.Key.Left }, out _) is not null
             && Ui.SettingsWindow.ChordFromKeys(new[] { System.Windows.Input.Key.A, System.Windows.Input.Key.B }, out _) is not null);
 
-        // --- capsule placement: top centre of the active monitor, never left of it ---
-        var primary = Ui.CapsuleOverlay.CenteredLeft(0, 1920, 200);
-        var secondary = Ui.CapsuleOverlay.CenteredLeft(1920, 3840, 200);
-        var tooWide = Ui.CapsuleOverlay.CenteredLeft(-1280, -1180, 200);
-        Assert("capsule.placement", primary == 860 && secondary == 2780 && tooWide == -1280,
-            $"primary={primary}, secondary={secondary}, tooWide={tooWide}");
+        // --- capsule placement: the edge it keeps to, growth away from it, always on screen ---
+        {
+            var area = new System.Windows.Rect(0, 0, 1920, 1040);
+            var small = new System.Windows.Size(168, 48);
+            var top = Ui.CapsulePlacement.TopCenter.Place(small, 460, area);
+            // Dropped against the left edge it keeps to the left; right, the right; mid-screen, its centre.
+            var left = Ui.CapsulePlacement.FromRect(new System.Windows.Rect(12, 400, 168, 48), area);
+            var right = Ui.CapsulePlacement.FromRect(new System.Windows.Rect(1740, 980, 168, 48), area);
+            var middle = Ui.CapsulePlacement.FromRect(new System.Windows.Rect(860, 500, 168, 48), area);
+            // A placement puts the capsule back where it was dropped, on any screen size.
+            var dropped = new System.Windows.Rect(300, 200, 168, 48);
+            var back = Ui.CapsulePlacement.FromRect(dropped, area).Place(small, 460, area);
+            // Grown to its widest, a right-edge capsule extends to the left and stays on screen.
+            var grown = right.Place(new System.Windows.Size(460, 48), 460, area);
+            // A centred capsule near an edge is pulled in so its widest still fits.
+            var squeezed = new Ui.CapsulePlacement(Ui.CapsuleEdge.Center, 0.36, Ui.CapsuleEdge.Start, 0)
+                .Place(small, 460, new System.Windows.Rect(0, 0, 800, 600));
+            Assert("capsule.placement",
+                top.Left == 876 && top.Top == 12
+                && left.Horizontal == Ui.CapsuleEdge.Start && left.X == 0
+                && right.Horizontal == Ui.CapsuleEdge.End && right.Vertical == Ui.CapsuleEdge.End && right.AtBottom
+                && middle.Horizontal == Ui.CapsuleEdge.Center && middle.Vertical == Ui.CapsuleEdge.Center
+                && Math.Abs(back.Left - dropped.Left) < 0.01 && Math.Abs(back.Top - dropped.Top) < 0.01
+                && Math.Abs(grown.Right - 1908) < 0.01 && grown.Left >= 12
+                && squeezed.Left + (squeezed.Width / 2) - 230 >= 12,
+                $"top={top}, left={left}, right={right}, middle={middle}, back={back}, grown={grown}, squeezed={squeezed}");
+
+            // Dragged near an edge or the centre, it snaps onto it and says which.
+            var nearLeft = Ui.CapsulePlacement.Snap(new System.Windows.Rect(20, 300, 168, 48), area, out var leftGuides);
+            var nearCenter = Ui.CapsulePlacement.Snap(new System.Windows.Rect(870, 300, 168, 48), area, out var centerGuides);
+            var offScreen = Ui.CapsulePlacement.Snap(new System.Windows.Rect(-500, 2000, 168, 48), area, out _);
+            Assert("capsule.snap",
+                nearLeft.Left == 12 && leftGuides.HasFlag(Ui.CapsulePlacement.Guides.Left)
+                && nearCenter.Left == 876 && centerGuides.HasFlag(Ui.CapsulePlacement.Guides.CenterX)
+                && offScreen.Left == 12 && offScreen.Bottom == 1028,
+                $"nearLeft={nearLeft}, nearCenter={nearCenter}, offScreen={offScreen}");
+        }
 
         // --- features ---
         try
@@ -462,7 +493,7 @@ internal static class SelfTest
         try
         {
             var caption = new Ui.LiveCaption();
-            caption.Apply(12.5, 300);
+            caption.Apply(12.5, 300, System.Windows.Media.Brushes.White);
             caption.Show("", "hello");
             caption.Show("hello there", "");
             caption.Show("hello there", "how are");
@@ -608,6 +639,16 @@ internal static class SelfTest
                 .Select(pair => $"{pair.Item1} on {pair.Item2}")
                 .ToList();
             Assert("theme.contrast", weak.Count == 0, string.Join(", ", weak));
+
+            // Every capsule skin's text, and its dimmer status text, on the skin's own fill.
+            string Rgb(System.Windows.Media.Color color) => $"#{color.R:X2}{color.G:X2}{color.B:X2}";
+            var faint = Ui.CapsuleSkin.All
+                .SelectMany(skin => new[] { (skin, skin.Text, skin.Fill), (skin, skin.Muted, skin.Fill), (skin, skin.Muted, skin.FillEnd) })
+                .Where(pair => Contrast(Rgb(pair.Item2), Rgb(pair.Item3)) < 4.5)
+                .Select(pair => pair.skin.Name)
+                .Distinct()
+                .ToList();
+            Assert("capsule.skins", faint.Count == 0, string.Join(", ", faint));
         }
 
         // --- theme templates: each applies, and every animation in it finds its target ---
@@ -628,6 +669,8 @@ internal static class SelfTest
                 ("Chip", Styled(new System.Windows.Controls.CheckBox(), "Chip")),
                 ("Nav", Styled(new System.Windows.Controls.RadioButton(), "Nav")),
                 ("Slider", Styled(new System.Windows.Controls.Slider(), null)),
+                ("SkinTile", Styled(new System.Windows.Controls.RadioButton(), "SkinTile")),
+                ("LanguageTile", Styled(new System.Windows.Controls.CheckBox(), "LanguageTile")),
             };
             var host = new System.Windows.Controls.StackPanel { Resources = resources };
             var broken = new System.Collections.Generic.List<string>();
@@ -668,6 +711,43 @@ internal static class SelfTest
             }
 
             Assert("theme.templates", broken.Count == 0, string.Join("; ", broken));
+
+            // The capsule in every skin and meter, and the position editor, build without throwing.
+            try
+            {
+                var view = new Ui.CapsuleView();
+                foreach (var skin in Ui.CapsuleSkin.All)
+                {
+                    foreach (var meter in new[] { "bars", "wave", "pulse" })
+                    {
+                        view.Apply(new Ui.CapsuleStyle(skin.Id, "#5B8DEF", 1.2, 0.8, meter, true));
+                        view.ShowText("Listening…", meter: true);
+                        view.ShowDraft("hello there", "how are");
+                        view.Elapsed = TimeSpan.FromSeconds(75);
+                        view.SetLevel(0.05);
+                        view.Render(1.5);
+                    }
+                }
+
+                _ = new Ui.CapsuleLayoutEditor(view.Current, Ui.CapsulePlacement.TopCenter, null);
+                Assert("capsule.view", true);
+
+                // Every offered language has its own picture, and each one draws.
+                var bare = SpokenLanguages.All.Where(language => !Ui.LanguageIcon.HasPicture(language.Code)).Select(language => language.Code).ToList();
+                foreach (var language in SpokenLanguages.All)
+                {
+                    var icon = Ui.LanguageIcon.Create(language.Code, 32);
+                    icon.Measure(new System.Windows.Size(32, 32));
+                    icon.Arrange(new System.Windows.Rect(0, 0, 32, 32));
+                    new System.Windows.Media.Imaging.RenderTargetBitmap(32, 32, 96, 96, System.Windows.Media.PixelFormats.Pbgra32).Render(icon);
+                }
+
+                Assert("languages.icons", bare.Count == 0, string.Join(", ", bare));
+            }
+            catch (Exception error)
+            {
+                Assert("capsule.view", false, error.Message);
+            }
         }
 
         try

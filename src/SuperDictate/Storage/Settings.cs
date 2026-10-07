@@ -52,6 +52,37 @@ public sealed class Settings
 
     public string CapsuleAccent { get; set; } = "#5B8DEF";
 
+    /// <summary>One of Ui.CapsuleSkin.All: midnight, graphite, paper, glass, aurora, telegram, contrast.</summary>
+    public string CapsuleSkin { get; set; } = "midnight";
+
+    /// <summary>0.5 to 1: how see-through the whole capsule is.</summary>
+    public double CapsuleOpacity { get; set; } = 1.0;
+
+    /// <summary>The voice meter: bars, wave or pulse.</summary>
+    public string CapsuleMeter { get; set; } = "bars";
+
+    /// <summary>Show the words as they're spoken (the live preview).</summary>
+    public bool CapsuleLiveText { get; set; } = true;
+
+    /// <summary>Show how long the dictation has been running.</summary>
+    public bool CapsuleTimer { get; set; }
+
+    /// <summary>
+    /// Where the capsule sits (see Ui.CapsulePlacement): the edge it keeps to on each
+    /// axis (start, center or end) and how far across the screen, 0 to 1. Top center
+    /// unless the user moved it.
+    /// </summary>
+    public string CapsuleHorizontal { get; set; } = "center";
+
+    public double CapsuleX { get; set; } = 0.5;
+
+    public string CapsuleVertical { get; set; } = "start";
+
+    public double CapsuleY { get; set; }
+
+    /// <summary>"active": the screen the user is working on; "primary": always the main screen.</summary>
+    public string CapsuleScreen { get; set; } = "active";
+
     public int MaxRecordingMinutes { get; set; } = 20;
 
     public int HistoryLimit { get; set; } = 100;

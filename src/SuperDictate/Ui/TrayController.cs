@@ -1,5 +1,6 @@
 using System;
 using System.Drawing;
+using System.Linq;
 using System.Drawing.Drawing2D;
 using System.Windows.Forms;
 using SuperDictate.Speech;
@@ -25,11 +26,7 @@ public sealed class TrayController : IDisposable
     private readonly ToolStripMenuItem _turboItem;
     private readonly ToolStripMenuItem _smallItem;
     private readonly ToolStripMenuItem _baseItem;
-    private readonly ToolStripMenuItem _autoItem;
-    private readonly ToolStripMenuItem _enItem;
-    private readonly ToolStripMenuItem _ruItem;
-    private readonly ToolStripMenuItem _deItem;
-    private readonly ToolStripMenuItem _plItem;
+    private readonly ToolStripMenuItem _langMenu;
     private readonly ToolStripMenuItem _aiItem;
 
     public TrayController(DictationController controller, Settings settings)
@@ -79,30 +76,8 @@ public sealed class TrayController : IDisposable
         modelMenu.DropDownItems.Add(_smallItem);
         modelMenu.DropDownItems.Add(_baseItem);
 
-        var langMenu = new ToolStripMenuItem("Language");
-        _autoItem = new ToolStripMenuItem("Auto-detect") { Checked = settings.Language is "auto" or "" or null };
-        _enItem = new ToolStripMenuItem("English only") { Checked = settings.Language == "en" };
-        _ruItem = new ToolStripMenuItem("Russian only") { Checked = settings.Language == "ru" };
-        _deItem = new ToolStripMenuItem("German only") { Checked = settings.Language == "de" };
-        _plItem = new ToolStripMenuItem("Polish only") { Checked = settings.Language == "pl" };
-
-        void SetLang(string lang)
-        {
-            settings.Language = lang;
-            SettingsStore.Save(settings);
-            _autoItem.Checked = lang == "auto";
-            _enItem.Checked = lang == "en";
-            _ruItem.Checked = lang == "ru";
-            _deItem.Checked = lang == "de";
-            _plItem.Checked = lang == "pl";
-            _controller.RestartEngine();
-        }
-
-        _autoItem.Click += (_, _) => SetLang("auto");
-        _enItem.Click += (_, _) => SetLang("en");
-        _ruItem.Click += (_, _) => SetLang("ru");
-        _deItem.Click += (_, _) => SetLang("de");
-        _plItem.Click += (_, _) => SetLang("pl");
+        // Filled in each time the menu opens, from the languages chosen in settings.
+        _langMenu = new ToolStripMenuItem("Language");
 
         // Built-in rules are the default engine, so this is not always an LLM.
         _aiItem = new ToolStripMenuItem("AI cleanup") { Checked = settings.AiCleanupEnabled };
@@ -113,13 +88,6 @@ public sealed class TrayController : IDisposable
             SettingsStore.Save(settings);
         };
 
-        langMenu.DropDownItems.Add(_autoItem);
-        langMenu.DropDownItems.Add(_enItem);
-        langMenu.DropDownItems.Add(_ruItem);
-        langMenu.DropDownItems.Add(_deItem);
-        langMenu.DropDownItems.Add(_plItem);
-        langMenu.DropDownItems.Add(new ToolStripSeparator());
-        langMenu.DropDownItems.Add("Choose languages…", null, (_, _) => OpenSettingsWindow());
 
         _dictate = new ToolStripMenuItem("Dictate", null, (_, _) => _controller.Toggle(settings.PressEnterAfterPaste));
 
@@ -136,7 +104,7 @@ public sealed class TrayController : IDisposable
         };
         _menu.Items.Add(micItem);
         _menu.Items.Add(modelMenu);
-        _menu.Items.Add(langMenu);
+        _menu.Items.Add(_langMenu);
         _menu.Items.Add(_aiItem);
         // The history hotkey does the same: the latest transcript goes to the clipboard.
         _menu.Items.Add("Copy last transcript", null, (_, _) => _controller.ShowHistory());
@@ -152,7 +120,7 @@ public sealed class TrayController : IDisposable
             LabelModels();
             micItem.Checked = settings.ShowMicButton; // Settings may have changed it.
         };
-        ApplyMenuTheme(modelMenu, langMenu);
+        ApplyMenuTheme(modelMenu, _langMenu);
 
         _icon = new NotifyIcon
         {
@@ -239,11 +207,27 @@ public sealed class TrayController : IDisposable
     /// <summary>Checkmarks follow the settings, which the settings window changes without closing.</summary>
     private void RefreshChecks()
     {
-        _autoItem.Checked = _settings.Language is "auto" or "" or null;
-        _enItem.Checked = _settings.Language == "en";
-        _ruItem.Checked = _settings.Language == "ru";
-        _deItem.Checked = _settings.Language == "de";
-        _plItem.Checked = _settings.Language == "pl";
+        // Automatic, or one of the languages chosen in settings.
+        _langMenu.DropDownItems.Clear();
+        var current = string.IsNullOrEmpty(_settings.Language) ? "auto" : _settings.Language;
+        var choices = new[] { ("auto", "Auto-detect") }
+            .Concat(SpokenLanguages.All
+                .Where(language => _settings.SelectedLanguages.Contains(language.Code))
+                .Select(language => (language.Code, $"{language.English} only")));
+        foreach (var (code, text) in choices)
+        {
+            var item = new ToolStripMenuItem(text) { Checked = current == code };
+            item.Click += (_, _) =>
+            {
+                _settings.Language = code;
+                SettingsStore.Save(_settings);
+                _controller.RestartEngine();
+            };
+            _langMenu.DropDownItems.Add(item);
+        }
+
+        _langMenu.DropDownItems.Add(new ToolStripSeparator());
+        _langMenu.DropDownItems.Add("Choose languages…", null, (_, _) => OpenSettingsWindow("languages"));
         _turboItem.Checked = _settings.ModelId == "whisper-large-v3-turbo";
         _smallItem.Checked = _settings.ModelId == "whisper-small";
         _baseItem.Checked = _settings.ModelId == "whisper-base";

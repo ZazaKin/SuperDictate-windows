@@ -32,6 +32,7 @@ internal sealed class LiveCaption : Canvas
     private Brush? _edgeFade;
     private double _fontSize = 12;
     private double _widest = 400;
+    private Brush _foreground = Brushes.White;
     private int _dropped;
 
     public LiveCaption()
@@ -49,12 +50,17 @@ internal sealed class LiveCaption : Canvas
 
     internal int SettledShown => Words().Count(word => (bool)word.Tag);
 
-    public void Apply(double fontSize, double widest)
+    public void Apply(double fontSize, double widest, Brush foreground)
     {
         _fontSize = fontSize;
         _widest = widest;
+        _foreground = foreground;
         Height = Math.Ceiling(fontSize * 1.45);
-        foreach (var word in Words()) word.FontSize = fontSize;
+        foreach (var word in Words())
+        {
+            word.FontSize = fontSize;
+            word.Foreground = foreground;
+        }
 
         var fade = new LinearGradientBrush { MappingMode = BrushMappingMode.Absolute, StartPoint = new Point(0, 0), EndPoint = new Point(fontSize * 2.5, 0) };
         fade.GradientStops.Add(new GradientStop(Colors.Transparent, 0));
@@ -94,7 +100,7 @@ internal sealed class LiveCaption : Canvas
                 Text = next[index],
                 Tag = settledWord,
                 FontSize = _fontSize,
-                Foreground = Brushes.White,
+                Foreground = _foreground,
                 Margin = new Thickness(_line.Children.Count == 0 ? 0 : _fontSize * 0.3, 0, 0, 0),
             };
             _line.Children.Add(word);

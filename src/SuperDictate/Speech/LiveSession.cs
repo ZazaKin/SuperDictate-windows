@@ -43,14 +43,16 @@ internal sealed class LiveSession : IDisposable
     private int _draftedTo;    // Where the audio of the latest pass ended.
     private string _settled = "";
     private bool _passRunning;
-    private bool _drafting = true;
+    private bool _drafting;
     private bool _limitReached;
     private bool _stopped;
 
     /// <param name="audioSince">The recording from a sample index on, as <see cref="Audio.MicrophoneCapture.Since"/> gives it.</param>
     /// <param name="transcribe">A draft transcription of some samples.</param>
-    public LiveSession(Func<int, float[]> audioSince, Func<float[], Task<string>> transcribe)
+    /// <param name="drafting">Whether to keep a draft at all; the silence limit works either way.</param>
+    public LiveSession(Func<int, float[]> audioSince, Func<float[], Task<string>> transcribe, bool drafting = true)
     {
+        _drafting = drafting;
         _audioSince = audioSince;
         _transcribe = transcribe;
     }

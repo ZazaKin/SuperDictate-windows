@@ -1,0 +1,236 @@
+using System;
+using System.Collections.Generic;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Media;
+
+namespace SuperDictate.Ui;
+
+/// <summary>
+/// A round badge for each language: its flag, drawn as simple vector shapes on a
+/// 100 × 100 square and cropped to a circle (Windows shows no flag emoji). Arabic,
+/// spoken across many countries, gets its letter ع on green instead of one
+/// country's flag. A language without a badge shows its code.
+/// </summary>
+internal static class LanguageIcon
+{
+    private static readonly Brush RimBrush = Frozen(new SolidColorBrush(Color.FromArgb(46, 255, 255, 255)));
+    private static readonly Dictionary<string, Brush> Cache = new();
+
+    private static readonly Dictionary<string, Action<DrawingGroup>> Flags = new()
+    {
+        ["en"] = g =>
+        {
+            // The Union Flag, centre crop: diagonals under the cross.
+            Fill(g, "#012169", 0, 0, 100, 100);
+            Line(g, "#FFFFFF", 0, 0, 100, 100, 20);
+            Line(g, "#FFFFFF", 0, 100, 100, 0, 20);
+            Line(g, "#C8102E", 0, 0, 100, 100, 7);
+            Line(g, "#C8102E", 0, 100, 100, 0, 7);
+            Fill(g, "#FFFFFF", 37, 0, 26, 100);
+            Fill(g, "#FFFFFF", 0, 37, 100, 26);
+            Fill(g, "#C8102E", 43, 0, 14, 100);
+            Fill(g, "#C8102E", 0, 43, 100, 14);
+        },
+        ["es"] = g =>
+        {
+            Fill(g, "#AA151B", 0, 0, 100, 100);
+            Fill(g, "#F1BF00", 0, 25, 100, 50);
+        },
+        ["fr"] = g => Vertical(g, "#0055A4", "#FFFFFF", "#EF4135"),
+        ["de"] = g => Horizontal(g, "#000000", "#DD0000", "#FFCE00"),
+        ["it"] = g => Vertical(g, "#009246", "#FFFFFF", "#CE2B37"),
+        ["pt"] = g =>
+        {
+            Fill(g, "#046A38", 0, 0, 40, 100);
+            Fill(g, "#DA291C", 40, 0, 60, 100);
+            Ring(g, "#FFE900", 40, 50, 16, 5);
+            Fill(g, "#FFFFFF", 34, 42, 12, 16);
+            Fill(g, "#DA291C", 36, 44, 8, 12);
+        },
+        ["nl"] = g => Horizontal(g, "#AE1C28", "#FFFFFF", "#21468B"),
+        ["pl"] = g => Horizontal(g, "#FFFFFF", "#DC143C"),
+        ["ru"] = g => Horizontal(g, "#FFFFFF", "#0039A6", "#D52B1E"),
+        ["uk"] = g => Horizontal(g, "#0057B7", "#FFD700"),
+        ["cs"] = g =>
+        {
+            Horizontal(g, "#FFFFFF", "#D7141A");
+            Polygon(g, "#11457E", new Point(0, 0), new Point(52, 50), new Point(0, 100));
+        },
+        ["sv"] = g =>
+        {
+            Fill(g, "#006AA7", 0, 0, 100, 100);
+            Fill(g, "#FECC00", 28, 0, 16, 100);
+            Fill(g, "#FECC00", 0, 42, 100, 16);
+        },
+        ["tr"] = g =>
+        {
+            Fill(g, "#E30A17", 0, 0, 100, 100);
+            Dot(g, "#FFFFFF", 40, 50, 24);
+            Dot(g, "#E30A17", 46, 50, 19.5);
+            Star(g, "#FFFFFF", 67, 50, 11, 180);
+        },
+        ["el"] = g =>
+        {
+            for (var stripe = 0; stripe < 9; stripe++) Fill(g, stripe % 2 == 0 ? "#0D5EAF" : "#FFFFFF", 0, stripe * 100 / 9.0, 100, 100 / 9.0 + 0.5);
+            Fill(g, "#0D5EAF", 0, 0, 55.6, 55.6);
+            Fill(g, "#FFFFFF", 22.2, 0, 11.1, 55.6);
+            Fill(g, "#FFFFFF", 0, 22.2, 55.6, 11.1);
+        },
+        ["hi"] = g =>
+        {
+            Horizontal(g, "#FF9933", "#FFFFFF", "#138808");
+            Ring(g, "#000080", 50, 50, 11, 2.5);
+            Dot(g, "#000080", 50, 50, 2.5);
+        },
+        ["zh"] = g =>
+        {
+            Fill(g, "#EE1C25", 0, 0, 100, 100);
+            Star(g, "#FFFF00", 28, 32, 15, -90);
+            foreach (var (x, y) in new[] { (46.0, 16.0), (54.0, 25.0), (54.0, 37.0), (46.0, 46.0) })
+            {
+                // Each small star points at the big one.
+                Star(g, "#FFFF00", x, y, 4.5, Math.Atan2(32 - y, 28 - x) * 180 / Math.PI);
+            }
+        },
+        ["ja"] = g =>
+        {
+            Fill(g, "#FFFFFF", 0, 0, 100, 100);
+            Dot(g, "#BC002D", 50, 50, 22);
+        },
+        ["ko"] = g =>
+        {
+            // The taegeuk: red over blue, swirled by two half-size circles.
+            Fill(g, "#FFFFFF", 0, 0, 100, 100);
+            g.Children.Add(new GeometryDrawing(Solid("#CD2E3A"), null, HalfDisc(50, 50, 22, top: true)));
+            g.Children.Add(new GeometryDrawing(Solid("#0047A0"), null, HalfDisc(50, 50, 22, top: false)));
+            Dot(g, "#CD2E3A", 39, 50, 11);
+            Dot(g, "#0047A0", 61, 50, 11);
+        },
+        ["vi"] = g =>
+        {
+            Fill(g, "#DA251D", 0, 0, 100, 100);
+            Star(g, "#FFFF00", 50, 52, 25, -90);
+        },
+    };
+
+    /// <summary>A round badge of the given size for a language code.</summary>
+    public static FrameworkElement Create(string code, double size)
+    {
+        var badge = new Border
+        {
+            Width = size,
+            Height = size,
+            CornerRadius = new CornerRadius(size / 2),
+            BorderBrush = RimBrush,
+            BorderThickness = new Thickness(1),
+        };
+
+        if (Flags.ContainsKey(code))
+        {
+            badge.Background = FlagBrush(code);
+        }
+        else if (code == "ar")
+        {
+            badge.Background = Solid("#007A3D");
+            badge.Child = Letter("ع", size, Brushes.White);
+        }
+        else
+        {
+            badge.Background = Solid("#242F3D");
+            badge.Child = Letter(code.ToUpperInvariant(), size * 0.65, Solid("#6AB2F2"));
+        }
+
+        return badge;
+    }
+
+    /// <summary>Whether the language has a picture (a flag or a letter) rather than its code.</summary>
+    public static bool HasPicture(string code) => Flags.ContainsKey(code) || code == "ar";
+
+    private static Brush FlagBrush(string code)
+    {
+        if (Cache.TryGetValue(code, out var cached)) return cached;
+        var group = new DrawingGroup();
+        Flags[code](group);
+        var brush = new DrawingBrush(group)
+        {
+            Viewbox = new Rect(0, 0, 100, 100),
+            ViewboxUnits = BrushMappingMode.Absolute,
+            Stretch = Stretch.Fill,
+        };
+        brush.Freeze();
+        Cache[code] = brush;
+        return brush;
+    }
+
+    private static TextBlock Letter(string text, double size, Brush color) => new()
+    {
+        Text = text,
+        FontSize = size * 0.42,
+        FontWeight = FontWeights.SemiBold,
+        Foreground = color,
+        HorizontalAlignment = HorizontalAlignment.Center,
+        VerticalAlignment = VerticalAlignment.Center,
+    };
+
+    private static void Horizontal(DrawingGroup g, params string[] colors)
+    {
+        var height = 100.0 / colors.Length;
+        for (var index = 0; index < colors.Length; index++) Fill(g, colors[index], 0, index * height, 100, height + 0.5);
+    }
+
+    private static void Vertical(DrawingGroup g, params string[] colors)
+    {
+        var width = 100.0 / colors.Length;
+        for (var index = 0; index < colors.Length; index++) Fill(g, colors[index], index * width, 0, width + 0.5, 100);
+    }
+
+    private static void Fill(DrawingGroup g, string color, double x, double y, double width, double height) =>
+        g.Children.Add(new GeometryDrawing(Solid(color), null, new RectangleGeometry(new Rect(x, y, width, height))));
+
+    private static void Dot(DrawingGroup g, string color, double x, double y, double radius) =>
+        g.Children.Add(new GeometryDrawing(Solid(color), null, new EllipseGeometry(new Point(x, y), radius, radius)));
+
+    private static void Ring(DrawingGroup g, string color, double x, double y, double radius, double thickness) =>
+        g.Children.Add(new GeometryDrawing(null, new Pen(Solid(color), thickness), new EllipseGeometry(new Point(x, y), radius, radius)));
+
+    private static void Line(DrawingGroup g, string color, double x1, double y1, double x2, double y2, double thickness) =>
+        g.Children.Add(new GeometryDrawing(null, new Pen(Solid(color), thickness), new LineGeometry(new Point(x1, y1), new Point(x2, y2))));
+
+    private static void Polygon(DrawingGroup g, string color, params Point[] points)
+    {
+        var figure = new PathFigure { StartPoint = points[0], IsClosed = true, IsFilled = true };
+        for (var index = 1; index < points.Length; index++) figure.Segments.Add(new LineSegment(points[index], false));
+        g.Children.Add(new GeometryDrawing(Solid(color), null, new PathGeometry { Figures = { figure } }));
+    }
+
+    /// <summary>A five-pointed star; <paramref name="pointing"/> is the direction of one point, in degrees.</summary>
+    private static void Star(DrawingGroup g, string color, double x, double y, double radius, double pointing)
+    {
+        var points = new Point[10];
+        for (var index = 0; index < 10; index++)
+        {
+            var angle = (pointing + (index * 36)) * Math.PI / 180;
+            var reach = index % 2 == 0 ? radius : radius * 0.382;
+            points[index] = new Point(x + (reach * Math.Cos(angle)), y + (reach * Math.Sin(angle)));
+        }
+
+        Polygon(g, color, points);
+    }
+
+    private static Geometry HalfDisc(double x, double y, double radius, bool top)
+    {
+        var figure = new PathFigure { StartPoint = new Point(x - radius, y), IsClosed = true, IsFilled = true };
+        figure.Segments.Add(new ArcSegment(new Point(x + radius, y), new Size(radius, radius), 0, false,
+            top ? SweepDirection.Clockwise : SweepDirection.Counterclockwise, false));
+        return new PathGeometry { Figures = { figure } };
+    }
+
+    private static SolidColorBrush Solid(string hex) => Frozen(new SolidColorBrush((Color)ColorConverter.ConvertFromString(hex)));
+
+    private static T Frozen<T>(T freezable) where T : Freezable
+    {
+        freezable.Freeze();
+        return freezable;
+    }
+}

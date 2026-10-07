@@ -73,7 +73,7 @@ public sealed class DictationController : IDisposable
 
         _hook = new KeyboardHook();
         _mic = new MicrophoneCapture();
-        _overlay = new CapsuleOverlay(settings.CapsuleScale, settings.CapsuleAccent);
+        _overlay = new CapsuleOverlay(CapsuleLook.From(settings));
 
         AppLogger.Info("Initializing SuperDictate DictationController...");
 
@@ -234,19 +234,24 @@ public sealed class DictationController : IDisposable
     }
 
     /// <summary>Resizes and recolors the capsule; the settings preview uses it before saving.</summary>
-    public void ApplyCapsule(double scale, string accent) => _overlay.Apply(scale, accent);
+    public void ApplyCapsule(CapsuleLook look) => _overlay.Apply(look);
 
-    /// <summary>Slides the capsule in briefly, unless it is showing a dictation.</summary>
-    public void PreviewCapsule()
+    /// <summary>
+    /// Shows the capsule on screen as a live sample for the Capsule settings page,
+    /// unless it is showing a dictation; ApplyCapsule then changes it in place.
+    /// </summary>
+    public void StageCapsule()
     {
         if (State is DictationState.Recording or DictationState.Transcribing) return;
-        _overlay.Preview();
+        _overlay.BeginStage();
     }
+
+    public void UnstageCapsule() => _overlay.EndStage();
 
     /// <param name="restartEngine">Only when language or model changed: a reload takes seconds.</param>
     public void ApplySettings(Settings newSettings, bool restartEngine = true)
     {
-        _overlay.Apply(newSettings.CapsuleScale, newSettings.CapsuleAccent);
+        _overlay.Apply(CapsuleLook.From(newSettings));
         ShowMicButton(newSettings.ShowMicButton);
         _hook.HoldMode = newSettings.PressAndHold;
         _hook.Bind(HotkeyKind.Primary, newSettings.PrimaryHotkey);
@@ -346,7 +351,8 @@ public sealed class DictationController : IDisposable
     private void StartLive()
     {
         LiveSession live = null!;
-        live = new LiveSession(_mic.Since, samples => _engine.TranscribeAsync(samples, _cts.Token, draft: true));
+        live = new LiveSession(_mic.Since, samples => _engine.TranscribeAsync(samples, _cts.Token, draft: true),
+            drafting: _settings.CapsuleLiveText);
         live.DraftChanged += (settled, tail) => _dispatcher.BeginInvoke(() =>
         {
             if (_live == live) _overlay.ShowDraft(settled, tail);

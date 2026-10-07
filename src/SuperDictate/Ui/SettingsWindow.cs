@@ -27,7 +27,7 @@ namespace SuperDictate.Ui;
 /// Settings and dictation monitor: sidebar navigation, one page per area,
 /// grouped rows of label + control. Colors and templates come from <see cref="Theme"/>.
 /// </summary>
-public sealed class SettingsWindow : Window
+public sealed partial class SettingsWindow : Window
 {
     private static readonly FontFamily IconFont = new(Theme.IconFont);
 
@@ -40,18 +40,13 @@ public sealed class SettingsWindow : Window
         ("languages", "\uE774", "Languages"),
         ("models", "\uE945", "Speech model"),
         ("ai_cleanup", "\uE771", "AI cleanup"),
+        ("capsule", "\uE8BD", "Capsule"),
         ("history", "\uE81C", "History"),
         ("settings", "\uE713", "General"),
         ("support", "\uE006", "Support"),
     };
 
-    private static readonly (string Code, string Native, string English)[] Languages =
-    {
-        ("en", "English", "English"),
-        ("ru", "Русский", "Russian"),
-        ("de", "Deutsch", "German"),
-        ("pl", "Polski", "Polish"),
-    };
+    private static readonly (string Code, string Native, string English)[] Languages = SpokenLanguages.All;
 
     private static readonly (string Hex, string Name)[] Accents =
     {
@@ -59,6 +54,8 @@ public sealed class SettingsWindow : Window
         ("#635BFF", "Violet"),
         ("#00C853", "Green"),
         ("#FF4081", "Coral"),
+        ("#FF9F0A", "Orange"),
+        ("#2EC4B6", "Teal"),
     };
 
     private readonly DictationController _controller;
@@ -66,7 +63,17 @@ public sealed class SettingsWindow : Window
     private readonly Dictionary<string, FrameworkElement> _pages = new();
     private readonly Dictionary<string, RadioButton> _navItems = new();
     private readonly ContentControl _host = new();
-    private readonly TextBlock _title = new() { FontSize = 20, FontWeight = FontWeights.SemiBold, VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis };
+    private readonly TextBlock _title = new()
+    {
+        FontFamily = new FontFamily("Segoe UI Variable Display, Segoe UI"),
+        FontSize = 22,
+        FontWeight = FontWeights.SemiBold,
+        VerticalAlignment = VerticalAlignment.Center,
+        TextTrimming = TextTrimming.CharacterEllipsis,
+    };
+
+    // Fast start, long soft landing: cubic-bezier(0.32, 0.72, 0, 1).
+    private static readonly KeySpline Glide = FrozenSpline(0.32, 0.72, 0, 1);
     private readonly Ellipse _statusDot = new() { Width = 10, Height = 10, Margin = new Thickness(0, 4, 10, 0), VerticalAlignment = VerticalAlignment.Top };
     private readonly TextBlock _statusText = new() { FontWeight = FontWeights.SemiBold };
 
@@ -96,6 +103,16 @@ public sealed class SettingsWindow : Window
     private CheckBox _pressAndHold = null!, _pressEnter = null!;
     private CheckBox _aiEnable = null!, _aiFillers = null!, _aiPunct = null!, _aiDedupe = null!;
     private Slider _scale = null!;
+
+    // Capsule page: the look being edited, applied to the overlay on Save (or Preview).
+    private string _skin;
+    private CapsulePlacement _placement;
+    private Slider _opacity = null!;
+    private ComboBox _meter = null!, _position = null!, _screen = null!;
+    private CheckBox _liveText = null!, _timer = null!;
+    private readonly List<(string Skin, CapsuleView View)> _skinTiles = new();
+    private bool _syncingPosition;
+    private bool _capsuleStaged;
 
     // Speech model page: the selected model's files, always in the app's Models folder.
     private TextBlock _folderText = null!;
@@ -146,6 +163,8 @@ public sealed class SettingsWindow : Window
         _settings = settings;
         _initialPage = page;
         _accent = settings.CapsuleAccent;
+        _skin = settings.CapsuleSkin;
+        _placement = CapsuleLook.From(settings).Placement;
         _lastTranscript = controller.LastTranscript;
 
         Title = "SuperDictate";
@@ -181,6 +200,7 @@ public sealed class SettingsWindow : Window
         _pages["languages"] = LanguagesPage();
         _pages["models"] = ModelPage();
         _pages["ai_cleanup"] = CleanupPage();
+        _pages["capsule"] = CapsulePage();
         _pages["settings"] = GeneralPage();
         _pages["support"] = SupportPage();
 
@@ -221,7 +241,8 @@ public sealed class SettingsWindow : Window
             _llmDebounce.Stop();
             _llmCheck?.Cancel();
             // Undo an unsaved preview; after Save these are the new values anyway.
-            _controller.ApplyCapsule(_settings.CapsuleScale, _settings.CapsuleAccent);
+            Stage(false);
+            _controller.ApplyCapsule(CapsuleLook.From(_settings));
             _controller.StateChanged -= OnStateChanged;
             _controller.LevelChanged -= OnLevelChanged;
             _controller.DictationCompleted -= OnDictationCompleted;
@@ -348,13 +369,14 @@ public sealed class SettingsWindow : Window
     private FrameworkElement Main()
     {
         var save = _save = new Button { Content = "Save", Style = StyleOf("AccentButton"), MinWidth = 88, Margin = new Thickness(12, 0, 10, 0) };
+        AutomationProperties.SetName(save, "Save");
         save.Click += (_, _) => SaveAndApply();
         var minimize = IconButton("\uE921", "Minimize", () => WindowState = WindowState.Minimized, size: 10);
         var close = IconButton("\uE8BB", "Close", Close, "CloseButton", size: 10);
 
         var top = new Grid
         {
-            Height = 68,
+            Height = 70,
             Margin = new Thickness(28, 0, 14, 0),
             Background = Brushes.Transparent,
             ColumnDefinitions =
@@ -411,7 +433,44 @@ public sealed class SettingsWindow : Window
     {
         _title.Text = title;
         // History is rebuilt on every visit so it includes dictations made while the window is open.
-        _host.Content = key == "history" ? HistoryPage() : _pages[key];
+        var page = key == "history" ? HistoryPage() : _pages[key];
+        _host.Content = page;
+        Reveal(page);
+    }
+
+    /// <summary>
+    /// A page's cards rise a little and fade in, one after another. Only opacity
+    /// and a translation move, so nothing is laid out again; with Windows animations
+    /// off, the page simply appears.
+    /// </summary>
+    private static void Reveal(FrameworkElement page)
+    {
+        if (!SystemParameters.ClientAreaAnimation || page is not ScrollViewer { Content: Panel panel }) return;
+        var index = 0;
+        foreach (UIElement card in panel.Children)
+        {
+            var delay = TimeSpan.FromMilliseconds(35 * Math.Min(index++, 6));
+            var time = TimeSpan.FromMilliseconds(380);
+            var rise = new TranslateTransform(0, 10);
+            card.RenderTransform = rise;
+            card.Opacity = 0;
+            card.BeginAnimation(OpacityProperty, Glided(1, time, delay));
+            rise.BeginAnimation(TranslateTransform.YProperty, Glided(0, time, delay));
+        }
+    }
+
+    private static DoubleAnimationUsingKeyFrames Glided(double to, TimeSpan time, TimeSpan delay)
+    {
+        var animation = new DoubleAnimationUsingKeyFrames { Duration = time, BeginTime = delay };
+        animation.KeyFrames.Add(new SplineDoubleKeyFrame(to, KeyTime.FromTimeSpan(time), Glide));
+        return animation;
+    }
+
+    private static KeySpline FrozenSpline(double x1, double y1, double x2, double y2)
+    {
+        var spline = new KeySpline(x1, y1, x2, y2);
+        spline.Freeze();
+        return spline;
     }
 
     // ---------- Pages ----------
@@ -471,39 +530,88 @@ public sealed class SettingsWindow : Window
 
     private FrameworkElement LanguagesPage()
     {
-        var selected = new HashSet<string>(
-            _settings.SelectedLanguages ?? Languages.Select(l => l.Code).ToList(), StringComparer.OrdinalIgnoreCase);
+        var selected = new HashSet<string>(_settings.SelectedLanguages ?? new List<string> { "en" }, StringComparer.OrdinalIgnoreCase);
 
-        var chips = new UniformGrid { Columns = Languages.Length, Margin = new Thickness(-3, 0, -3, 0) };
-        foreach (var (code, native, english) in Languages)
+        // The count sits quietly on the card's title line, as Telegram puts counts in its
+        // section headers. With none chosen it turns amber: Save needs at least one.
+        var count = Text("", 12.5, "Muted");
+        AutomationProperties.SetLiveSetting(count, AutomationLiveSetting.Polite);
+        void Count()
         {
-            var chip = new CheckBox
-            {
-                Style = StyleOf("Chip"),
-                IsChecked = selected.Contains(code),
-                Margin = new Thickness(3, 0, 3, 0),
-                Content = new TextBlock
-                {
-                    Inlines = { new Run(code.ToUpperInvariant() + "  ") { FontWeight = FontWeights.Bold, FontSize = 11 }, new Run(native) },
-                },
-            };
-            AutomationProperties.SetName(chip, english);
-            chip.Checked += (_, _) => ClearProblem("languages");
-            _languages[code] = chip;
-            chips.Children.Add(chip);
+            var chosen = _languages.Values.Count(tile => tile.IsChecked == true);
+            count.Text = chosen == 0 ? "Pick at least one" : $"{chosen} of {Languages.Length}";
+            count.Foreground = Br(chosen == 0 ? "Warn" : "Muted");
         }
 
-        var hint = Wrapped(Text("Auto-detect only considers the selected languages, so unused ones never cause false detections.", 12, "Muted"));
-        hint.Margin = new Thickness(0, 10, 0, 0);
+        var search = new TextBox { Padding = new Thickness(32, 7, 10, 7) };
+        AutomationProperties.SetName(search, "Search languages");
+        var searchIcon = Glyph("\uE721", 13, new Thickness(12, 0, 0, 0));
+        searchIcon.Foreground = Br("Muted");
+        searchIcon.IsHitTestVisible = false;
+        var searchHint = Text($"Search {Languages.Length} languages", 13, "Muted");
+        searchHint.Margin = new Thickness(34, 0, 0, 0);
+        searchHint.IsHitTestVisible = false;
+        var searchBox = new Grid { Children = { search, searchIcon, searchHint } };
 
-        _langMode = Combo(string.IsNullOrEmpty(_settings.Language) ? "auto" : _settings.Language, 200,
-            new[] { ("auto", "Auto-detect") }
+        // As many columns as fit; a search hides the tiles that don't match.
+        var tiles = new UniformGrid { Columns = 3, Margin = new Thickness(14, 4, 14, 4) };
+        tiles.SizeChanged += (_, e) => tiles.Columns = Math.Clamp((int)(e.NewSize.Width / 175), 2, 4);
+        foreach (var (code, native, english) in Languages)
+        {
+            var monogram = LanguageIcon.Create(code, 32);
+            monogram.Margin = new Thickness(0, 0, 12, 0);
+            DockPanel.SetDock(monogram, Dock.Left);
+            var names = new StackPanel { VerticalAlignment = VerticalAlignment.Center, Children = { Text(native, 13.5), Text(english, 11.5, "Muted") } };
+            // Checked before styled: the style's check animation needs the template it hasn't got yet.
+            var tile = new CheckBox
+            {
+                IsChecked = selected.Contains(code),
+                Style = StyleOf("LanguageTile"),
+                Margin = new Thickness(4),
+                Content = new DockPanel { Children = { monogram, names } },
+            };
+            AutomationProperties.SetName(tile, english);
+            tile.Checked += (_, _) =>
+            {
+                ClearProblem("languages");
+                Count();
+            };
+            tile.Unchecked += (_, _) => Count();
+            _languages[code] = tile;
+            tiles.Children.Add(tile);
+        }
+
+        search.TextChanged += (_, _) =>
+        {
+            var query = search.Text.Trim();
+            searchHint.Visibility = query.Length == 0 ? Visibility.Visible : Visibility.Collapsed;
+            foreach (var (code, native, english) in Languages)
+            {
+                var match = query.Length == 0
+                    || code.Contains(query, StringComparison.OrdinalIgnoreCase)
+                    || native.Contains(query, StringComparison.OrdinalIgnoreCase)
+                    || english.Contains(query, StringComparison.OrdinalIgnoreCase);
+                _languages[code].Visibility = match ? Visibility.Visible : Visibility.Collapsed;
+            }
+        };
+        Count();
+
+        var title = Text("Languages you speak", 13.5, "Link", bold: true);
+        AutomationProperties.SetHeadingLevel(title, AutomationHeadingLevel.Level2);
+        var heading = Columns(title, count);
+        heading.Margin = new Thickness(18, 10, 18, 12);
+        searchBox.Margin = new Thickness(18, 0, 18, 8);
+        var hint = Wrapped(Text("Pick the languages you speak. Automatic detection only chooses among them, so fewer languages means fewer mix-ups.", 12, "Muted"));
+        hint.Margin = new Thickness(18, 6, 18, 16);
+
+        _langMode = Combo(string.IsNullOrEmpty(_settings.Language) ? "auto" : _settings.Language, 220,
+            new[] { ("auto", "Automatic") }
                 .Concat(Languages.Select(l => (l.Code, $"{l.English} only")))
                 .ToArray());
 
         return Page(
-            Group("Recognize", Padded(new StackPanel { Children = { chips, hint } })),
-            Group("Detection", Row("Mode", _langMode, "Force one language to skip detection")));
+            Group(null, new StackPanel { Children = { heading, searchBox, tiles, hint } }),
+            Group("Detection", Row("Mode", _langMode, "Automatic picks among your languages. Choosing one skips detection and is a little faster.")));
     }
 
     private FrameworkElement ModelPage()
@@ -969,59 +1077,12 @@ public sealed class SettingsWindow : Window
 
     private FrameworkElement GeneralPage()
     {
-        var value = Text($"{_settings.CapsuleScale:0.0}×", 13, "Muted");
-        value.Width = 36;
-        value.TextAlignment = TextAlignment.Right;
-        _scale = new Slider
-        {
-            Minimum = 0.7,
-            Maximum = 1.6,
-            Value = _settings.CapsuleScale,
-            TickFrequency = 0.1,
-            SmallChange = 0.1,
-            LargeChange = 0.1,
-            IsSnapToTickEnabled = true,
-            Width = 150,
-            VerticalAlignment = VerticalAlignment.Center,
-        };
-        AutomationProperties.SetName(_scale, "Capsule size");
-        _scale.ValueChanged += (_, e) => value.Text = $"{e.NewValue:0.0}×";
-
-        var swatches = new StackPanel { Orientation = Orientation.Horizontal };
-        foreach (var (hex, name) in Accents)
-        {
-            var swatch = new RadioButton
-            {
-                Style = StyleOf("Swatch"),
-                GroupName = "accent",
-                Background = (Brush)new BrushConverter().ConvertFromString(hex)!,
-                IsChecked = string.Equals(hex, _accent, StringComparison.OrdinalIgnoreCase),
-                ToolTip = name,
-            };
-            AutomationProperties.SetName(swatch, name);
-            swatch.Checked += (_, _) => _accent = hex;
-            swatches.Children.Add(swatch);
-        }
-
-        // Shows the unsaved size and accent; closing without saving puts the saved ones back.
-        var preview = new Button { Content = "Preview" };
-        AutomationProperties.SetName(preview, "Preview capsule");
-        preview.Click += (_, _) =>
-        {
-            _controller.ApplyCapsule(_scale.Value, _accent);
-            _controller.PreviewCapsule();
-        };
-
         _micSwitch = new CheckBox { IsChecked = _settings.ShowMicButton };
 
         var folder = Wrapped(Text(AppPaths.RealPath(AppPaths.Root), 12, "Muted"));
         return Page(
             Group("Microphone button",
                 Row("Show microphone button", _micSwitch, "Click it to start and stop dictation. Drag it anywhere.")),
-            Group("Capsule overlay",
-                Row("Size", new StackPanel { Orientation = Orientation.Horizontal, Children = { _scale, value } }),
-                Row("Accent", swatches, "Color of the voice level bars"),
-                Row("Position", preview, "Slides down at the top of the screen you're working on")),
             Group("Storage",
                 Row("SuperDictate folder", OpenFolderButton(() => AppPaths.Root, "Open the SuperDictate folder"),
                     "Program, speech engine, models, settings and logs", detail: folder)));
@@ -1302,6 +1363,16 @@ public sealed class SettingsWindow : Window
         _settings.ShowMicButton = _micSwitch.IsChecked == true;
         _settings.CapsuleScale = _scale.Value;
         _settings.CapsuleAccent = _accent;
+        _settings.CapsuleSkin = _skin;
+        _settings.CapsuleOpacity = _opacity.Value;
+        _settings.CapsuleMeter = Selected(_meter) ?? "bars";
+        _settings.CapsuleLiveText = _liveText.IsChecked == true;
+        _settings.CapsuleTimer = _timer.IsChecked == true;
+        _settings.CapsuleHorizontal = CapsuleLook.Name(_placement.Horizontal);
+        _settings.CapsuleX = _placement.X;
+        _settings.CapsuleVertical = CapsuleLook.Name(_placement.Vertical);
+        _settings.CapsuleY = _placement.Y;
+        _settings.CapsuleScreen = Selected(_screen) ?? "active";
 
         SettingsStore.Save(_settings);
         _controller.ApplySettings(_settings, restartEngine: engineChanged);
@@ -1524,7 +1595,7 @@ public sealed class SettingsWindow : Window
         return new ScrollViewer { VerticalScrollBarVisibility = ScrollBarVisibility.Auto, Focusable = false, Content = stack };
     }
 
-    /// <summary>A rounded white card with its title in blue, rows split by inset hairlines, as in Telegram's settings.</summary>
+    /// <summary>A rounded card with its title in blue, rows split by inset hairlines, as in Telegram's settings.</summary>
     private FrameworkElement Group(string? title, params FrameworkElement[] rows)
     {
         var body = new StackPanel { Margin = new Thickness(0, title is null ? 6 : 0, 0, 6) };
@@ -1546,9 +1617,9 @@ public sealed class SettingsWindow : Window
 
         return new Border
         {
-            Margin = new Thickness(0, 0, 0, 14),
+            Margin = new Thickness(0, 0, 0, 16),
             Background = Br("Card"),
-            CornerRadius = new CornerRadius(12),
+            CornerRadius = new CornerRadius(14),
             Child = body,
         };
     }
