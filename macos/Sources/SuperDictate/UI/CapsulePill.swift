@@ -126,10 +126,9 @@ struct CapsulePill: View {
         .foregroundStyle(Color(skin.text))
         .padding(.horizontal, 18 * scale)
         .frame(minWidth: CapsuleStyle.narrowest * scale, minHeight: CapsuleStyle.height * scale)
-        // Circular ends: a continuous capsule leaves marks at its ends once its rim shows.
         .background(LinearGradient(colors: [Color(skin.fill), Color(skin.fillEnd)], startPoint: .top, endPoint: .bottom),
                     in: Capsule())
-        .overlay(Capsule().strokeBorder(rim, lineWidth: skin.borderWidth))
+        .overlay(CapsuleRim(width: skin.borderWidth).fill(rim, style: FillStyle(eoFill: true)))
         // A see-through skin would show its own shadow through itself; it floats on its rim instead.
         .shadow(color: .black.opacity(skin.isTranslucent ? 0 : 0.3), radius: 16 * scale, y: 6 * scale)
         .opacity(style.opacity)
@@ -145,6 +144,17 @@ struct CapsulePill: View {
             AnyShapeStyle(LinearGradient(colors: [style.accentColor, Color(RGBA(0xB36BFF)), Color(RGBA(0x3DD6C4))],
                                          startPoint: .leading, endPoint: .trailing))
         }
+    }
+}
+
+/// The rim as a filled ring: a stroked capsule leaves small marks beside its ends.
+private struct CapsuleRim: Shape {
+    let width: CGFloat
+
+    func path(in rect: CGRect) -> Path {
+        var path = Capsule().path(in: rect)
+        path.addPath(Capsule().path(in: rect.insetBy(dx: width, dy: width)))
+        return path
     }
 }
 
