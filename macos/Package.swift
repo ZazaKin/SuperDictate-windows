@@ -4,8 +4,8 @@
 // SwiftUI and AppKit, with Parakeet TDT v3 speech recognition running on the
 // Apple Neural Engine through FluidAudio. macOS 14 (Sonoma) or newer.
 //
-// SuperDictateCore holds the logic that needs no Mac frameworks (the live
-// preview, voice detection, the caption model), so its tests run anywhere
+// SuperDictateCore holds the logic that needs no Mac frameworks (the rules of
+// a dictation, the live preview, voice detection, the caption model), so its tests run anywhere
 // Swift does. The app target adds audio, speech, input and the interface.
 import PackageDescription
 
