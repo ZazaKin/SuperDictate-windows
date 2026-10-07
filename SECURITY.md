@@ -26,10 +26,20 @@ Check for updates**.
 - The windows that appear while dictating never take focus, so text can't land
   in the wrong app.
 
+### On the Mac
+
+- Speech is recognized on the Mac; the only download is the speech model, over
+  HTTPS from Hugging Face, and only on a click.
+- The app uses the Hardened Runtime and asks only for the microphone; it never
+  resets permissions.
+- The capsule never takes focus, so typed text can't land in the wrong app.
+
 ## Known limitations
 
-- The installer isn't signed with a certificate yet. Check a download's SHA-256
+- The Windows installer isn't signed with a certificate yet. Check a download's SHA-256
   against `SHA256SUMS.txt` on the release page.
 - The app uses a global keyboard hook (for hotkeys) and pastes through the
   clipboard. Antivirus software sometimes treats that as suspicious; the source
   is open for review.
+- The Mac app isn't notarized by Apple yet and is signed ad hoc. Check the
+  zip's SHA-256 against `SHA256SUMS.txt` on the release page.

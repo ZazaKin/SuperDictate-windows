@@ -1,0 +1,56 @@
+# Builds the Windows app whenever its code changes, and draws its settings and
+# capsule to PNG (SuperDictate.exe --snapshot). The exe and the pictures are kept
+# for a week as downloads. The full self-test needs a microphone and an installed
+# speech engine, so it runs on a set-up PC before each release, not here.
+name: Windows app
+
+on:
+  push:
+    paths: ["src/**", "scripts/**", ".github/workflows/windows.yml"]
+  pull_request:
+    paths: ["src/**", "scripts/**", ".github/workflows/windows.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: windows-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Build
+        shell: pwsh
+        run: scripts\build-app.ps1 -OutputDir "$env:RUNNER_TEMP\app"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SuperDictate-Windows
+          path: ${{ runner.temp }}/app/SuperDictate.exe
+          retention-days: 7
+
+      # Off screen, with default settings; nothing is installed or saved.
+      - name: Snapshots
+        shell: pwsh
+        timeout-minutes: 5
+        continue-on-error: true
+        run: |
+          $run = Start-Process "$env:RUNNER_TEMP\app\SuperDictate.exe" -ArgumentList "--snapshot", "$env:RUNNER_TEMP\snapshots" -Wait -PassThru
+          if ($run.ExitCode -ne 0) { throw "Snapshots failed with exit code $($run.ExitCode)." }
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SuperDictate-Windows-screenshots
+          path: ${{ runner.temp }}/snapshots
+          retention-days: 7
+          if-no-files-found: ignore

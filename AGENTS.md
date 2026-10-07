@@ -34,7 +34,9 @@ translated to Windows platform semantics. They apply to this whole project.
   is taken over once, on first start (`LegacyData.Adopt`): copied when small,
   moved only when that is a rename on the same drive.
 - Never launch a copied, test, smoke, or temporary build. Exercise diagnostics
-  through `SuperDictate.exe --self-test`. Any copy outside the install root
+  through `SuperDictate.exe --self-test`, and draw pictures of the interface
+  with `SuperDictate.exe --snapshot <folder>` (off screen, default settings,
+  nothing saved). Any copy outside the install root
   opens its installer instead of running, so the installed build stays the only
   runnable one.
 - The customer installer is the exe itself (`SetupWindow`, `Installer`): it

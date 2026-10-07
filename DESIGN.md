@@ -74,8 +74,12 @@ Mono.
   - The capsule widens with the text from 168 to 460 px. Past that, the line
     glides left and the oldest words fade out at the left edge.
   - The draft stays visible while processing, and the capsule never takes focus.
-  - Skins (`Ui/CapsuleSkin.cs`), 12 of them. Each skin's text and status text
+  - Skins (`Ui/CapsuleSkin.cs`), 13 of them. Each skin's text and status text
     meet 4.5:1 on its own fill; the self-test checks this (`capsule.skins`).
+  - Liquid Glass recreates Apple's glass without a blur: a smoky see-through
+    fill, a rim that is bright at the top, faint at the middle and brighter
+    again at the bottom, and a white sheen fading down across the top half.
+    On a Mac with macOS 26 the same skin is Apple's own glass.
   - Placement (`Ui/CapsulePlacement.cs`) keeps the capsule to an edge on each
     axis. It grows away from the side it keeps to, stays a 12 px margin
     inside the work area, and snaps within 14 px while dragged.

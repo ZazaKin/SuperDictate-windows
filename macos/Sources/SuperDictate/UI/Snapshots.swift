@@ -79,53 +79,6 @@ enum Snapshots {
         }
     }
 
-    // MARK: - Liquid Glass
-
-    /// `SuperDictate --showcase`: the Liquid Glass capsule on a bright wallpaper,
-    /// in a window over the top left of the main screen, left open for the GitHub
-    /// build to photograph with `screencapture`. The window server draws glass,
-    /// so it can't be drawn straight to a file like the other pictures.
-    static var showcase: Bool { CommandLine.arguments.contains("--showcase") }
-
-    private static var showcaseWindow: NSWindow?
-
-    static func showShowcase() {
-        guard let screen = NSScreen.screens.first else { return }
-        let size = NSSize(width: 960, height: 420)
-        let window = NSWindow(contentRect: NSRect(x: screen.frame.minX, y: screen.frame.maxY - size.height,
-                                                  width: size.width, height: size.height),
-                              styleMask: .borderless, backing: .buffered, defer: false)
-        window.level = .screenSaver
-        window.contentView = NSHostingView(rootView: GlassShowcase())
-        window.orderFrontRegardless()
-        showcaseWindow = window
-    }
-
-    private struct GlassShowcase: View {
-        var body: some View {
-            var caption = Caption()
-            caption.show(settled: "Move the design review to Thursday,", tail: "and send the mockups")
-            let style = CapsuleStyle(skin: .find("liquid"), scale: 1.3)
-            return ZStack {
-                // Bright shapes behind, for the glass to bend and blur.
-                LinearGradient(colors: [Color(RGBA(0x4F46E5)), Color(RGBA(0x0D9488))], startPoint: .topLeading, endPoint: .bottomTrailing)
-                Circle().fill(Color(RGBA(0xF59E0B))).frame(width: 260).offset(x: -250, y: -60)
-                Circle().fill(Color(RGBA(0xEC4899))).frame(width: 200).offset(x: 260, y: 90)
-                RoundedRectangle(cornerRadius: 30).fill(.white.opacity(0.9)).frame(width: 180, height: 60).offset(x: 40, y: -120)
-                VStack(spacing: 28) {
-                    CapsulePill(style: style, caption: caption, live: false, level: { 0.1 })
-                    HStack(spacing: 24) {
-                        CapsulePill(style: CapsuleStyle(skin: .find("liquid"), scale: 1.3, meter: .wave), live: false, level: { 0.1 })
-                        CapsulePill(style: CapsuleStyle(skin: .find("liquid"), scale: 1.3, meter: .pulse, timer: true),
-                                    status: "Processing…", started: Date(timeIntervalSinceNow: -42), live: false, level: { 0.1 })
-                    }
-                }
-            }
-            .frame(width: 960, height: 420)
-            .environment(\.colorScheme, .dark)
-        }
-    }
-
     private static func write<V: View>(_ view: V, to file: URL, appearance: NSAppearance.Name) {
         let host = NSHostingView(rootView: view
             .environment(\.paintsGlass, true)
@@ -139,7 +92,12 @@ enum Snapshots {
         host.frame = NSRect(origin: .zero, size: size)
         host.layoutSubtreeIfNeeded()
 
-        guard let bitmap = host.bitmapImageRepForCachingDisplay(in: host.bounds) else { return }
+        // Twice the points, as on a Retina screen, whatever the runner's display is.
+        guard let bitmap = NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: Int(size.width * 2), pixelsHigh: Int(size.height * 2),
+                                            bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true, isPlanar: false,
+                                            colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0)
+        else { return }
+        bitmap.size = size
         host.cacheDisplay(in: host.bounds, to: bitmap)
         try? bitmap.representation(using: .png, properties: [:])?.write(to: file)
     }

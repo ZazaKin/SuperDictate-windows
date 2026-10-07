@@ -1,7 +1,8 @@
 # Builds and tests the Mac app on GitHub's Apple Silicon runners whenever the
 # macos/ folder changes. The unsigned app is kept for a week as a download.
 # macOS 26 with Xcode 26: the Liquid Glass capsule needs its SDK; the app still
-# runs on macOS 14 and 15, with a painted glass instead.
+# runs on macOS 14 and 15, with a painted glass instead. The snapshots paint the
+# glass too: it's drawn by the window server, which a picture file can't capture.
 name: macOS app
 
 on:
@@ -49,18 +50,6 @@ jobs:
         run: |
           "$RUNNER_TEMP/SuperDictate.app/Contents/MacOS/SuperDictate" --snapshot "$RUNNER_TEMP/snapshots"
           ls -l "$RUNNER_TEMP/snapshots"
-
-      # Glass is drawn by the window server, so the app shows it in a window and
-      # this photographs the screen. Without screen recording access the picture
-      # is skipped, never the build.
-      - name: Liquid Glass showcase
-        timeout-minutes: 2
-        continue-on-error: true
-        run: |
-          "$RUNNER_TEMP/SuperDictate.app/Contents/MacOS/SuperDictate" --showcase &
-          sleep 8
-          screencapture -x -R0,0,960,420 "$RUNNER_TEMP/snapshots/capsule-liquid-glass.png"
-          kill %1
 
       - uses: actions/upload-artifact@v4
         with:

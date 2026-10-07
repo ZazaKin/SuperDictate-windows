@@ -35,10 +35,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             NSApp.terminate(nil)
             return
         }
-        if Snapshots.showcase {
-            Snapshots.showShowcase()
-            return
-        }
         model.launch()
     }
 }

@@ -6,6 +6,8 @@ SuperDictate turns speech into text in any app. Press a hotkey or the
 microphone button, speak, and the text appears where your cursor is. Speech is
 recognized on your PC: your voice is never sent anywhere.
 
+Using a Mac? See the [Mac guide](mac-guide.md).
+
 ## Requirements
 
 - 64-bit Windows 10 (version 2004 or later) or Windows 11.
@@ -119,8 +121,9 @@ the tray icon. **Save** applies your changes and keeps the window open.
 - **Capsule:** how the capsule looks and where it appears. While this page is
   open, the real capsule shows on your screen with example words, and every
   change shows on it at once; **Save** keeps it.
-  - **Skin:** 12 looks, from Midnight and Glass to Paper, Neon and High
-    contrast.
+  - **Skin:** 13 looks, from Midnight and Liquid Glass to Paper, Neon and
+    High contrast. Liquid Glass recreates Apple's glass: see-through, with a
+    rim that catches the light and a sheen across the top.
   - **Look:** size, opacity, accent color and the voice meter (bars, wave or
     pulse).
   - **Position:** presets, or **Move…** to drag it anywhere. The screen dims,

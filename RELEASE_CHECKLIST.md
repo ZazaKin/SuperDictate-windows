@@ -184,20 +184,24 @@ before the first release with it, so the script accepts it.
 6. **Sponsor button:** in the repository's Settings › General › Features, turn
    on **Sponsorships**. The button appears once `.github/FUNDING.yml` is on
    `main`.
-7. **GitHub release:**
+7. **Mac app:** set the same version in `macos/Resources/Info.plist`, push,
+   and when the macOS build (`.github/workflows/macos.yml`) passes, download
+   its **SuperDictate-macOS** zip as `dist\SuperDictate-macOS-<version>.zip` and
+   add its SHA-256 to `dist\SHA256SUMS.txt`.
+8. **GitHub release:**
 
    ```powershell
-   gh release create v1.0.0 dist\SuperDictate-Setup-1.0.0.exe dist\SHA256SUMS.txt --title "SuperDictate for Windows 1.0.0" --notes-file docs\releases\1.0.0.md
+   gh release create v<version> dist\SuperDictate-Setup-<version>.exe dist\SuperDictate-macOS-<version>.zip dist\SHA256SUMS.txt --title "SuperDictate <version>" --notes-file docs\releases\<version>.md
    ```
 
-8. **Update file:** copy `dist\update.json` to the repository root, commit and
-   push to `main`, only after step 7, or the app would offer an update that
+9. **Update file:** copy `dist\update.json` to the repository root, commit and
+   push to `main`, only after step 8, or the app would offer an update that
    doesn't exist yet.
-9. **Check:** in the installed app, **Settings › Support › Check for updates**
+10. **Check:** in the installed app, **Settings › Support › Check for updates**
    says "up to date"; **User guide** and **Report a problem** open; the
    repository page shows the **Sponsor** button and the "Support the project"
    section with your options.
-10. **Clean PC:** download the installer from the release page on another
+11. **Clean PC:** download the installer from the release page on another
     computer and go through the install and first run.
 
 ## 11. After the release

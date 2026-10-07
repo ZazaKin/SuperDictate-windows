@@ -1,159 +1,170 @@
-<img src="docs/icon.png" width="96" alt="">
+<p align="center"><img src="docs/icon.png" width="96" alt=""></p>
 
-# SuperDictate for Windows
+<h1 align="center">SuperDictate</h1>
 
-**English** · [Русский](README.ru.md)
+<p align="center">
+Private dictation for Windows and Mac. Press a key, speak, and your words
+appear where your cursor is, in any app. Speech is recognized on your own
+computer: your voice never leaves it.
+</p>
 
-Private dictation for any Windows app: press a hotkey or the floating
-microphone button, speak, and the text appears where your cursor is. Speech is
-recognized on your PC with faster-whisper; your voice never leaves it.
+<p align="center">
+  <a href="https://github.com/ZazaKin/SuperDictate-windows/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/ZazaKin/SuperDictate-windows?label=release&color=3272AA"></a>
+  <img alt="Windows 10 and 11" src="https://img.shields.io/badge/Windows-10%20%7C%2011-0078D4">
+  <img alt="macOS 14 or newer on Apple Silicon" src="https://img.shields.io/badge/macOS-14%2B%20%C2%B7%20Apple%20Silicon-111111">
+  <a href="LICENSE"><img alt="License: MIT with the Commons Clause" src="https://img.shields.io/badge/license-MIT%20%2B%20Commons%20Clause-5B8DEF"></a>
+</p>
 
-This is the Windows edition. The Mac version, for Apple Silicon, is in
-[`macos/`](macos/README.md).
+<p align="center"><b>English</b> · <a href="README.ru.md">Русский</a></p>
 
-## Install in a minute
+<p align="center">
+  <img src="docs/images/capsule.gif" width="720" alt="The capsule writing a sentence word by word as it is spoken">
+</p>
 
-**Requires 64-bit Windows 10 (version 2004 or later) or Windows 11.**
+## Download
+
+Get both from the [latest release](https://github.com/ZazaKin/SuperDictate-windows/releases/latest).
+
+| | Windows | Mac |
+|---|---|---|
+| **File** | `SuperDictate-Setup-<version>.exe` | `SuperDictate-macOS-<version>.zip` |
+| **Needs** | 64-bit Windows 10 (2004 or later) or 11 | A Mac with Apple Silicon (M1 or newer), macOS 14 or newer |
+| **Speech** | Whisper, on the processor or an NVIDIA graphics card | NVIDIA Parakeet v3, on the Apple Neural Engine |
+| **Languages** | 20, from English and Spanish to Chinese and Arabic | 25 European languages |
+| **Install guide** | [Windows guide](docs/user-guide.md) | [Mac guide](docs/mac-guide.md) |
+
+Both are free. A one-time download of the speech model is the only time the
+app needs the internet.
+
+## What it does
+
+- **Dictate in any app.** A hotkey (**Right Alt** on Windows, **Right ⌘** on a
+  Mac) starts and stops; the text is typed where the cursor is. Hold-to-talk
+  works too, and Windows has a floating microphone button.
+- **See your words as you speak.** A capsule floats over your screen and
+  writes a live draft. When you stop, the whole recording is transcribed
+  again, so the typed text is a little better than the draft.
+- **Make the capsule yours.** Thirteen skins, including Liquid Glass. Choose
+  the accent color, size, opacity and voice meter, put it in any corner or drag
+  it anywhere. Next to the left or right edge it grows away from that edge.
+- **Your languages.** Pick the languages you speak; detection chooses among
+  them only. Switch from the tray (Windows) or the menu bar (Mac).
+- **Stops by itself.** A minute without speech ends the dictation and types
+  what you said.
+- **Private.** No account, no ads, no analytics. Audio and transcripts stay on
+  your computer.
+- **AI cleanup** (Windows, optional). Tidy punctuation with built-in rules, a
+  local model through Ollama, or a cloud service you choose.
+
+### The capsule
+
+<p align="center">
+  <img src="docs/images/capsule-skins.png" width="820" alt="All thirteen capsule skins, each showing a sentence">
+</p>
+
+On a Mac with macOS 26, the Liquid Glass skin is Apple's own glass; on older
+Macs and on Windows it's a close recreation.
+
+### Windows
+
+<table>
+  <tr>
+    <td><img src="docs/images/windows/capsule.png" alt="Windows settings: the Capsule page with the skin gallery"></td>
+    <td><img src="docs/images/windows/languages.png" alt="Windows settings: the Languages page with flag tiles"></td>
+  </tr>
+  <tr>
+    <td><img src="docs/images/windows/dictation.png" alt="Windows settings: the Dictation page"></td>
+    <td><img src="docs/images/windows/models.png" alt="Windows settings: the Speech model page"></td>
+  </tr>
+</table>
+
+### Mac
+
+<table>
+  <tr>
+    <td><img src="docs/images/mac/capsule.png" alt="Mac settings: the Capsule tab"></td>
+    <td><img src="docs/images/mac/languages.png" alt="Mac settings: the Languages tab"></td>
+  </tr>
+  <tr>
+    <td><img src="docs/images/mac/editor.png" alt="Moving the capsule: it snaps to edges and shows how far it grows"></td>
+    <td><img src="docs/images/mac/menu-bar.png" alt="The menu bar panel with the language switcher"></td>
+  </tr>
+</table>
+
+## Install
+
+### Windows
 
 1. Download `SuperDictate-Setup-<version>.exe` from the
-   [latest release](https://github.com/ZazaKin/SuperDictate-windows/releases/latest).
-2. Run it. If Windows shows "Windows protected your PC", click **More info** ›
-   **Run anyway**.
-3. Choose a folder and click **Install**. The default is `SuperDictate` on the
-   drive with the most free space (not `C:` when you have another drive).
-   Everything the app needs (speech engine, models, settings, logs) stays in
-   that folder. No administrator rights needed.
-4. In the settings that open, click **Install** under **Speech runtime**, then
+   [latest release](https://github.com/ZazaKin/SuperDictate-windows/releases/latest)
+   and run it. If Windows says "Windows protected your PC", click
+   **More info** › **Run anyway**.
+2. Choose a folder and click **Install**. No administrator rights needed.
+3. In the settings that open, click **Install** under **Speech runtime**, then
    **Download** next to a model (Large v3 Turbo is recommended).
-5. When the status says **Ready**, press **Right Alt** and speak. Press
-   **Right Alt** again to paste the text. Or click the round microphone button.
+4. When the status says **Ready**, press **Right Alt**, speak, and press it
+   again.
 
-First-time setup downloads the speech engine (about 100 MB) and a model (75 MB
-to 1.5 GB). After that, dictation works offline.
+Step by step, with every setting explained: the [Windows guide](docs/user-guide.md).
 
-Installation, settings, AI cleanup, privacy, uninstalling and troubleshooting
-are covered in the [user guide](docs/user-guide.md). What's new is in the
-[release notes](docs/releases/).
+### Mac
+
+1. Download `SuperDictate-macOS-<version>.zip` from the
+   [latest release](https://github.com/ZazaKin/SuperDictate-windows/releases/latest),
+   open it, and drag **SuperDictate** into **Applications**.
+2. Open it. The app isn't notarized by Apple yet, so the first time macOS
+   blocks it: open **System Settings › Privacy & Security** and click
+   **Open Anyway**.
+3. The setup window asks for three permissions (Microphone, Accessibility,
+   Input Monitoring) and downloads the speech model (about 460 MB).
+4. Press **Right ⌘**, speak, and press it again.
+
+Step by step, with pictures of each step: the [Mac guide](docs/mac-guide.md).
 
 ## Updates
 
-Open **Settings › Support** and click **Check for updates**. If there is a new
-version, **Download and install** downloads it, verifies its checksum and runs
-the installer. The app never goes online on its own, only when you click.
+- **Windows:** **Settings › Support › Check for updates**. The update is
+  downloaded, checked against its SHA-256 and installed on a click.
+- **Mac:** download the new zip from the releases page and replace the app in
+  Applications.
 
-## Found a bug?
+Neither app goes online by itself. What's new in each version is in the
+[release notes](docs/releases/).
 
-Describe it in [GitHub Issues](https://github.com/ZazaKin/SuperDictate-windows/issues/new)
-(in the app: **Settings › Support › Report a problem**). For security issues,
-see [SECURITY.md](SECURITY.md).
+## Privacy
 
-## Data and privacy
+Audio and transcripts stay on your computer; logs never contain what you said.
+The internet is used only when you click: downloading the speech engine and
+models, checking for updates, and AI cleanup through a cloud service if you
+turn that on. Details for both apps are in [PRIVACY.md](PRIVACY.md).
 
-- Audio and transcripts stay on your PC; logs never contain transcript text.
-- The internet is used only when you click: downloading the engine, models and
-  Ollama models, checking for updates, and for Cloud LLM AI cleanup if you
-  turn it on.
-- The AI cleanup API key is kept in Windows Credential Manager.
-- Everything lives in one folder chosen at install: the program, engine,
-  models, settings, history and logs. Only shortcuts, the Apps entry and the API
-  key in Credential Manager live outside it.
-- No accounts, ads, analytics or telemetry.
+## Help
 
-More in [PRIVACY.md](PRIVACY.md).
+- How-tos and troubleshooting: the [Windows guide](docs/user-guide.md) and the
+  [Mac guide](docs/mac-guide.md).
+- Something broken, or an idea: [GitHub Issues](https://github.com/ZazaKin/SuperDictate-windows/issues/new/choose).
+- Security issues: see [SECURITY.md](SECURITY.md).
 
 ## For developers
 
-Read [AGENTS.md](AGENTS.md) first: it lists the rules every change must keep.
-How to contribute is in [CONTRIBUTING.md](CONTRIBUTING.md); how to release is in
-[RELEASE_CHECKLIST.md](RELEASE_CHECKLIST.md).
-
-### Layout
+Both apps live in this repository:
 
 | Part | Where |
 |---|---|
-| WPF app: settings, tray, capsule, microphone button, installer | `src/SuperDictate` |
-| Speech worker (Python, faster-whisper), embedded in the exe | `src/SuperDictate/worker.py` |
-| Pinned versions and SHA-256 hashes of the engine's packages (CPU and NVIDIA GPU) | `src/SuperDictate/runtime-requirements*.txt` |
-| Release answers: version, repository, signing, donations | `release-settings.ini` |
-| Build, install and release scripts | `scripts/` |
-| Release output (not committed) | `dist/` |
+| Windows app (.NET 8, WPF) | [`src/SuperDictate`](src/SuperDictate) |
+| Mac app (SwiftUI, Swift package) | [`macos/`](macos/README.md) |
+| Build, install and release scripts (Windows) | [`scripts/`](scripts) |
+| Documentation, pictures, release notes | [`docs/`](docs) |
+| Website | [`website/`](website/README.md) |
 
-The app is one self-contained `SuperDictate.exe` (.NET 8). The speech worker,
-package lists, license and notices are embedded in it. On first run it installs
-its own Python from NuGet (checked against its SHA-512) and the pinned packages
-from PyPI (each file checked against its SHA-256) into `Runtime` in the install
-folder; the user then downloads a model from Hugging Face, pinned to a specific
-commit.
-
-The install folder (recorded as `InstallLocation` in the Apps entry):
-
-| Item | Contents |
-|---|---|
-| `SuperDictate.exe` | the program; an update replaces only this |
-| `Uninstall SuperDictate` | removes the program (same as Uninstall in Apps) |
-| `Data` | settings and history |
-| `Models` | speech models, always here |
-| `Runtime` | the speech engine (its own Python with packages) |
-| `Logs` | logs, without transcript text |
-| `Recordings`, `Temp` | temporary recordings and downloads |
-
-### Build and test
-
-Needs the .NET 8 SDK (`build-app.ps1` also finds it in `%LOCALAPPDATA%\dotnet-sdk8`).
-
-```powershell
-scripts\build-app.ps1 -OutputDir <folder>   # build SuperDictate.exe
-<folder>\SuperDictate.exe --self-test       # self-test; exit code 0 means all passed
-```
-
-Don't run a built copy directly: outside the install folder the exe opens its
-installer. Use `--self-test` to check a build.
-
-### Install for development
-
-```powershell
-scripts\install-local.ps1
-```
-
-Builds next to the project, runs the self-test, and installs the build through
-the same code as the customer installer (`SuperDictate.exe --install`):
-replaces `SuperDictate.exe` in the install folder without touching data, then
-starts the app. On a first install you can pick the folder:
-`scripts\install-local.ps1 -InstallRoot D:\SuperDictate`.
-
-If the speech engine isn't installed in the install folder yet, the self-test
-skips its check (a `SKIP` line) so the install can go ahead; the release script
-refuses such a build.
-
-### Release
-
-1. Fill in `release-settings.ini`: version, repository, signing certificate
-   thumbprint, donation options. Setting up donations is covered in
-   [docs/donations-guide.md](docs/donations-guide.md).
-2. Double-click `build-release.cmd`. The window stays open and ends with either
-   "Release ready" or a list of what to fix.
-
-The script checks the answers first, then fills them in where they belong: the
-version into `SuperDictate.csproj`, the repository address into the docs, the
-thumbprint into `release-signing.sha1`, and the donation options into the last
-section of this README and `.github/FUNDING.yml` (GitHub's Sponsor button).
-`release-settings.ini` itself is embedded in the app: the links and donation
-options on **Settings › Support** come from it, and empty lines are hidden.
-After a passing self-test, `dist\` holds `SuperDictate-Setup-<version>.exe`,
-`SHA256SUMS.txt` and `update.json`. The full release procedure is in
-[RELEASE_CHECKLIST.md](RELEASE_CHECKLIST.md).
-
-Signing: the first certificate used is pinned in `release-signing.sha1`, and the
-script refuses to sign with any other. Don't change certificates: SmartScreen
-reputation is tied to it. Without a thumbprint the build is unsigned and users
-see a SmartScreen warning.
-
-The self-test also transcribes speech with the installed engine and models, so
-releases are built on a PC where SuperDictate is set up.
+How to build, test, install a development copy and make a release is in
+[docs/development.md](docs/development.md). Read [AGENTS.md](AGENTS.md) first:
+it lists the rules every change must keep. Contributions:
+[CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
 
-SuperDictate for Windows is licensed under MIT with the
+SuperDictate is licensed under MIT with the
 [Commons Clause](https://commonsclause.com): you may use it for free (including
 at work), change it and share it, but you may not sell it, nor paid services
 whose value comes entirely or substantially from it. Full text in
@@ -179,5 +190,5 @@ SuperDictate is free. If it saves you time, you can support its development:
 - **Bitcoin**: `bc1q28r8zrnug2jhkn4p33836flhkp78dz6neghhe4` - Bitcoin network only
 <!-- /donations -->
 
-The same options are in the app under **Settings › Support**. Send crypto only
-on the network named next to the address. Thank you!
+The same options are in the Windows app under **Settings › Support**. Send
+crypto only on the network named next to the address. Thank you!
