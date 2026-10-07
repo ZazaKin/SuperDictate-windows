@@ -82,7 +82,6 @@ struct CapsulePane: View {
         }
         .formStyle(.grouped)
         .toggleStyle(.switch)
-        .frame(height: 600)
         .onAppear { onScreen = true }
         .onDisappear { onScreen = false }
         .onChange(of: staged, initial: true) { model.stage(staged) }

@@ -67,7 +67,6 @@ struct LanguagesPane: View {
             }
         }
         .formStyle(.grouped)
-        .frame(height: 600)
     }
 
     /// A one-language choice that's no longer among the user's languages reads as automatic.

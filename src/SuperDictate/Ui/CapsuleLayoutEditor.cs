@@ -110,8 +110,8 @@ internal sealed class CapsuleLayoutEditor : Window
             _rect = CapsulePlacement.Snap(new Rect(e.GetPosition(_canvas) - _grab, _rect.Size), _area, out _snapped);
             Layout();
         };
-        _capsule.MouseLeftButtonUp += (_, _) => Drop();
-        _capsule.LostMouseCapture += (_, _) => Drop();
+        _capsule.MouseLeftButtonUp += (_, _) => Settle();
+        _capsule.LostMouseCapture += (_, _) => Settle();
         PreviewKeyDown += OnKey;
         CompositionTarget.Rendering += OnFrame;
         Closed += (_, _) => CompositionTarget.Rendering -= OnFrame;
@@ -272,7 +272,7 @@ internal sealed class CapsuleLayoutEditor : Window
         Canvas.SetTop(_panel, top);
     }
 
-    private void Drop()
+    private void Settle()
     {
         if (!_dragging) return;
         _dragging = false;

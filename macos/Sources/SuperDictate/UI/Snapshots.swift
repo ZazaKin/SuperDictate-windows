@@ -34,8 +34,9 @@ enum Snapshots {
             save(MenuBarPanel(), "menu-bar")
             save(GeneralPane().frame(width: 620), "settings-general")
             save(DictationPane().frame(width: 620), "settings-dictation")
-            save(LanguagesPane().frame(width: 620), "settings-languages")
-            save(CapsulePane().frame(width: 620), "settings-capsule")
+            // The whole page, rather than the part a 600-point window shows at once.
+            save(LanguagesPane().frame(width: 620, height: 820), "settings-languages")
+            save(CapsulePane().frame(width: 620, height: 1080), "settings-capsule")
             save(ModelPane().frame(width: 620), "settings-model")
             save(HistoryPane().frame(width: 620), "settings-history")
             save(AboutPane().frame(width: 620), "settings-about")

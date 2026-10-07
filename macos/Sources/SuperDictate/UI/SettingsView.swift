@@ -16,9 +16,11 @@ struct SettingsView: View {
                 .tabItem { Label("Dictation", systemImage: "mic") }
                 .tag("dictation")
             LanguagesPane()
+                .frame(height: 600)
                 .tabItem { Label("Languages", systemImage: "globe") }
                 .tag("languages")
             CapsulePane()
+                .frame(height: 600)
                 .tabItem { Label("Capsule", systemImage: "capsule") }
                 .tag("capsule")
             ModelPane()

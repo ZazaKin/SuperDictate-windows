@@ -227,22 +227,23 @@ private struct LiveWords: View {
     @State private var lineWidth: CGFloat = 0
 
     var body: some View {
-        HStack(spacing: size * 0.3) {
-            ForEach(caption.words) { word in
-                Text(word.text)
-                    .opacity(word.settled ? 1 : 0.5)
-                    .transition(WordArrival().animation(.spring(duration: 0.5, bounce: 0).delay(word.delay)))
+        TrailingLine(widest: widest) {
+            HStack(spacing: size * 0.3) {
+                ForEach(caption.words) { word in
+                    Text(word.text)
+                        .opacity(word.settled ? 1 : 0.5)
+                        .transition(WordArrival().animation(.spring(duration: 0.5, bounce: 0).delay(word.delay)))
+                }
             }
-        }
-        .font(.system(size: size, weight: .medium))
-        .fixedSize()
-        .background {
-            GeometryReader { geometry in
-                Color.clear.preference(key: LineWidth.self, value: geometry.size.width)
+            .font(.system(size: size, weight: .medium))
+            .fixedSize()
+            .background {
+                GeometryReader { geometry in
+                    Color.clear.preference(key: LineWidth.self, value: geometry.size.width)
+                }
             }
         }
         .onPreferenceChange(LineWidth.self) { lineWidth = $0 }
-        .frame(maxWidth: widest, alignment: .trailing)
         .clipped()
         .mask {
             LinearGradient(stops: [.init(color: lineWidth > widest ? .clear : .black, location: 0),
@@ -250,6 +251,23 @@ private struct LiveWords: View {
                            startPoint: .leading, endPoint: .trailing)
         }
         .opacity(processing ? 0.75 : 1)
+    }
+}
+
+/// As wide as the line, up to `widest`, so the capsule grows with the words.
+/// Past that it keeps the end of the line in view; the start runs off the left.
+private struct TrailingLine: Layout {
+    let widest: CGFloat
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        guard let line = subviews.first?.sizeThatFits(.unspecified) else { return .zero }
+        return CGSize(width: min(line.width, widest), height: line.height)
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        guard let line = subviews.first else { return }
+        let width = line.sizeThatFits(.unspecified).width
+        line.place(at: CGPoint(x: bounds.maxX - width, y: bounds.midY), anchor: .leading, proposal: .unspecified)
     }
 }
 
