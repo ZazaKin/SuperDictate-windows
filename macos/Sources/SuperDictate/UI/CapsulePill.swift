@@ -3,10 +3,12 @@ import SwiftUI
 
 /// How the capsule looks: everything on the Capsule settings page except where it sits.
 struct CapsuleStyle: Equatable {
-    /// The capsule at its smallest, at its widest with words in it, and its height, at size 1.
+    /// The capsule at its smallest, at its widest with words in it (by default), and its height, at size 1.
     static let narrowest: CGFloat = 168
     static let widestAtOne: CGFloat = 460
     static let height: CGFloat = 40
+    /// The limits of the Widest setting, at size 1.
+    static let widestRange: ClosedRange<Double> = 240 ... 900
 
     enum Meter: String, CaseIterable, Identifiable {
         case bars, wave, pulse
@@ -37,15 +39,19 @@ struct CapsuleStyle: Equatable {
     var opacity = 1.0
     var meter = Meter.bars
     var timer = false
+    /// How wide it may grow as words arrive, at size 1.
+    var maxWidth = Double(CapsuleStyle.widestAtOne)
 
     var accentColor: Color { RGBA(hex: accent).map { Color($0) } ?? .accentColor }
 
-    var widest: CGFloat { Self.widestAtOne * scale }
+    var widest: CGFloat { cappedWidest * scale }
 
     /// Room for the live words: the widest capsule less its padding, the meter and the time.
     var textWidth: CGFloat {
-        (Self.widestAtOne - 36 - 12 - meter.width - (timer ? 46 : 0)) * scale
+        (cappedWidest - 36 - 12 - meter.width - (timer ? 46 : 0)) * scale
     }
+
+    private var cappedWidest: CGFloat { CGFloat(min(max(maxWidth, Self.widestRange.lowerBound), Self.widestRange.upperBound)) }
 }
 
 /// The colors and accents the Capsule page offers.
@@ -72,9 +78,11 @@ struct StoredCapsuleStyle: DynamicProperty {
     @AppStorage(Preferences.Key.opacity) var opacity = 1.0
     @AppStorage(Preferences.Key.meter) var meter = CapsuleStyle.Meter.bars
     @AppStorage(Preferences.Key.timer) var timer = false
+    @AppStorage(Preferences.Key.maxWidth) var maxWidth = Double(CapsuleStyle.widestAtOne)
 
     var style: CapsuleStyle {
-        CapsuleStyle(skin: .find(skin), accent: accent, scale: scale, opacity: opacity, meter: meter, timer: timer)
+        CapsuleStyle(skin: .find(skin), accent: accent, scale: scale, opacity: opacity, meter: meter, timer: timer,
+                     maxWidth: maxWidth)
     }
 }
 

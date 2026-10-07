@@ -160,6 +160,7 @@ words, and every change appears on it at once.
   (and the default there); on macOS 14 and 15 it's a close recreation.
 - **Size**, **Opacity**, **Accent** (the voice meter's color; Multicolor follows
   your Mac's accent color) and **Voice meter** (bars, wave or pulse).
+- **Widest**: how far the capsule grows as your words appear.
 - **Place**: six corners and edges, or **Move…** to drag it anywhere.
 - **Screen**: the screen you're working on, or always the main screen.
 - **Show words as you speak** and **Show recording time**.

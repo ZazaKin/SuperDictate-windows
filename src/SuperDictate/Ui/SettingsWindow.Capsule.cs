@@ -137,6 +137,31 @@ public sealed partial class SettingsWindow
         _meter = Combo(_settings.CapsuleMeter, 150, ("bars", "Bars"), ("wave", "Wave"), ("pulse", "Pulse"));
         _meter.SelectionChanged += (_, _) => RefreshCapsule();
 
+        var widthValue = Text($"{_settings.CapsuleMaxWidth:0}", 13, "Muted");
+        widthValue.Width = 40;
+        widthValue.TextAlignment = TextAlignment.Right;
+        _maxWidth = new Slider
+        {
+            Minimum = CapsuleView.LeastWidest,
+            Maximum = CapsuleView.MostWidest,
+            Value = Math.Clamp(_settings.CapsuleMaxWidth, CapsuleView.LeastWidest, CapsuleView.MostWidest),
+            TickFrequency = 20,
+            SmallChange = 20,
+            LargeChange = 100,
+            IsSnapToTickEnabled = true,
+            Width = 150,
+        };
+        AutomationProperties.SetName(_maxWidth, "Widest the capsule grows");
+        _maxWidth.ValueChanged += (_, e) =>
+        {
+            widthValue.Text = $"{e.NewValue:0}";
+            RefreshCapsule();
+        };
+
+        _liveGlass = new CheckBox { IsChecked = _settings.CapsuleLiveGlass };
+        _liveGlass.Checked += (_, _) => RefreshCapsule();
+        _liveGlass.Unchecked += (_, _) => RefreshCapsule();
+
         // What it shows
         _liveText = new CheckBox { IsChecked = _settings.CapsuleLiveText };
         _liveText.Checked += (_, _) => RefreshCapsule();
@@ -152,7 +177,11 @@ public sealed partial class SettingsWindow
                 Row("Size", new StackPanel { Orientation = Orientation.Horizontal, Children = { _scale, sizeValue } }),
                 Row("Opacity", new StackPanel { Orientation = Orientation.Horizontal, Children = { _opacity, opacityValue } }),
                 Row("Accent", swatches, "Color of the voice meter, and of the Neon and Aurora rims"),
-                Row("Voice meter", _meter)),
+                Row("Voice meter", _meter),
+                Row("Widest", new StackPanel { Orientation = Orientation.Horizontal, Children = { _maxWidth, widthValue } },
+                    "How far it grows as your words arrive, in points at 1×"),
+                Row("Live glass (experimental)", _liveGlass,
+                    "Liquid Glass shows the screen behind it, blurred and bent at the rim. The capsule then stays out of screenshots and screen sharing.")),
             Group("Position",
                 Row("Place", new StackPanel { Orientation = Orientation.Horizontal, Children = { _position, move } },
                     "Move… lets you drag it anywhere. By the left or right edge it grows away from that edge."),
@@ -188,10 +217,10 @@ public sealed partial class SettingsWindow
     }
 
     private CapsuleStyle PendingStyle() =>
-        new(_skin, _accent, _scale.Value, _opacity.Value, Selected(_meter) ?? "bars", _timer.IsChecked == true);
+        new(_skin, _accent, _scale.Value, _opacity.Value, Selected(_meter) ?? "bars", _timer.IsChecked == true, _maxWidth.Value);
 
     private CapsuleLook PendingLook() =>
-        new(PendingStyle(), _placement, Selected(_screen) == "primary", _liveText.IsChecked == true);
+        new(PendingStyle(), _placement, Selected(_screen) == "primary", _liveText.IsChecked == true, _liveGlass.IsChecked == true);
 
     /// <summary>Shows or puts away the live capsule.</summary>
     private void Stage(bool on)
@@ -212,7 +241,11 @@ public sealed partial class SettingsWindow
     /// <summary>Puts the look being edited on the live capsule and the skin tiles.</summary>
     private void RefreshCapsule()
     {
-        if (_meter is null || _timer is null || _liveText is null || _opacity is null || _screen is null) return; // Still being built.
+        if (_meter is null || _timer is null || _liveText is null || _opacity is null || _screen is null
+            || _maxWidth is null || _liveGlass is null) return; // Still being built.
+
+        // Live glass is a way of drawing Liquid Glass; other skins don't use it.
+        _liveGlass.IsEnabled = CapsuleSkin.Find(_skin).Glass;
 
         var style = PendingStyle();
         if (_capsuleStaged) _controller.ApplyCapsule(PendingLook());

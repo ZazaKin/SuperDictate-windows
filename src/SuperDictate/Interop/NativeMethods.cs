@@ -229,4 +229,61 @@ internal static class NativeMethods
 
     [DllImport("advapi32.dll")]
     public static extern void CredFree(IntPtr buffer);
+
+    // Live glass (Ui.LiveGlass): copying the screen behind the capsule.
+    public const uint WDA_NONE = 0;
+    public const uint WDA_EXCLUDEFROMCAPTURE = 0x11;
+    public const uint SRCCOPY = 0x00CC0020;
+    public const uint CAPTUREBLT = 0x40000000;
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct BITMAPINFOHEADER
+    {
+        public int biSize;
+        public int biWidth;
+        public int biHeight;
+        public short biPlanes;
+        public short biBitCount;
+        public int biCompression;
+        public int biSizeImage;
+        public int biXPelsPerMeter;
+        public int biYPelsPerMeter;
+        public int biClrUsed;
+        public int biClrImportant;
+    }
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool SetWindowDisplayAffinity(IntPtr window, uint affinity);
+
+    [DllImport("user32.dll")]
+    public static extern IntPtr GetDC(IntPtr window);
+
+    [DllImport("user32.dll")]
+    public static extern int ReleaseDC(IntPtr window, IntPtr dc);
+
+    [DllImport("gdi32.dll")]
+    public static extern IntPtr CreateCompatibleDC(IntPtr dc);
+
+    [DllImport("gdi32.dll")]
+    public static extern IntPtr CreateDIBSection(IntPtr dc, ref BITMAPINFOHEADER header, uint usage, out IntPtr bits, IntPtr section, uint offset);
+
+    [DllImport("gdi32.dll")]
+    public static extern IntPtr SelectObject(IntPtr dc, IntPtr gdiObject);
+
+    [DllImport("gdi32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool BitBlt(IntPtr dc, int x, int y, int width, int height, IntPtr source, int sourceX, int sourceY, uint operation);
+
+    [DllImport("gdi32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool GdiFlush();
+
+    [DllImport("gdi32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool DeleteObject(IntPtr gdiObject);
+
+    [DllImport("gdi32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool DeleteDC(IntPtr dc);
 }

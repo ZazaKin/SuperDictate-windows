@@ -85,6 +85,8 @@ enum Preferences {
         static let opacity = "capsule.opacity"
         static let meter = "capsule.meter"
         static let timer = "capsule.timer"
+        /// How wide the capsule may grow, in points at size 1.
+        static let maxWidth = "capsule.maxWidth"
         static let placement = "capsule.placement"
         /// "active": the screen the user is working on; "main": always the main screen.
         static let screen = "capsule.screen"
@@ -106,6 +108,9 @@ enum Preferences {
     static var placement: CapsulePlacement { value(Key.placement) ?? .topCenter }
     static var capsuleOnMainScreen: Bool { UserDefaults.standard.string(forKey: Key.screen) == "main" }
     static var capsuleScale: Double { UserDefaults.standard.object(forKey: Key.scale) as? Double ?? 1 }
+    static var capsuleMaxWidth: Double {
+        UserDefaults.standard.object(forKey: Key.maxWidth) as? Double ?? Double(CapsuleStyle.widestAtOne)
+    }
 
     /// Until the user picks: the Mac's own languages that the model knows.
     static var defaultLanguages: String {

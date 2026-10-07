@@ -13,21 +13,26 @@ using SuperDictate.Storage;
 namespace SuperDictate.Ui;
 
 /// <summary>How the capsule looks; everything the Capsule settings page changes except where it sits.</summary>
-public sealed record CapsuleStyle(string Skin, string Accent, double Scale, double Opacity, string Meter, bool Timer)
+/// <param name="MaxWidth">How wide it may grow as words arrive, at size 1×.</param>
+public sealed record CapsuleStyle(string Skin, string Accent, double Scale, double Opacity, string Meter, bool Timer,
+    double MaxWidth = CapsuleView.DefaultWidest)
 {
     public static CapsuleStyle From(Settings settings) => new(
         settings.CapsuleSkin, settings.CapsuleAccent, settings.CapsuleScale, settings.CapsuleOpacity,
-        settings.CapsuleMeter, settings.CapsuleTimer);
+        settings.CapsuleMeter, settings.CapsuleTimer, settings.CapsuleMaxWidth);
 }
 
 /// <summary>The look, where it sits, on which screen, and whether words show: what the overlay needs.</summary>
-public sealed record CapsuleLook(CapsuleStyle Style, CapsulePlacement Placement, bool PrimaryScreen, bool LiveText = true)
+/// <param name="LiveGlass">Experimental: Liquid Glass shows the live screen behind it.</param>
+public sealed record CapsuleLook(CapsuleStyle Style, CapsulePlacement Placement, bool PrimaryScreen, bool LiveText = true,
+    bool LiveGlass = false)
 {
     public static CapsuleLook From(Settings settings) => new(
         CapsuleStyle.From(settings),
         new CapsulePlacement(Parse(settings.CapsuleHorizontal), settings.CapsuleX, Parse(settings.CapsuleVertical), settings.CapsuleY),
         settings.CapsuleScreen == "primary",
-        settings.CapsuleLiveText);
+        settings.CapsuleLiveText,
+        settings.CapsuleLiveGlass);
 
     public static string Name(CapsuleEdge edge) => edge.ToString().ToLowerInvariant();
 
@@ -44,7 +49,9 @@ public sealed record CapsuleLook(CapsuleStyle Style, CapsulePlacement Placement,
 internal sealed class CapsuleView : Grid
 {
     public const double BaseWidth = 168;
-    public const double WidestWidth = 460;
+    public const double DefaultWidest = 460;
+    public const double LeastWidest = 240;
+    public const double MostWidest = 900;
     public const double BaseHeight = 48;
 
     private readonly Grid _frame = new();
@@ -90,7 +97,14 @@ internal sealed class CapsuleView : Grid
 
     public double NarrowestWidth => BaseWidth * _style.Scale;
 
-    public double Widest => WidestWidth * _style.Scale;
+    public double Widest => WidestAtOne * _style.Scale;
+
+    private double WidestAtOne => Math.Clamp(_style.MaxWidth, LeastWidest, MostWidest);
+
+    /// <summary>The capsule's own shape inside the view, for the live glass behind it.</summary>
+    public FrameworkElement Body => _body;
+
+    public double Rounding => 14 * _style.Scale;
 
     public void Apply(CapsuleStyle style)
     {
@@ -131,7 +145,7 @@ internal sealed class CapsuleView : Grid
         _timer.FontSize = 10 * scale;
         var text = new SolidColorBrush(skin.Text);
         text.Freeze();
-        _live.Apply(12.5 * scale, (WidestWidth - 30) * scale, text);
+        _live.Apply(12.5 * scale, (WidestAtOne - 30) * scale, text);
 
         BuildMeter(accent, scale);
         Render(0);

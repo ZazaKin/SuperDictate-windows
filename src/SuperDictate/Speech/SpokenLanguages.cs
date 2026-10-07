@@ -3,8 +3,9 @@ using System.Linq;
 namespace SuperDictate.Speech;
 
 /// <summary>
-/// The languages SuperDictate offers, most widely used first. Whisper knows many
-/// more; these cover most people. worker.py has a punctuation prompt for each.
+/// The languages SuperDictate offers: the Mac app's 25 European languages, then
+/// languages only Whisper knows. Whisper knows many more; these cover most people.
+/// worker.py has a punctuation prompt for each.
 /// </summary>
 public static class SpokenLanguages
 {
@@ -22,8 +23,20 @@ public static class SpokenLanguages
         ("uk", "Українська", "Ukrainian"),
         ("cs", "Čeština", "Czech"),
         ("sv", "Svenska", "Swedish"),
-        ("tr", "Türkçe", "Turkish"),
         ("el", "Ελληνικά", "Greek"),
+        ("ro", "Română", "Romanian"),
+        ("hu", "Magyar", "Hungarian"),
+        ("bg", "Български", "Bulgarian"),
+        ("da", "Dansk", "Danish"),
+        ("fi", "Suomi", "Finnish"),
+        ("sk", "Slovenčina", "Slovak"),
+        ("hr", "Hrvatski", "Croatian"),
+        ("lt", "Lietuvių", "Lithuanian"),
+        ("sl", "Slovenščina", "Slovenian"),
+        ("lv", "Latviešu", "Latvian"),
+        ("et", "Eesti", "Estonian"),
+        ("mt", "Malti", "Maltese"),
+        ("tr", "Türkçe", "Turkish"),
         ("ar", "العربية", "Arabic"),
         ("hi", "हिन्दी", "Hindi"),
         ("zh", "中文", "Chinese"),

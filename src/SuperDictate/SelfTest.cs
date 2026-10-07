@@ -586,10 +586,6 @@ internal static class SelfTest
 
             session = Recording();
             session.Handle(new SessionEvent.Finish(false));
-            var noAudio = Gives(session.Handle(new SessionEvent.Recorded(0)),
-                              new SessionEffect.Notice("No audio recorded"), new SessionEffect.Failed("No audio recorded (0 samples).", 0));
-            session = Recording();
-            session.Handle(new SessionEvent.Finish(false));
             session.Handle(new SessionEvent.Recorded(2));
             var noSpeech = Gives(session.Handle(new SessionEvent.Transcribed("  ")),
                                new SessionEffect.Notice("No speech detected"), new SessionEffect.Failed("No speech recognized.", 2))
@@ -600,7 +596,28 @@ internal static class SelfTest
             var broke = Gives(session.Handle(new SessionEvent.TranscriptionFailed("worker exited")),
                              new SessionEffect.Notice("Transcription failed"), new SessionEffect.Failed("worker exited", 2))
                          && session.State == Ui.DictationState.Error;
-            Assert("session.no_text", noAudio && noSpeech && broke, $"noAudio={noAudio}, noSpeech={noSpeech}, failed={broke}");
+            Assert("session.no_text", noSpeech && broke, $"noSpeech={noSpeech}, failed={broke}");
+
+            // A tap of the key rather than a dictation: the capsule goes, nothing is reported.
+            session = Recording();
+            session.Handle(new SessionEvent.Finish(false));
+            var tap = Gives(session.Handle(new SessionEvent.Recorded(0.2)), new SessionEffect.Hide())
+                      && session.State == Ui.DictationState.Ready;
+            Assert("session.tap", tap, session.State.ToString());
+
+            session = Ready();
+            var idle = Gives(session.Handle(new SessionEvent.Cancel()));
+            session = Recording();
+            var dropped = Gives(session.Handle(new SessionEvent.Cancel()), new SessionEffect.DropRecording(), new SessionEffect.Notice("Cancelled"))
+                          && session.State == Ui.DictationState.Ready;
+            // Cancelled while the microphone is still opening: it closes once open, and a stop no longer counts.
+            session = Ready();
+            session.Handle(new SessionEvent.Toggle(false, true, true));
+            var early = Gives(session.Handle(new SessionEvent.Cancel()), new SessionEffect.Notice("Cancelled"))
+                        && Gives(session.Handle(new SessionEvent.Finish(false)))
+                        && Gives(session.Handle(new SessionEvent.MicrophoneOpened()), new SessionEffect.DropRecording())
+                        && session.State == Ui.DictationState.Ready;
+            Assert("session.cancel", idle && dropped && early, $"idle={idle}, dropped={dropped}, early={early}");
 
             // A dictation under way finishes on the engine it started with; a reload doesn't strand the microphone.
             session = Recording();
@@ -850,6 +867,17 @@ internal static class SelfTest
                 }
 
                 Assert("languages.icons", bare.Count == 0, string.Join(", ", bare));
+
+                // The widest setting, kept between its limits.
+                view.Apply(new Ui.CapsuleStyle("midnight", "#5B8DEF", 1.5, 1, "bars", false, 700));
+                var wide = view.Widest;
+                view.Apply(new Ui.CapsuleStyle("midnight", "#5B8DEF", 1, 1, "bars", false, 50));
+                Assert("capsule.max_width", Math.Abs(wide - 1050) < 0.01 && Math.Abs(view.Widest - Ui.CapsuleView.LeastWidest) < 0.01,
+                    $"wide={wide}, narrow={view.Widest}");
+
+                // Live glass copies the screen; this part needs no window.
+                using var glass = new Ui.LiveGlass();
+                Assert("capsule.live_glass", glass.Copy(new Interop.NativeMethods.RECT { Left = 0, Top = 0, Right = 64, Bottom = 32 }));
             }
             catch (Exception error)
             {

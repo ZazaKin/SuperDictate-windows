@@ -36,6 +36,10 @@ struct CapsulePane: View {
                     ValueSlider(value: stored.$scale, range: 0.7 ... 1.6, step: 0.1,
                                 text: stored.scale.formatted(.number.precision(.fractionLength(1))) + "×")
                 }
+                LabeledContent("Widest") {
+                    ValueSlider(value: stored.$maxWidth, range: CapsuleStyle.widestRange, step: 20,
+                                text: stored.maxWidth.formatted(.number.precision(.fractionLength(0))))
+                }
                 LabeledContent("Opacity") {
                     ValueSlider(value: stored.$opacity, range: 0.5 ... 1, step: 0.05,
                                 text: stored.opacity.formatted(.percent.precision(.fractionLength(0))))

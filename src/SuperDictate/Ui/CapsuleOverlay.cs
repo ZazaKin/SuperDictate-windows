@@ -38,6 +38,7 @@ public sealed class CapsuleOverlay : Window
     private static readonly TimeSpan FadeOnlyTime = TimeSpan.FromMilliseconds(120);
 
     private readonly CapsuleView _view = new();
+    private readonly LiveGlass _glass = new();
     private readonly TranslateTransform _slide = new();
     private readonly ScaleTransform _zoom = new(1, 1);
     private readonly DispatcherTimer _noticeTimer = new() { Interval = TimeSpan.FromSeconds(1.6) };
@@ -52,6 +53,8 @@ public sealed class CapsuleOverlay : Window
     private bool _dictating;
     private bool _staging;
     private bool _liveText = true;
+    private bool _glassWanted;
+    private bool _glassOn;
     private int _stageStep;
     private long _shownSecond = -1;
 
@@ -71,7 +74,7 @@ public sealed class CapsuleOverlay : Window
         _view.Opacity = 0;
         _view.Margin = new Thickness(ShadowRoom);
         _view.VerticalAlignment = VerticalAlignment.Center;
-        Content = new System.Windows.Controls.Grid { Children = { _view } };
+        Content = new System.Windows.Controls.Grid { Children = { _glass, _view } };
 
         _noticeTimer.Tick += (_, _) =>
         {
@@ -95,6 +98,25 @@ public sealed class CapsuleOverlay : Window
         var style = (long)NativeMethods.GetWindowLongPtr(handle, NativeMethods.GWL_EXSTYLE);
         style |= NativeMethods.WS_EX_NOACTIVATE | NativeMethods.WS_EX_TRANSPARENT | NativeMethods.WS_EX_TOOLWINDOW;
         NativeMethods.SetWindowLongPtr(handle, NativeMethods.GWL_EXSTYLE, new IntPtr(style));
+        UseGlass();
+    }
+
+    protected override void OnClosed(EventArgs e)
+    {
+        _glass.Dispose();
+        base.OnClosed(e);
+    }
+
+    /// <summary>
+    /// Live glass needs the window kept out of its own screen copy; where Windows
+    /// can't do that, Liquid Glass stays painted.
+    /// </summary>
+    private void UseGlass()
+    {
+        var handle = new WindowInteropHelper(this).Handle;
+        if (handle == IntPtr.Zero) return;
+        _glassOn = LiveGlass.KeepOutOfCopies(handle, _glassWanted) && _glassWanted;
+        if (!_glassOn) _glass.Hide();
     }
 
     /// <summary>Look, place and screen from settings. Takes effect at once, even while the capsule shows.</summary>
@@ -104,6 +126,12 @@ public sealed class CapsuleOverlay : Window
         _placement = look.Placement;
         _primaryScreen = look.PrimaryScreen;
         _liveText = look.LiveText;
+        var glass = look.LiveGlass && CapsuleSkin.Find(look.Style.Skin).Glass;
+        if (glass != _glassWanted)
+        {
+            _glassWanted = glass;
+            UseGlass();
+        }
 
         Width = _view.Widest + (2 * ShadowRoom);
         Height = _view.CapsuleHeight + (2 * ShadowRoom);
@@ -339,6 +367,7 @@ public sealed class CapsuleOverlay : Window
         _rendering = false;
         CompositionTarget.Rendering -= OnFrame;
         _view.Quiet();
+        _glass.Hide();
     }
 
     /// <summary>Runs once per display frame while the capsule is on screen.</summary>
@@ -348,12 +377,23 @@ public sealed class CapsuleOverlay : Window
         // On stage the meter breathes as if someone were talking.
         if (_staging) _view.SetPreviewLevel(0.4 + (0.3 * Math.Sin(seconds * 2.6)));
         _view.Render(seconds);
+        if (_glassOn) FollowWithGlass();
         if (!_dictating) return;
         // The clock's text changes once a second, not every frame.
         var second = (long)_recording.Elapsed.TotalSeconds;
         if (second == _shownSecond) return;
         _shownSecond = second;
         _view.Elapsed = TimeSpan.FromSeconds(second);
+    }
+
+    /// <summary>The live glass under the capsule, wherever it is mid-animation, as it fades.</summary>
+    private void FollowWithGlass()
+    {
+        var body = _view.Body;
+        if (body.RenderSize.Width <= 0) return;
+        var capsule = body.TransformToAncestor((Visual)Content).TransformBounds(new Rect(body.RenderSize));
+        _glass.Opacity = _view.Opacity * Math.Clamp(_view.Current.Opacity, 0.5, 1);
+        _glass.Follow(new WindowInteropHelper(this).Handle, capsule, _view.Rounding * _zoom.ScaleX);
     }
 
     /// <summary>

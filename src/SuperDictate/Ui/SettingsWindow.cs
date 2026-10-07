@@ -109,7 +109,8 @@ public sealed partial class SettingsWindow : Window
     private CapsulePlacement _placement;
     private Slider _opacity = null!;
     private ComboBox _meter = null!, _position = null!, _screen = null!;
-    private CheckBox _liveText = null!, _timer = null!;
+    private CheckBox _liveText = null!, _timer = null!, _liveGlass = null!;
+    private Slider _maxWidth = null!;
     private readonly List<(string Skin, CapsuleView View)> _skinTiles = new();
     private bool _syncingPosition;
     private bool _capsuleStaged;
@@ -1368,6 +1369,8 @@ public sealed partial class SettingsWindow : Window
         _settings.CapsuleMeter = Selected(_meter) ?? "bars";
         _settings.CapsuleLiveText = _liveText.IsChecked == true;
         _settings.CapsuleTimer = _timer.IsChecked == true;
+        _settings.CapsuleMaxWidth = _maxWidth.Value;
+        _settings.CapsuleLiveGlass = _liveGlass.IsChecked == true;
         _settings.CapsuleHorizontal = CapsuleLook.Name(_placement.Horizontal);
         _settings.CapsuleX = _placement.X;
         _settings.CapsuleVertical = CapsuleLook.Name(_placement.Vertical);

@@ -30,7 +30,7 @@ Get both from the [latest release](https://github.com/ZazaKin/SuperDictate-windo
 | **File** | `SuperDictate-Setup-<version>.exe` | `SuperDictate-macOS-<version>.zip` |
 | **Needs** | 64-bit Windows 10 (2004 or later) or 11 | A Mac with Apple Silicon (M1 or newer), macOS 14 or newer |
 | **Speech** | Whisper, on the processor or an NVIDIA graphics card | NVIDIA Parakeet v3, on the Apple Neural Engine |
-| **Languages** | 20, from English and Spanish to Chinese and Arabic | 25 European languages |
+| **Languages** | 32: the Mac's 25 European languages, plus Chinese, Japanese, Arabic and more | 25 European languages |
 | **Install guide** | [Windows guide](docs/user-guide.md) | [Mac guide](docs/mac-guide.md) |
 
 Both are free. A one-time download of the speech model is the only time the
@@ -45,7 +45,7 @@ app needs the internet.
   writes a live draft. When you stop, the whole recording is transcribed
   again, so the typed text is a little better than the draft.
 - **Make the capsule yours.** Thirteen skins, including Liquid Glass. Choose
-  the accent color, size, opacity and voice meter, put it in any corner or drag
+  the accent color, size, opacity, voice meter and how wide it grows, put it in any corner or drag
   it anywhere. Next to the left or right edge it grows away from that edge.
 - **Your languages.** Pick the languages you speak; detection chooses among
   them only. Switch from the tray (Windows) or the menu bar (Mac).

@@ -67,6 +67,12 @@ public sealed class Settings
     /// <summary>Show how long the dictation has been running.</summary>
     public bool CapsuleTimer { get; set; }
 
+    /// <summary>How wide the capsule may grow as words arrive, in points at size 1×.</summary>
+    public double CapsuleMaxWidth { get; set; } = 460;
+
+    /// <summary>Experimental: Liquid Glass shows the live screen behind it (see Ui.CapsuleOverlay).</summary>
+    public bool CapsuleLiveGlass { get; set; }
+
     /// <summary>
     /// Where the capsule sits (see Ui.CapsulePlacement): the edge it keeps to on each
     /// axis (start, center or end) and how far across the screen, 0 to 1. Top center
