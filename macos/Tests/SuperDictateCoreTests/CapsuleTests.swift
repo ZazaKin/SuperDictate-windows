@@ -1,4 +1,7 @@
 import XCTest
+#if canImport(CoreGraphics)
+import CoreGraphics
+#endif
 @testable import SuperDictateCore
 
 /// The same cases as the Windows self-test (`capsule.placement`, `capsule.snap`,

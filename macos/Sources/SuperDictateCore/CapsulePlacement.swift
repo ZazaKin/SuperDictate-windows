@@ -1,4 +1,7 @@
 import Foundation
+#if canImport(CoreGraphics)
+import CoreGraphics // CGRect's geometry; Foundation has it elsewhere.
+#endif
 
 /// Which side of the screen the capsule keeps to, on one axis.
 public enum CapsuleEdge: String, Sendable, CaseIterable {

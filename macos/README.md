@@ -10,6 +10,12 @@ It is the same app as SuperDictate for Windows, made the Mac way:
   with the status, a Start Dictation button and your last dictation.
 - **The capsule.** While you dictate, a black pill springs down under the menu
   bar, in the manner of the Dynamic Island. Its bars follow your voice.
+- **Your capsule, your way.** Twelve skins, accent colors, size, opacity and
+  three voice meters. Put it in any corner, or drag it anywhere: next to the
+  left or right edge it grows away from that edge. While Settings › Capsule
+  is open, the real capsule shows on screen with every change.
+- **Your languages.** Pick the languages you speak from the 25 the model
+  knows, each with its flag, and switch between them from the menu bar.
 - **Live preview.** Your words build up in the capsule as you talk. Each word
   rises in out of a blur, and the newest ones brighten as they settle.
 - **Silence limit.** A minute without speech ends the dictation by itself.
@@ -62,8 +68,12 @@ press **Right ⌘** in any app and talk.
 - **Right ⌘**: start, then stop and type. Choose another key, or hold-to-talk,
   in **Settings › Dictation**.
 - **Escape** while dictating cancels.
-- **Settings › Dictation** has the language (automatic, or one of 12), the
-  live preview, and **Press Return after typing** for chats.
+- **Settings › Dictation** has **Press Return after typing** for chats.
+- **Settings › Languages**: tick the languages you speak. Automatic tells
+  them apart; when they all use one alphabet it also keeps other alphabets
+  out. Or listen for just one. The menu bar panel switches too.
+- **Settings › Capsule**: skin, look, position (**Move…** to drag it), the
+  screen it shows on, the live preview and the recording time.
 - **Settings › History** keeps your last 100 dictations on this Mac.
 
 ## Development
@@ -76,7 +86,7 @@ python macos/scripts/make-icon.py            # redraw the icon (needs Pillow)
 
 | Path | What it is |
 |---|---|
-| `Sources/SuperDictateCore` | Live preview, voice detection, the caption model; no Mac frameworks, fully tested |
+| `Sources/SuperDictateCore` | Live preview, voice detection, the caption model, capsule placement and skins, languages; no Mac frameworks, fully tested |
 | `Sources/SuperDictate/App` | The app, and `DictationModel`, which runs a dictation from key press to typed text |
 | `Sources/SuperDictate/Audio` | Microphone capture, 16 kHz mono |
 | `Sources/SuperDictate/Speech` | Parakeet TDT v3 through FluidAudio, one request at a time |
@@ -84,8 +94,9 @@ python macos/scripts/make-icon.py            # redraw the icon (needs Pillow)
 | `Sources/SuperDictate/UI` | Capsule, menu bar panel, settings, setup window |
 | `Resources` | `Info.plist`, entitlements, the icon master |
 
-The live preview works as on Windows, with the same numbers
-(`src/SuperDictate/Speech/LiveSession.cs` there). Change both together.
+The live preview, the capsule's placement and its skins work as on Windows,
+with the same numbers (`Speech/LiveSession.cs`, `Ui/CapsulePlacement.cs` and
+`Ui/CapsuleSkin.cs` under `src/SuperDictate` there). Change both together.
 
 Ground rules, kept from the original Mac app:
 
