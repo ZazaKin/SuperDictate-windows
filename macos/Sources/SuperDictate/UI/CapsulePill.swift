@@ -125,7 +125,7 @@ struct CapsulePill: View {
                 if caption.isEmpty {
                     Text(status ?? (processing ? "Processing…" : "Listening…"))
                         .font(.system(size: 13 * scale, weight: .medium))
-                        .foregroundStyle(Color(skin.muted))
+                        .foregroundStyle(muted)
                         .transition(.opacity)
                 } else {
                     LiveWords(caption: caption, processing: processing, widest: style.textWidth, size: 14 * scale)
@@ -133,15 +133,19 @@ struct CapsulePill: View {
                 if style.timer, let started, !processing {
                     Text(timerInterval: started ... Date.distantFuture, countsDown: false)
                         .font(.system(size: 11 * scale, weight: .medium).monospacedDigit())
-                        .foregroundStyle(Color(skin.muted))
+                        .foregroundStyle(muted)
                 }
             }
         }
-        .foregroundStyle(Color(skin.text))
+        .foregroundStyle(skin.isGlass ? AnyShapeStyle(.primary) : AnyShapeStyle(Color(skin.text)))
         .padding(.horizontal, 18 * scale)
         .frame(minWidth: CapsuleStyle.narrowest * scale, minHeight: CapsuleStyle.height * scale)
         .modifier(CapsuleSurface(style: style, rim: rim))
         .opacity(style.opacity)
+    }
+
+    private var muted: AnyShapeStyle {
+        style.skin.isGlass ? AnyShapeStyle(.secondary) : AnyShapeStyle(Color(style.skin.muted))
     }
 
     private var rim: AnyShapeStyle {
@@ -154,16 +158,18 @@ struct CapsulePill: View {
             AnyShapeStyle(LinearGradient(colors: [style.accentColor, Color(RGBA(0xB36BFF)), Color(RGBA(0x3DD6C4))],
                                          startPoint: .leading, endPoint: .trailing))
         case .glass:
-            AnyShapeStyle(LinearGradient(colors: [.white.opacity(0.78), .white.opacity(0.12), .white.opacity(0.43)],
+            // Light from above catches the top of the rim, and faintly the bottom.
+            AnyShapeStyle(LinearGradient(colors: [.white.opacity(0.7), .white.opacity(0.08), .white.opacity(0.3)],
                                          startPoint: .top, endPoint: .bottom))
         }
     }
 }
 
-/// The capsule's body: the skin's fill and rim. A Liquid Glass skin is Apple's
-/// own glass on macOS 26 and later, in its dark variant so the white words read
-/// over anything; before that it is painted as on Windows, over a blur of
-/// whatever is behind it.
+/// The capsule's body: the skin's fill and rim. Liquid Glass is Apple's own
+/// glass on macOS 26 and later, light or dark with what's behind it, and the
+/// words on it follow, as on the system's own glass. Before macOS 26 (and in the
+/// snapshot pictures) it is the system material, light or dark with the Mac's
+/// appearance, with a lit rim and a soft shadow.
 private struct CapsuleSurface: ViewModifier {
     let style: CapsuleStyle
     let rim: AnyShapeStyle
@@ -172,14 +178,12 @@ private struct CapsuleSurface: ViewModifier {
     func body(content: Content) -> some View {
         if style.skin.isGlass {
             if paintsGlass {
-                paintedGlass(content)
+                materialGlass(content)
             } else {
                 if #available(macOS 26, *) {
-                    content
-                        .glassEffect(.regular, in: Capsule())
-                        .environment(\.colorScheme, .dark)
+                    content.glassEffect(.regular, in: Capsule())
                 } else {
-                    paintedGlass(content)
+                    materialGlass(content)
                 }
             }
         } else {
@@ -189,9 +193,11 @@ private struct CapsuleSurface: ViewModifier {
         }
     }
 
-    private func paintedGlass(_ content: Content) -> some View {
-        painted(content)
-            .background(.ultraThinMaterial, in: Capsule())
+    private func materialGlass(_ content: Content) -> some View {
+        content
+            .background(.regularMaterial, in: Capsule())
+            .overlay(CapsuleRim(width: 0.8 * style.scale).fill(rim, style: FillStyle(eoFill: true)))
+            .shadow(color: .black.opacity(0.2), radius: 18 * style.scale, y: 6 * style.scale)
     }
 
     private func painted(_ content: Content) -> some View {
@@ -199,15 +205,6 @@ private struct CapsuleSurface: ViewModifier {
         return content
             .background(LinearGradient(colors: [Color(skin.fill), Color(skin.fillEnd)], startPoint: .top, endPoint: .bottom),
                         in: Capsule())
-            .overlay {
-                if skin.isGlass {
-                    // The sheen glass catches across its top.
-                    Capsule()
-                        .fill(LinearGradient(colors: [.white.opacity(0.28), .white.opacity(0)], startPoint: .top, endPoint: .center))
-                        .padding(skin.borderWidth)
-                        .allowsHitTesting(false)
-                }
-            }
             .overlay(CapsuleRim(width: skin.borderWidth).fill(rim, style: FillStyle(eoFill: true)))
     }
 }

@@ -28,14 +28,14 @@ internal sealed class LiveGlass : Grid, IDisposable
 {
     private static readonly TimeSpan Interval = TimeSpan.FromMilliseconds(50);
 
-    private readonly Image _behind = new() { Stretch = Stretch.Fill, Effect = new BlurEffect { Radius = 6 } };
+    private readonly Image _behind = new() { Stretch = Stretch.Fill, Effect = new BlurEffect { Radius = 10 } };
     private readonly GlassLens _lens = new();
     private readonly Border _shadow = new()
     {
         Background = Brushes.Black,
         HorizontalAlignment = HorizontalAlignment.Left,
         VerticalAlignment = VerticalAlignment.Top,
-        Effect = new DropShadowEffect { BlurRadius = 18, ShadowDepth = 4, Direction = 270, Opacity = 0.28 },
+        Effect = new DropShadowEffect { BlurRadius = 24, ShadowDepth = 6, Direction = 270, Opacity = 0.22 },
     };
 
     private WriteableBitmap? _image;
@@ -55,7 +55,8 @@ internal sealed class LiveGlass : Grid, IDisposable
         Children.Add(_shadow);
         // The clip keeps the blur from widening what the shader sees, so its
         // coordinates stay the layer's own.
-        Children.Add(new Grid { Effect = _lens, Children = { new Grid { ClipToBounds = true, Children = { _behind } } } });
+        // Without a shader (it didn't compile) the layer draws no effect; the window never shows it then.
+        Children.Add(new Grid { Effect = Available ? _lens : null, Children = { new Grid { ClipToBounds = true, Children = { _behind } } } });
     }
 
     /// <summary>Whether this Windows can draw the glass: its shader compiled.</summary>
@@ -258,7 +259,7 @@ internal sealed class GlassLens : ShaderEffect
             float2 k = max(q, 0);
             float edge = length(k) + min(max(q.x, q.y), 0) - lens.x;   // negative inside
             float depth = -edge;
-            float2 n = normalize(k + 0.0001) * sign(d);
+            float2 n = normalize(k + 0.0001) * (d >= 0 ? 1 : -1);
 
             // The bezel bends what lies beyond the edge in: most at the edge, none past the bezel.
             float t = saturate(1 - depth / lens.y);
@@ -268,16 +269,19 @@ internal sealed class GlassLens : ShaderEffect
             color.g = tex2D(input, uv + bend).g;
             color.b = tex2D(input, uv + bend * (1 - lens.w)).b;
 
-            // A little more vivid, then tinted for the words on top.
+            // More vivid, as glass is, then tinted for the words on top.
             float grey = dot(color, float3(0.2126, 0.7152, 0.0722));
-            color = lerp(grey.xxx, color, 1.2);
+            color = lerp(grey.xxx, color, 1.35);
             color = lerp(color, tint.rgb, tint.a);
 
+            // The bezel's thickness: a touch darker on the side away from the light.
             // Light catches the rim where it faces the light, and faintly opposite.
             float facing = dot(n, light.xy);
-            float rim = saturate(1.6 - depth);
-            color += rim * (light.z * saturate(facing) + 0.45 * light.z * saturate(-facing) + 0.12);
-            color += light.w * t * t * saturate(facing + 0.3);
+            float lit = saturate(facing);
+            float away = saturate(-facing);
+            float bezel = t * t;
+            color *= 1 - 0.18 * bezel * away;
+            color += saturate(1.6 - depth) * (light.z * (lit + 0.45 * away) + 0.12) + light.w * bezel * (lit + 0.3);
 
             float alpha = saturate(0.5 - edge);
             return float4(color * alpha, alpha);
