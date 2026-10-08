@@ -28,8 +28,8 @@ public enum OverlayState
 /// </summary>
 public sealed class CapsuleOverlay : Window
 {
-    // Room around the capsule for its shadow, and for the live glass to bend in (DIPs).
-    private const double ShadowRoom = 24;
+    // Room around the capsule for its shadow, and for the live glass to bend and blur in (DIPs).
+    private double ShadowRoom => 24 * Math.Max(1, _view.Current.Scale);
 
     // Strong ease-out, cubic-bezier(0.23, 1, 0.32, 1): arrives fast, settles softly.
     private static readonly KeySpline EaseOut = Frozen(new KeySpline(0.23, 1, 0.32, 1));
@@ -72,7 +72,6 @@ public sealed class CapsuleOverlay : Window
 
         _view.RenderTransform = new TransformGroup { Children = { _zoom, _slide } };
         _view.Opacity = 0;
-        _view.Margin = new Thickness(ShadowRoom);
         _view.VerticalAlignment = VerticalAlignment.Center;
         Content = new System.Windows.Controls.Grid { Children = { _glass, _view } };
 
@@ -126,6 +125,7 @@ public sealed class CapsuleOverlay : Window
     public void Apply(CapsuleLook look)
     {
         _view.Apply(look.Style);
+        _view.Margin = new Thickness(ShadowRoom);
         _placement = look.Placement;
         _primaryScreen = look.PrimaryScreen;
         _liveText = look.LiveText;
