@@ -23,7 +23,7 @@ public sealed record CapsuleStyle(string Skin, string Accent, double Scale, doub
 }
 
 /// <summary>The look, where it sits, on which screen, and whether words show: what the overlay needs.</summary>
-/// <param name="LiveGlass">Experimental: Liquid Glass shows the live screen behind it.</param>
+/// <param name="LiveGlass">Liquid Glass shows the live screen behind it.</param>
 public sealed record CapsuleLook(CapsuleStyle Style, CapsulePlacement Placement, bool PrimaryScreen, bool LiveText = true,
     bool LiveGlass = false)
 {
@@ -73,6 +73,7 @@ internal sealed class CapsuleView : Grid
     private bool _processing;
     private bool _meterShown = true;
     private TimeSpan? _elapsed;
+    private bool? _glassLight;
 
     public CapsuleView()
     {
@@ -104,7 +105,19 @@ internal sealed class CapsuleView : Grid
     /// <summary>The capsule's own shape inside the view, for the live glass behind it.</summary>
     public FrameworkElement Body => _body;
 
-    public double Rounding => 14 * _style.Scale;
+    /// <summary>Liquid Glass is a true capsule, as on Apple's devices; the other skins have rounded corners.</summary>
+    public double Rounding => CapsuleSkin.Find(_style.Skin).Glass ? CapsuleHeight / 2 : 14 * _style.Scale;
+
+    /// <summary>
+    /// With live glass under it (<see cref="LiveGlass"/>), Liquid Glass draws only its
+    /// words, dark on light glass or white on dark glass; null paints the glass itself.
+    /// </summary>
+    public void GlassUnder(bool? light)
+    {
+        if (light == _glassLight) return;
+        _glassLight = light;
+        Apply(_style);
+    }
 
     public void Apply(CapsuleStyle style)
     {
@@ -112,29 +125,31 @@ internal sealed class CapsuleView : Grid
         var skin = CapsuleSkin.Find(style.Skin);
         var scale = style.Scale;
         var accent = Accent(style.Accent);
-        var fill = skin.FillBrush();
-        var muted = new SolidColorBrush(skin.Muted);
+        // The live glass draws the fill, the rim and the light; this keeps to the words.
+        var live = skin.Glass && _glassLight is not null;
+        var fill = live ? Brushes.Transparent : skin.FillBrush();
+        var muted = new SolidColorBrush(!live ? skin.Muted : _glassLight == true ? Color.FromRgb(0x3C, 0x40, 0x48) : Color.FromRgb(0xE6, 0xE8, 0xEE));
         muted.Freeze();
 
         _frame.Opacity = Math.Clamp(style.Opacity, 0.5, 1);
         _frame.MinWidth = BaseWidth * scale;
         _frame.Height = BaseHeight * scale;
-        var corner = new CornerRadius(14 * scale);
+        var corner = new CornerRadius(Rounding);
         _shadow.CornerRadius = corner;
         _shadow.Background = fill;
         // A see-through skin would show its own shadow through itself; it floats on its rim instead.
         _shadow.Visibility = skin.Fill.A == 255 ? Visibility.Visible : Visibility.Collapsed;
         _body.CornerRadius = corner;
         _body.Background = fill;
-        _body.BorderBrush = skin.BorderBrush(accent.Color);
+        _body.BorderBrush = live ? Brushes.Transparent : skin.BorderBrush(accent.Color);
         _body.BorderThickness = new Thickness(skin.BorderWidth);
         _body.Padding = new Thickness(14 * scale, 5 * scale, 14 * scale, 5 * scale);
 
         // Glass catches the light: a soft sheen over its top half.
-        _sheen.Visibility = skin.Glass ? Visibility.Visible : Visibility.Collapsed;
+        _sheen.Visibility = skin.Glass && !live ? Visibility.Visible : Visibility.Collapsed;
         _sheen.Margin = new Thickness(skin.BorderWidth);
         _sheen.Height = BaseHeight * scale * 0.55;
-        _sheen.CornerRadius = new CornerRadius(14 * scale - skin.BorderWidth, 14 * scale - skin.BorderWidth, 0, 0);
+        _sheen.CornerRadius = new CornerRadius(Rounding - skin.BorderWidth, Rounding - skin.BorderWidth, 0, 0);
         _sheen.Background = Sheen;
 
         _caption.Foreground = muted;
@@ -143,7 +158,7 @@ internal sealed class CapsuleView : Grid
         _caption.MaxWidth = (BaseWidth - 28) * scale;
         _timer.Foreground = muted;
         _timer.FontSize = 10 * scale;
-        var text = new SolidColorBrush(skin.Text);
+        var text = new SolidColorBrush(!live ? skin.Text : _glassLight == true ? Color.FromRgb(0x16, 0x18, 0x1D) : Colors.White);
         text.Freeze();
         _live.Apply(12.5 * scale, (WidestAtOne - 30) * scale, text);
 

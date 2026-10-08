@@ -30,7 +30,7 @@ Get both from the [latest release](https://github.com/ZazaKin/SuperDictate-windo
 | **File** | `SuperDictate-Setup-<version>.exe` | `SuperDictate-macOS-<version>.zip` |
 | **Needs** | 64-bit Windows 10 (2004 or later) or 11 | A Mac with Apple Silicon (M1 or newer), macOS 14 or newer |
 | **Speech** | Whisper, on the processor or an NVIDIA graphics card | NVIDIA Parakeet v3, on the Apple Neural Engine |
-| **Languages** | 32: the Mac's 25 European languages, plus Chinese, Japanese, Arabic and more | 25 European languages |
+| **Languages** | The same 25 European languages | 25 European languages |
 | **Install guide** | [Windows guide](docs/user-guide.md) | [Mac guide](docs/mac-guide.md) |
 
 Both are free. A one-time download of the speech model is the only time the
@@ -62,8 +62,9 @@ app needs the internet.
   <img src="docs/images/capsule-skins.png" width="820" alt="All thirteen capsule skins, each showing a sentence">
 </p>
 
-On a Mac with macOS 26, the Liquid Glass skin is Apple's own glass; on older
-Macs and on Windows it's a close recreation.
+On a Mac with macOS 26, the Liquid Glass skin is Apple's own glass. On Windows
+it's live glass too: the screen behind bends at its edge and the words flip
+between dark and light with it. On older Macs it's a close recreation.
 
 ### Windows
 

@@ -105,9 +105,9 @@ the tray icon. **Save** applies your changes and keeps the window open.
 
 - **Dictation:** microphone, hotkeys, hold-to-talk, pressing Enter after paste,
   and a button to try it out.
-- **Languages:** pick the languages you speak from 32 widely used ones,
-  including English, Spanish, French, German, Portuguese, Russian, Arabic,
-  Hindi, Chinese, Japanese and Korean. Type in the search box to find one.
+- **Languages:** pick the languages you speak from 25 European languages,
+  the same as on a Mac, including English, Spanish, French, German, Polish,
+  Russian and Ukrainian. Type in the search box to find one.
   Automatic detection only chooses among the languages you picked, so fewer
   means fewer mix-ups. **Mode** can fix one language, which skips detection.
 - **Speech model:** which model to use, the speech engine, GPU acceleration,
@@ -126,14 +126,16 @@ the tray icon. **Save** applies your changes and keeps the window open.
   open, the real capsule shows on your screen with example words, and every
   change shows on it at once; **Save** keeps it.
   - **Skin:** 13 looks, from Midnight and Liquid Glass to Paper, Neon and
-    High contrast. Liquid Glass recreates Apple's glass: see-through, with a
-    rim that catches the light and a sheen across the top.
+    High contrast. Liquid Glass is glass as on an iPhone or a Mac: the screen
+    behind it shows through, softly blurred, bent at the edge, with light
+    catching the rim. Over a bright window it turns light with dark words,
+    over a dark one it stays dark with white words.
   - **Look:** size, opacity, accent color, the voice meter (bars, wave or
     pulse), and **Widest**: how far the capsule grows as your words arrive.
-    **Live glass (experimental)** makes Liquid Glass show the screen behind it,
-    blurred and bent at the rim, darker over bright windows so the words stay
-    readable. While it's on, the capsule stays out of screenshots and screen
-    sharing. It needs Windows 10 version 2004 or later.
+    **Live glass** is on by default. To show the real screen, the capsule keeps
+    itself out of screen copies, so it doesn't appear in screenshots or screen
+    sharing; turn it off for a painted Liquid Glass that does. Live glass needs
+    Windows 10 version 2004 or later.
   - **Position:** presets, or **Move…** to drag it anywhere. The screen dims,
     the capsule snaps to the edges and the center, and arrow keys nudge it.
     Next to the left or right edge it grows away from that edge as your

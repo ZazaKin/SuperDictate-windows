@@ -878,6 +878,16 @@ internal static class SelfTest
                 // Live glass copies the screen; this part needs no window.
                 using var glass = new Ui.LiveGlass();
                 Assert("capsule.live_glass", glass.Copy(new Interop.NativeMethods.RECT { Left = 0, Top = 0, Right = 64, Bottom = 32 }));
+                Assert("capsule.glass_shader", Ui.LiveGlass.Available, "the glass shader didn't compile; Liquid Glass stays painted");
+
+                // Settings from a build that offered more languages keep only the ones offered now.
+                var older = new Settings { Language = "ja", SelectedLanguages = new System.Collections.Generic.List<string> { "ja", "de", "zh" } };
+                SettingsStore.KeepKnownLanguages(older);
+                var none = new Settings { SelectedLanguages = new System.Collections.Generic.List<string> { "ko" } };
+                SettingsStore.KeepKnownLanguages(none);
+                Assert("languages.known", older.Language == "auto" && older.SelectedLanguages.SequenceEqual(new[] { "de" })
+                                          && none.SelectedLanguages.SequenceEqual(new[] { "en" }) && SpokenLanguages.All.Length == 25,
+                    $"{older.Language} [{string.Join(",", older.SelectedLanguages)}] [{string.Join(",", none.SelectedLanguages)}]");
             }
             catch (Exception error)
             {

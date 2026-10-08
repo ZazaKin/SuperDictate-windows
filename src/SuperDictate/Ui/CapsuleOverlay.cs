@@ -28,8 +28,8 @@ public enum OverlayState
 /// </summary>
 public sealed class CapsuleOverlay : Window
 {
-    // Room around the capsule for its shadow (DIPs).
-    private const double ShadowRoom = 16;
+    // Room around the capsule for its shadow, and for the live glass to bend in (DIPs).
+    private const double ShadowRoom = 24;
 
     // Strong ease-out, cubic-bezier(0.23, 1, 0.32, 1): arrives fast, settles softly.
     private static readonly KeySpline EaseOut = Frozen(new KeySpline(0.23, 1, 0.32, 1));
@@ -115,8 +115,11 @@ public sealed class CapsuleOverlay : Window
     {
         var handle = new WindowInteropHelper(this).Handle;
         if (handle == IntPtr.Zero) return;
-        _glassOn = LiveGlass.KeepOutOfCopies(handle, _glassWanted) && _glassWanted;
-        if (!_glassOn) _glass.Hide();
+        _glassOn = _glassWanted && LiveGlass.Available && LiveGlass.KeepOutOfCopies(handle, true);
+        if (!_glassWanted) LiveGlass.KeepOutOfCopies(handle, false);
+        if (_glassOn) return;
+        _glass.Hide();
+        _view.GlassUnder(null);
     }
 
     /// <summary>Look, place and screen from settings. Takes effect at once, even while the capsule shows.</summary>
@@ -394,6 +397,7 @@ public sealed class CapsuleOverlay : Window
         var capsule = body.TransformToAncestor((Visual)Content).TransformBounds(new Rect(body.RenderSize));
         _glass.Opacity = _view.Opacity * Math.Clamp(_view.Current.Opacity, 0.5, 1);
         _glass.Follow(new WindowInteropHelper(this).Handle, capsule, _view.Rounding * _zoom.ScaleX);
+        _view.GlassUnder(_glass.Light);
     }
 
     /// <summary>

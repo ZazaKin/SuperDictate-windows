@@ -198,7 +198,6 @@ def main():
                 "uk": "Привіт, як справи? Добре, дякую.",
                 "cs": "Ahoj, jak se máš? Dobře, děkuji.",
                 "sv": "Hej, hur mår du? Bra, tack.",
-                "tr": "Merhaba, nasılsın? İyiyim, teşekkürler.",
                 "el": "Γεια σου, τι κάνεις; Καλά, ευχαριστώ.",
                 "ro": "Bună, ce mai faci? Bine, mulțumesc.",
                 "hu": "Szia, hogy vagy? Jól, köszönöm.",
@@ -212,12 +211,6 @@ def main():
                 "lv": "Sveiki, kā jums iet? Labi, paldies.",
                 "et": "Tere, kuidas läheb? Hästi, aitäh.",
                 "mt": "Bongu, kif inti? Tajjeb, grazzi.",
-                "ar": "مرحبا، كيف حالك؟ بخير، شكرا.",
-                "hi": "नमस्ते, आप कैसे हैं? मैं ठीक हूँ, धन्यवाद।",
-                "zh": "你好，你好吗？我很好，谢谢。",
-                "ja": "こんにちは、お元気ですか？元気です、ありがとう。",
-                "ko": "안녕하세요, 잘 지내세요? 네, 감사합니다.",
-                "vi": "Xin chào, bạn khỏe không? Tôi khỏe, cảm ơn.",
             }
 
             # Language selection logic:

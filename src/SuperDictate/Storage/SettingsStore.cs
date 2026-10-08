@@ -1,7 +1,9 @@
 using System;
 using System.ComponentModel;
 using System.IO;
+using System.Linq;
 using System.Text.Json;
+using SuperDictate.Speech;
 
 namespace SuperDictate.Storage;
 
@@ -25,6 +27,7 @@ public static class SettingsStore
                 if (loaded is not null)
                 {
                     MigrateLegacyAiKey(json, loaded);
+                    KeepKnownLanguages(loaded);
                     return loaded;
                 }
             }
@@ -35,6 +38,14 @@ public static class SettingsStore
         }
 
         return new Settings();
+    }
+
+    /// <summary>Languages no longer offered are dropped; with none left, English.</summary>
+    public static void KeepKnownLanguages(Settings settings)
+    {
+        settings.SelectedLanguages = (settings.SelectedLanguages ?? new()).Where(SpokenLanguages.IsKnown).ToList();
+        if (settings.SelectedLanguages.Count == 0) settings.SelectedLanguages.Add("en");
+        if (settings.Language != "auto" && !SpokenLanguages.IsKnown(settings.Language)) settings.Language = "auto";
     }
 
     /// <summary>
