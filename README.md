@@ -66,6 +66,10 @@ On a Mac with macOS 26, the Liquid Glass skin is Apple's own glass. On Windows
 it's live glass too: the screen behind bends at its edge and the words flip
 between dark and light with it. On older Macs it's a close recreation.
 
+<p align="center">
+  <img src="docs/images/capsule-live-glass.png" width="760" alt="Liquid Glass on Windows: light glass with dark words over a white window, and dark glass with white words over a blue wallpaper; shapes behind bend at the capsule's edge">
+</p>
+
 ### Windows
 
 <table>
