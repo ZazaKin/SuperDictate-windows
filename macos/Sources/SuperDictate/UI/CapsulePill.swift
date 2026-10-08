@@ -167,9 +167,9 @@ struct CapsulePill: View {
 
 /// The capsule's body: the skin's fill and rim. Liquid Glass is Apple's own
 /// glass on macOS 26 and later, light or dark with what's behind it, and the
-/// words on it follow, as on the system's own glass. Before macOS 26 (and in the
-/// snapshot pictures) it is the system material, light or dark with the Mac's
-/// appearance, with a lit rim and a soft shadow.
+/// words on it follow, as on the system's own glass. Before macOS 26 it is the
+/// system material, light or dark with the Mac's appearance, with a lit rim and
+/// a soft shadow; the snapshot pictures paint that material.
 private struct CapsuleSurface: ViewModifier {
     let style: CapsuleStyle
     let rim: AnyShapeStyle
@@ -194,8 +194,14 @@ private struct CapsuleSurface: ViewModifier {
     }
 
     private func materialGlass(_ content: Content) -> some View {
-        content
-            .background(.regularMaterial, in: Capsule())
+        Group {
+            if paintsGlass {
+                // A snapshot can show neither the blur nor the vibrant words over it, so it paints the glass.
+                content.background(Color(nsColor: .windowBackgroundColor).opacity(0.85), in: Capsule())
+            } else {
+                content.background(.regularMaterial, in: Capsule())
+            }
+        }
             .overlay(CapsuleRim(width: 0.8 * style.scale).fill(rim, style: FillStyle(eoFill: true)))
             .shadow(color: .black.opacity(0.2), radius: 18 * style.scale, y: 6 * style.scale)
     }
