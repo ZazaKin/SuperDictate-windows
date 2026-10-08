@@ -137,7 +137,7 @@ struct CapsulePill: View {
                 }
             }
         }
-        .foregroundStyle(skin.isGlass ? AnyShapeStyle(.primary) : AnyShapeStyle(Color(skin.text)))
+        .foregroundStyle(skin.isGlass ? AnyShapeStyle(Color.primary) : AnyShapeStyle(Color(skin.text)))
         .padding(.horizontal, 18 * scale)
         .frame(minWidth: CapsuleStyle.narrowest * scale, minHeight: CapsuleStyle.height * scale)
         .modifier(CapsuleSurface(style: style, rim: rim))
@@ -145,7 +145,7 @@ struct CapsulePill: View {
     }
 
     private var muted: AnyShapeStyle {
-        style.skin.isGlass ? AnyShapeStyle(.secondary) : AnyShapeStyle(Color(style.skin.muted))
+        style.skin.isGlass ? AnyShapeStyle(Color.secondary) : AnyShapeStyle(Color(style.skin.muted))
     }
 
     private var rim: AnyShapeStyle {
