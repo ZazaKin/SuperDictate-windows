@@ -1,35 +1,42 @@
 using System;
+using System.IO;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Effects;
 using System.Windows.Media.Imaging;
+using System.Windows.Media.Media3D;
 using SuperDictate.Interop;
+using SuperDictate.Storage;
 
 namespace SuperDictate.Ui;
 
 /// <summary>
-/// Experimental: Liquid Glass with the real screen behind it. The screen under the
-/// capsule window is copied about 20 times a second and shows through the capsule
-/// softly blurred; its rim shows what lies just beyond the edge, squeezed inward as
-/// light bends through thick glass. The brighter the screen behind, the darker the
-/// glass, so the words stay readable. The skin's tint, rim and sheen go on top.
+/// Liquid Glass with the real screen behind it, as on an iPhone or a Mac with
+/// macOS 26. The screen under the capsule window is copied about 20 times a second
+/// and shows through the capsule softly blurred; the bezel bends what lies beyond
+/// the edge inward, with a hint of color spread, and light catches the rim. The
+/// glass turns light over bright windows and dark over dark ones, and the words on
+/// it flip to match (<see cref="Light"/>), so they stay readable.
 ///
 /// The capsule window keeps itself out of the copy (<see cref="KeepOutOfCopies"/>),
 /// which also keeps it out of screenshots and screen sharing. Windows 10 2004 and
-/// later can do that; older Windows gets the painted Liquid Glass.
+/// later can do that; elsewhere, or if the shader can't load, Liquid Glass is painted.
 /// </summary>
 internal sealed class LiveGlass : Grid, IDisposable
 {
     private static readonly TimeSpan Interval = TimeSpan.FromMilliseconds(50);
 
-    private readonly Image _behind = new() { Stretch = Stretch.Fill };
-    private readonly Image _bent = new() { Stretch = Stretch.Fill };
-    private readonly ScaleTransform _bend = new();
-    private readonly RectangleGeometry _shape = new();
-    private readonly RectangleGeometry _inside = new();
-    private readonly Border _shade = new() { Background = Brushes.Black };
+    private readonly Image _behind = new() { Stretch = Stretch.Fill, Effect = new BlurEffect { Radius = 6 } };
+    private readonly GlassLens _lens = new();
+    private readonly Border _shadow = new()
+    {
+        Background = Brushes.Black,
+        HorizontalAlignment = HorizontalAlignment.Left,
+        VerticalAlignment = VerticalAlignment.Top,
+        Effect = new DropShadowEffect { BlurRadius = 18, ShadowDepth = 4, Direction = 270, Opacity = 0.28 },
+    };
 
     private WriteableBitmap? _image;
     private int[] _pixels = Array.Empty<int>();
@@ -39,20 +46,23 @@ internal sealed class LiveGlass : Grid, IDisposable
     private IntPtr _previous;
     private int _width;
     private int _height;
-    private double _brightness;
     private DateTime _copied;
 
     public LiveGlass()
     {
         IsHitTestVisible = false;
-        Visibility = Visibility.Collapsed;
-        _bent.RenderTransform = _bend;
-        var rim = new Border { Child = _bent, Clip = new CombinedGeometry(GeometryCombineMode.Exclude, _shape, _inside) };
-
-        // One blur over both, so the rim melts into the middle; the clip keeps it inside the capsule.
-        var soft = new Grid { Effect = new BlurEffect { Radius = 8 }, Children = { _behind, rim } };
-        Children.Add(new Grid { Clip = _shape, Children = { soft, _shade } });
+        Visibility = Visibility.Hidden; // Hidden, not collapsed: it keeps its size for Follow.
+        Children.Add(_shadow);
+        // The clip keeps the blur from widening what the shader sees, so its
+        // coordinates stay the layer's own.
+        Children.Add(new Grid { Effect = _lens, Children = { new Grid { ClipToBounds = true, Children = { _behind } } } });
     }
+
+    /// <summary>Whether this Windows can draw the glass: its shader compiled.</summary>
+    public static bool Available => GlassLens.Shader is not null;
+
+    /// <summary>Light glass with dark words over a bright screen; dark glass with white words otherwise. Null before the first look.</summary>
+    public bool? Light { get; private set; }
 
     /// <summary>Keeps the window out of screen copies, or lets it back in. False when Windows can't.</summary>
     public static bool KeepOutOfCopies(IntPtr window, bool on) =>
@@ -64,7 +74,7 @@ internal sealed class LiveGlass : Grid, IDisposable
     /// </summary>
     public void Follow(IntPtr window, Rect capsule, double radius)
     {
-        if (capsule.Width <= 0 || capsule.Height <= 0) return;
+        if (capsule.Width <= 0 || capsule.Height <= 0 || ActualWidth <= 0) return;
         if (DateTime.UtcNow - _copied >= Interval && NativeMethods.GetWindowRect(window, out var area) && Copy(area))
         {
             _copied = DateTime.UtcNow;
@@ -73,33 +83,37 @@ internal sealed class LiveGlass : Grid, IDisposable
         if (_behind.Source is null) return;
         Visibility = Visibility.Visible;
 
-        _shape.Rect = capsule;
-        _shape.RadiusX = _shape.RadiusY = radius;
-        var rim = capsule.Height * 0.16;
-        var inside = capsule;
-        inside.Inflate(-rim, -rim);
-        _inside.Rect = inside;
-        _inside.RadiusX = _inside.RadiusY = Math.Max(0, radius - rim);
+        // Flips at different points each way, so it never flickers on a mid-grey screen.
+        var brightness = Brightness(capsule);
+        Light = brightness > 0.6 || (Light == true && brightness > 0.45);
 
-        // The rim shows what lies up to `reach` beyond the edge, squeezed into it.
-        var reach = rim * 1.4;
-        _bend.CenterX = capsule.X + (capsule.Width / 2);
-        _bend.CenterY = capsule.Y + (capsule.Height / 2);
-        _bend.ScaleX = capsule.Width / (capsule.Width + (2 * reach));
-        _bend.ScaleY = capsule.Height / (capsule.Height + (2 * reach));
-        _shade.Opacity = 0.1 + (0.5 * _brightness);
+        var height = capsule.Height;
+        _lens.Size = new Point4D(ActualWidth, ActualHeight, 0, 0);
+        _lens.Shape = new Point4D(capsule.X, capsule.Y, capsule.Width, height);
+        _lens.Bend = new Point4D(radius, height * 0.36, height * 0.24, 0.12);
+        _lens.Tint = Light == true
+            ? new Point4D(1, 1, 1, 0.2 + (0.45 * (1 - brightness)))
+            : new Point4D(0, 0, 0, 0.12 + (0.55 * brightness));
+        _lens.Light = new Point4D(-0.45, -0.89, Light == true ? 0.35 : 0.55, 0.08);
+
+        // The shadow sits a point inside the edge, so only its soft fall-off shows.
+        _shadow.Margin = new Thickness(capsule.X + 1, capsule.Y + 1, 0, 0);
+        _shadow.Width = capsule.Width - 2;
+        _shadow.Height = height - 2;
+        _shadow.CornerRadius = new CornerRadius(Math.Max(0, radius - 1));
     }
 
-    public void Hide() => Visibility = Visibility.Collapsed;
+    public void Hide() => Visibility = Visibility.Hidden;
 
     /// <summary>A picture in place of the screen, for the snapshots.</summary>
     public void Show(BitmapSource picture)
     {
         var converted = new FormatConvertedBitmap(picture, PixelFormats.Bgr32, null, 0);
-        var pixels = new int[converted.PixelWidth * converted.PixelHeight];
-        converted.CopyPixels(pixels, converted.PixelWidth * 4, 0);
-        _brightness = Brightness(pixels);
-        _behind.Source = _bent.Source = picture;
+        _width = converted.PixelWidth;
+        _height = converted.PixelHeight;
+        _pixels = new int[_width * _height];
+        converted.CopyPixels(_pixels, _width * 4, 0);
+        _behind.Source = picture;
     }
 
     /// <summary>Copies this part of the screen (physical pixels) into the picture shown.</summary>
@@ -108,36 +122,70 @@ internal sealed class LiveGlass : Grid, IDisposable
         var width = area.Right - area.Left;
         var height = area.Bottom - area.Top;
         if (width <= 0 || height <= 0) return false;
-        if (width != _width || height != _height)
+        if (width != _width || height != _height || _dc == IntPtr.Zero)
         {
             Release();
             if (!Prepare(width, height)) return false;
         }
 
+        // Only what is on a screen can be copied; beyond its edge, the nearest pixels carry on.
+        var left = Math.Max(area.Left, NativeMethods.GetSystemMetrics(NativeMethods.SM_XVIRTUALSCREEN));
+        var top = Math.Max(area.Top, NativeMethods.GetSystemMetrics(NativeMethods.SM_YVIRTUALSCREEN));
+        var right = Math.Min(area.Right, NativeMethods.GetSystemMetrics(NativeMethods.SM_XVIRTUALSCREEN) + NativeMethods.GetSystemMetrics(NativeMethods.SM_CXVIRTUALSCREEN));
+        var bottom = Math.Min(area.Bottom, NativeMethods.GetSystemMetrics(NativeMethods.SM_YVIRTUALSCREEN) + NativeMethods.GetSystemMetrics(NativeMethods.SM_CYVIRTUALSCREEN));
+        if (right <= left || bottom <= top) return false;
+
         var screen = NativeMethods.GetDC(IntPtr.Zero);
         if (screen == IntPtr.Zero) return false;
-        var copied = NativeMethods.BitBlt(_dc, 0, 0, width, height, screen, area.Left, area.Top,
+        var copied = NativeMethods.BitBlt(_dc, left - area.Left, top - area.Top, right - left, bottom - top, screen, left, top,
             NativeMethods.SRCCOPY | NativeMethods.CAPTUREBLT);
         NativeMethods.ReleaseDC(IntPtr.Zero, screen);
         if (!copied) return false;
 
         NativeMethods.GdiFlush();
         Marshal.Copy(_bits, _pixels, 0, _pixels.Length);
+        Extend(new Int32Rect(left - area.Left, top - area.Top, right - left, bottom - top));
         _image!.WritePixels(new Int32Rect(0, 0, width, height), _pixels, width * 4, 0);
-        _brightness = Brightness(_pixels);
         return true;
     }
 
-    /// <summary>How light the picture is, 0 to 1, from every 16th pixel.</summary>
-    private static double Brightness(int[] pixels)
+    /// <summary>Fills the picture outside <paramref name="copied"/> with its nearest copied pixels.</summary>
+    private void Extend(Int32Rect copied)
     {
+        var right = copied.X + copied.Width;
+        for (var y = copied.Y; y < copied.Y + copied.Height; y++)
+        {
+            var row = y * _width;
+            if (copied.X > 0) Array.Fill(_pixels, _pixels[row + copied.X], row, copied.X);
+            if (right < _width) Array.Fill(_pixels, _pixels[row + right - 1], row + right, _width - right);
+        }
+
+        for (var y = 0; y < copied.Y; y++) Array.Copy(_pixels, copied.Y * _width, _pixels, y * _width, _width);
+        for (var y = copied.Y + copied.Height; y < _height; y++)
+        {
+            Array.Copy(_pixels, (copied.Y + copied.Height - 1) * _width, _pixels, y * _width, _width);
+        }
+    }
+
+    /// <summary>How light the screen under the capsule is, 0 to 1, from every 4th pixel each way.</summary>
+    private double Brightness(Rect capsule)
+    {
+        if (_pixels.Length == 0) return 0;
+        var scale = _width / ActualWidth;
+        var left = Math.Clamp((int)(capsule.Left * scale), 0, _width - 1);
+        var right = Math.Clamp((int)(capsule.Right * scale), left + 1, _width);
+        var top = Math.Clamp((int)(capsule.Top * scale), 0, _height - 1);
+        var bottom = Math.Clamp((int)(capsule.Bottom * scale), top + 1, _height);
         long sum = 0;
         var count = 0;
-        for (var index = 0; index < pixels.Length; index += 16)
+        for (var y = top; y < bottom; y += 4)
         {
-            var pixel = pixels[index];
-            sum += (((pixel >> 16) & 255) * 2126) + (((pixel >> 8) & 255) * 7152) + ((pixel & 255) * 722);
-            count++;
+            for (var x = left; x < right; x += 4)
+            {
+                var pixel = _pixels[(y * _width) + x];
+                sum += (((pixel >> 16) & 255) * 2126) + (((pixel >> 8) & 255) * 7152) + ((pixel & 255) * 722);
+                count++;
+            }
         }
 
         return count == 0 ? 0 : sum / (count * 255.0 * 10000);
@@ -166,7 +214,7 @@ internal sealed class LiveGlass : Grid, IDisposable
         _height = height;
         _pixels = new int[width * height];
         _image = new WriteableBitmap(width, height, 96, 96, PixelFormats.Bgr32, null);
-        _behind.Source = _bent.Source = _image;
+        _behind.Source = _image;
         return true;
     }
 
@@ -177,9 +225,113 @@ internal sealed class LiveGlass : Grid, IDisposable
         if (_dc != IntPtr.Zero) NativeMethods.DeleteDC(_dc);
         _dc = _dib = _bits = _previous = IntPtr.Zero;
         _width = _height = 0;
+        _pixels = Array.Empty<int>();
         _image = null;
-        _behind.Source = _bent.Source = null;
+        _behind.Source = null;
     }
 
     public void Dispose() => Release();
+}
+
+/// <summary>
+/// The glass itself, as a pixel shader over the blurred screen: the capsule's shape
+/// with a smooth edge, the bend and color spread at the bezel, the tint, and the
+/// light on the rim. Compiled when first needed by the shader compiler that comes
+/// with Windows; null if that fails.
+/// </summary>
+internal sealed class GlassLens : ShaderEffect
+{
+    private const string Source = """
+        sampler2D input : register(s0);
+        float4 size : register(c0);   // xy: the layer, in points
+        float4 shape : register(c1);  // the capsule: x, y, width, height
+        float4 lens : register(c2);   // x: corner radius, y: bezel width, z: deepest bend, w: color spread
+        float4 tint : register(c3);   // rgb, and how much of it
+        float4 light : register(c4);  // xy: toward the light, z: rim strength, w: inner glow
+
+        float4 main(float2 uv : TEXCOORD) : COLOR
+        {
+            float2 p = uv * size.xy;
+            float2 extent = shape.zw * 0.5;
+            float2 d = p - (shape.xy + extent);
+            float2 q = abs(d) - extent + lens.x;
+            float2 k = max(q, 0);
+            float edge = length(k) + min(max(q.x, q.y), 0) - lens.x;   // negative inside
+            float depth = -edge;
+            float2 n = normalize(k + 0.0001) * sign(d);
+
+            // The bezel bends what lies beyond the edge in: most at the edge, none past the bezel.
+            float t = saturate(1 - depth / lens.y);
+            float2 bend = n * (lens.z * t * t) / size.xy;
+            float3 color;
+            color.r = tex2D(input, uv + bend * (1 + lens.w)).r;
+            color.g = tex2D(input, uv + bend).g;
+            color.b = tex2D(input, uv + bend * (1 - lens.w)).b;
+
+            // A little more vivid, then tinted for the words on top.
+            float grey = dot(color, float3(0.2126, 0.7152, 0.0722));
+            color = lerp(grey.xxx, color, 1.2);
+            color = lerp(color, tint.rgb, tint.a);
+
+            // Light catches the rim where it faces the light, and faintly opposite.
+            float facing = dot(n, light.xy);
+            float rim = saturate(1.6 - depth);
+            color += rim * (light.z * saturate(facing) + 0.45 * light.z * saturate(-facing) + 0.12);
+            color += light.w * t * t * saturate(facing + 0.3);
+
+            float alpha = saturate(0.5 - edge);
+            return float4(color * alpha, alpha);
+        }
+        """;
+
+    public static readonly PixelShader? Shader = Compile();
+
+    public static readonly DependencyProperty InputProperty = RegisterPixelShaderSamplerProperty("Input", typeof(GlassLens), 0);
+    public static readonly DependencyProperty SizeProperty = Constant(nameof(Size), 0);
+    public static readonly DependencyProperty ShapeProperty = Constant(nameof(Shape), 1);
+    public static readonly DependencyProperty BendProperty = Constant(nameof(Bend), 2);
+    public static readonly DependencyProperty TintProperty = Constant(nameof(Tint), 3);
+    public static readonly DependencyProperty LightProperty = Constant(nameof(Light), 4);
+
+    public GlassLens()
+    {
+        PixelShader = Shader;
+        UpdateShaderValue(InputProperty);
+        foreach (var constant in new[] { SizeProperty, ShapeProperty, BendProperty, TintProperty, LightProperty }) UpdateShaderValue(constant);
+    }
+
+    public Point4D Size { get => (Point4D)GetValue(SizeProperty); set => SetValue(SizeProperty, value); }
+
+    public Point4D Shape { get => (Point4D)GetValue(ShapeProperty); set => SetValue(ShapeProperty, value); }
+
+    public Point4D Bend { get => (Point4D)GetValue(BendProperty); set => SetValue(BendProperty, value); }
+
+    public Point4D Tint { get => (Point4D)GetValue(TintProperty); set => SetValue(TintProperty, value); }
+
+    public Point4D Light { get => (Point4D)GetValue(LightProperty); set => SetValue(LightProperty, value); }
+
+    private static DependencyProperty Constant(string name, int register) =>
+        DependencyProperty.Register(name, typeof(Point4D), typeof(GlassLens), new UIPropertyMetadata(new Point4D(), PixelShaderConstantCallback(register)));
+
+    private static PixelShader? Compile()
+    {
+        try
+        {
+            // ps_2_0 also draws in software, where the snapshots and some remote sessions render.
+            var result = NativeMethods.D3DCompile(Source, (IntPtr)Source.Length, "glass", IntPtr.Zero, IntPtr.Zero,
+                "main", "ps_2_0", NativeMethods.D3DCOMPILE_OPTIMIZATION_LEVEL3, 0, out var code, out _);
+            if (result != 0 || code is null) return null;
+            var bytes = new byte[(int)code.GetBufferSize()];
+            Marshal.Copy(code.GetBufferPointer(), bytes, 0, bytes.Length);
+            var shader = new PixelShader();
+            shader.SetStreamSource(new MemoryStream(bytes));
+            shader.Freeze();
+            return shader;
+        }
+        catch (Exception error) when (error is DllNotFoundException or EntryPointNotFoundException or COMException)
+        {
+            AppLogger.Warn($"Live glass is unavailable: {error.Message}");
+            return null;
+        }
+    }
 }

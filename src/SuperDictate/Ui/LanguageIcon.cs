@@ -8,9 +8,8 @@ namespace SuperDictate.Ui;
 
 /// <summary>
 /// A round badge for each language: its flag, drawn as simple vector shapes on a
-/// 100 × 100 square and cropped to a circle (Windows shows no flag emoji). Arabic,
-/// spoken across many countries, gets its letter ع on green instead of one
-/// country's flag. A language without a badge shows its code.
+/// 100 × 100 square and cropped to a circle (Windows shows no flag emoji). A
+/// language without a badge shows its code.
 /// </summary>
 internal static class LanguageIcon
 {
@@ -62,13 +61,6 @@ internal static class LanguageIcon
             Fill(g, "#006AA7", 0, 0, 100, 100);
             Fill(g, "#FECC00", 28, 0, 16, 100);
             Fill(g, "#FECC00", 0, 42, 100, 16);
-        },
-        ["tr"] = g =>
-        {
-            Fill(g, "#E30A17", 0, 0, 100, 100);
-            Dot(g, "#FFFFFF", 40, 50, 24);
-            Dot(g, "#E30A17", 46, 50, 19.5);
-            Star(g, "#FFFFFF", 67, 50, 11, 180);
         },
         ["el"] = g =>
         {
@@ -138,41 +130,6 @@ internal static class LanguageIcon
             Fill(g, "#FFFFFF", 21, 18, 4, 18);
             Fill(g, "#FFFFFF", 14, 25, 18, 4);
         },
-        ["hi"] = g =>
-        {
-            Horizontal(g, "#FF9933", "#FFFFFF", "#138808");
-            Ring(g, "#000080", 50, 50, 11, 2.5);
-            Dot(g, "#000080", 50, 50, 2.5);
-        },
-        ["zh"] = g =>
-        {
-            Fill(g, "#EE1C25", 0, 0, 100, 100);
-            Star(g, "#FFFF00", 28, 32, 15, -90);
-            foreach (var (x, y) in new[] { (46.0, 16.0), (54.0, 25.0), (54.0, 37.0), (46.0, 46.0) })
-            {
-                // Each small star points at the big one.
-                Star(g, "#FFFF00", x, y, 4.5, Math.Atan2(32 - y, 28 - x) * 180 / Math.PI);
-            }
-        },
-        ["ja"] = g =>
-        {
-            Fill(g, "#FFFFFF", 0, 0, 100, 100);
-            Dot(g, "#BC002D", 50, 50, 22);
-        },
-        ["ko"] = g =>
-        {
-            // The taegeuk: red over blue, swirled by two half-size circles.
-            Fill(g, "#FFFFFF", 0, 0, 100, 100);
-            g.Children.Add(new GeometryDrawing(Solid("#CD2E3A"), null, HalfDisc(50, 50, 22, top: true)));
-            g.Children.Add(new GeometryDrawing(Solid("#0047A0"), null, HalfDisc(50, 50, 22, top: false)));
-            Dot(g, "#CD2E3A", 39, 50, 11);
-            Dot(g, "#0047A0", 61, 50, 11);
-        },
-        ["vi"] = g =>
-        {
-            Fill(g, "#DA251D", 0, 0, 100, 100);
-            Star(g, "#FFFF00", 50, 52, 25, -90);
-        },
     };
 
     /// <summary>A round badge of the given size for a language code.</summary>
@@ -191,11 +148,6 @@ internal static class LanguageIcon
         {
             badge.Background = FlagBrush(code);
         }
-        else if (code == "ar")
-        {
-            badge.Background = Solid("#007A3D");
-            badge.Child = Letter("ع", size, Brushes.White);
-        }
         else
         {
             badge.Background = Solid("#242F3D");
@@ -205,8 +157,8 @@ internal static class LanguageIcon
         return badge;
     }
 
-    /// <summary>Whether the language has a picture (a flag or a letter) rather than its code.</summary>
-    public static bool HasPicture(string code) => Flags.ContainsKey(code) || code == "ar";
+    /// <summary>Whether the language has a flag rather than its code.</summary>
+    public static bool HasPicture(string code) => Flags.ContainsKey(code);
 
     private static Brush FlagBrush(string code)
     {
@@ -249,9 +201,6 @@ internal static class LanguageIcon
     private static void Fill(DrawingGroup g, string color, double x, double y, double width, double height) =>
         g.Children.Add(new GeometryDrawing(Solid(color), null, new RectangleGeometry(new Rect(x, y, width, height))));
 
-    private static void Dot(DrawingGroup g, string color, double x, double y, double radius) =>
-        g.Children.Add(new GeometryDrawing(Solid(color), null, new EllipseGeometry(new Point(x, y), radius, radius)));
-
     private static void Ring(DrawingGroup g, string color, double x, double y, double radius, double thickness) =>
         g.Children.Add(new GeometryDrawing(null, new Pen(Solid(color), thickness), new EllipseGeometry(new Point(x, y), radius, radius)));
 
@@ -263,28 +212,6 @@ internal static class LanguageIcon
         var figure = new PathFigure { StartPoint = points[0], IsClosed = true, IsFilled = true };
         for (var index = 1; index < points.Length; index++) figure.Segments.Add(new LineSegment(points[index], false));
         g.Children.Add(new GeometryDrawing(Solid(color), null, new PathGeometry { Figures = { figure } }));
-    }
-
-    /// <summary>A five-pointed star; <paramref name="pointing"/> is the direction of one point, in degrees.</summary>
-    private static void Star(DrawingGroup g, string color, double x, double y, double radius, double pointing)
-    {
-        var points = new Point[10];
-        for (var index = 0; index < 10; index++)
-        {
-            var angle = (pointing + (index * 36)) * Math.PI / 180;
-            var reach = index % 2 == 0 ? radius : radius * 0.382;
-            points[index] = new Point(x + (reach * Math.Cos(angle)), y + (reach * Math.Sin(angle)));
-        }
-
-        Polygon(g, color, points);
-    }
-
-    private static Geometry HalfDisc(double x, double y, double radius, bool top)
-    {
-        var figure = new PathFigure { StartPoint = new Point(x - radius, y), IsClosed = true, IsFilled = true };
-        figure.Segments.Add(new ArcSegment(new Point(x + radius, y), new Size(radius, radius), 0, false,
-            top ? SweepDirection.Clockwise : SweepDirection.Counterclockwise, false));
-        return new PathGeometry { Figures = { figure } };
     }
 
     private static SolidColorBrush Solid(string hex) => Frozen(new SolidColorBrush((Color)ColorConverter.ConvertFromString(hex)));

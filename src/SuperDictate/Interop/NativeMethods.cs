@@ -286,4 +286,29 @@ internal static class NativeMethods
     [DllImport("gdi32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
     public static extern bool DeleteDC(IntPtr dc);
+
+    public const int SM_XVIRTUALSCREEN = 76;
+    public const int SM_YVIRTUALSCREEN = 77;
+    public const int SM_CXVIRTUALSCREEN = 78;
+    public const int SM_CYVIRTUALSCREEN = 79;
+
+    [DllImport("user32.dll")]
+    public static extern int GetSystemMetrics(int index);
+
+    // The glass shader (Ui.GlassLens), compiled by the compiler that ships with Windows.
+    public const uint D3DCOMPILE_OPTIMIZATION_LEVEL3 = 1 << 15;
+
+    [ComImport, Guid("8BA5FB08-5195-40e2-AC58-0D989C3A0102"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    public interface ID3DBlob
+    {
+        [PreserveSig]
+        IntPtr GetBufferPointer();
+
+        [PreserveSig]
+        IntPtr GetBufferSize();
+    }
+
+    [DllImport("d3dcompiler_47.dll", CharSet = CharSet.Ansi)]
+    public static extern int D3DCompile(string source, IntPtr sourceSize, string sourceName, IntPtr defines, IntPtr include,
+        string entryPoint, string target, uint flags, uint effectFlags, out ID3DBlob? code, out ID3DBlob? errors);
 }
