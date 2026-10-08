@@ -101,7 +101,10 @@ hotkey and press the combination you want.
 ## Settings
 
 Open the settings from the Start menu (**SuperDictate**) or by double-clicking
-the tray icon. **Save** applies your changes and keeps the window open.
+the tray icon. **Save** applies your changes and keeps the window open; it's
+greyed out until something differs from what's saved. If you leave a page, or
+close the window, with changes you haven't saved, SuperDictate asks: **Save**,
+**Don't save** (keep the settings as they were), or **Keep editing**.
 
 - **Dictation:** microphone, hotkeys, hold-to-talk, pressing Enter after paste,
   and a button to try it out.
@@ -124,7 +127,8 @@ the tray icon. **Save** applies your changes and keeps the window open.
     OpenAI-compatible service you choose, with your own API key.
 - **Capsule:** how the capsule looks and where it appears. While this page is
   open, the real capsule shows on your screen with example words, and every
-  change shows on it at once; **Save** keeps it.
+  change shows on it at once; **Save** keeps it. Dictation waits while you're
+  on this page: the hotkey shows "Close Capsule settings to dictate" instead.
   - **Skin:** 13 looks, from Midnight and Liquid Glass to Paper, Neon and
     High contrast. Liquid Glass is glass as on an iPhone or a Mac: the screen
     behind it shows through, softly blurred, bent at the edge, with light

@@ -154,7 +154,8 @@ Finnish, Slovak, Croatian, Lithuanian, Slovenian, Latvian, Estonian and Maltese.
 <p align="center"><img src="images/mac/capsule.png" width="560" alt="The Capsule tab"></p>
 
 While this tab is open, the real capsule shows on your screen with sample
-words, and every change appears on it at once.
+words, and every change appears on it at once. Dictation waits meanwhile: the
+shortcut shows "Close Capsule settings to dictate".
 
 - **Skin**: thirteen looks. **Liquid Glass** is Apple's own glass on macOS 26
   (and the default there); on macOS 14 and 15 it's a close recreation.

@@ -78,6 +78,17 @@ internal static class Snapshots
             window.Close();
         }
 
+        // Leaving a page with a change on it asks first.
+        var asking = new SettingsWindow(controller, settings, "capsule");
+        await ShowOffScreen(asking, 1040, 760);
+        await Task.Delay(1200);
+        asking.Draft.Pending.CapsuleScale = 1.3;
+        asking.Visit("languages");
+        await Task.Delay(300);
+        Save(asking, Path.Combine(folder, "settings-unsaved.png"));
+        asking.Draft.Discard();
+        asking.Close();
+
         await DrawSkins(Path.Combine(folder, "capsule-skins.png"));
         await DrawSentence(Path.Combine(folder, "capsule-frames"));
         await DrawLiveGlass(Path.Combine(folder, "capsule-live-glass.png"));

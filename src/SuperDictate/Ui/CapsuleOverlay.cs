@@ -52,6 +52,7 @@ public sealed class CapsuleOverlay : Window
     private bool _rendering;
     private bool _dictating;
     private bool _staging;
+    private bool _stageAfterNotice;
     private bool _liveText = true;
     private bool _glassWanted;
     private bool _glassOn;
@@ -78,6 +79,14 @@ public sealed class CapsuleOverlay : Window
         _noticeTimer.Tick += (_, _) =>
         {
             _noticeTimer.Stop();
+            // A notice over the settings page's sample hands the capsule back to it.
+            if (_stageAfterNotice)
+            {
+                _stageAfterNotice = false;
+                BeginStage();
+                return;
+            }
+
             SlideOut();
         };
         _stageTimer.Tick += (_, _) => StageTick();
@@ -162,6 +171,7 @@ public sealed class CapsuleOverlay : Window
     public void SetState(OverlayState state, string caption)
     {
         StopStage();
+        _stageAfterNotice = false;
         _noticeTimer.Stop();
         if (state == OverlayState.Hidden)
         {
@@ -195,6 +205,7 @@ public sealed class CapsuleOverlay : Window
     /// <summary>A short message such as "Copied last transcript" that goes away by itself.</summary>
     public void Notify(string message)
     {
+        _stageAfterNotice |= _staging;
         StopStage();
         _dictating = false;
         _view.ClearDraft();
@@ -231,6 +242,7 @@ public sealed class CapsuleOverlay : Window
 
     public void EndStage()
     {
+        _stageAfterNotice = false;
         if (!_staging) return;
         StopStage();
         SlideOut();
