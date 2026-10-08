@@ -92,21 +92,23 @@ public sealed partial class SettingsWindow : Window
     private string? _problemPage;
     private Control? _flagged;
 
-    // Read back on save.
+    // The pending changes: every control below writes into the draft as it changes,
+    // and shows the draft's value again after "Don't save" (SettingsDraft).
+    private readonly SettingsDraft _draft;
+    private readonly List<Action> _shows = new();
+    private bool _showing;
+    private string _currentPage = "";
+    private bool _closeAsked;
     private readonly Dictionary<string, CheckBox> _languages = new();
-    private string _accent;
     private ComboBox _langMode = null!, _model = null!, _mic = null!, _aiMode = null!;
     private TextBox _primaryHotkey = null!, _altHotkey = null!, _customFillers = null!;
     private TextBox _ollamaUrl = null!, _ollamaModel = null!, _cloudUrl = null!, _cloudModel = null!;
     private PasswordBox _cloudKey = null!;
-    private string _savedCloudKey = "";
     private CheckBox _pressAndHold = null!, _pressEnter = null!;
     private CheckBox _aiEnable = null!, _aiFillers = null!, _aiPunct = null!, _aiDedupe = null!;
     private Slider _scale = null!;
 
-    // Capsule page: the look being edited, applied to the overlay on Save (or Preview).
-    private string _skin;
-    private CapsulePlacement _placement;
+    // Capsule page: the look being edited shows on the live capsule as it changes.
     private Slider _opacity = null!;
     private ComboBox _meter = null!, _position = null!, _screen = null!;
     private CheckBox _liveText = null!, _timer = null!, _liveGlass = null!;
@@ -162,10 +164,8 @@ public sealed partial class SettingsWindow : Window
     {
         _controller = controller;
         _settings = settings;
+        _draft = new SettingsDraft(settings, ReadCloudKey());
         _initialPage = page;
-        _accent = settings.CapsuleAccent;
-        _skin = settings.CapsuleSkin;
-        _placement = CapsuleLook.From(settings).Placement;
         _lastTranscript = controller.LastTranscript;
 
         Title = "SuperDictate";
@@ -235,6 +235,18 @@ public sealed partial class SettingsWindow : Window
         _controller.StateChanged += OnStateChanged;
         _controller.LevelChanged += OnLevelChanged;
         _controller.DictationCompleted += OnDictationCompleted;
+
+        // Unsaved changes are never lost silently: closing asks first.
+        Closing += (_, e) =>
+        {
+            if (_closeAsked || !_draft.HasChanges) return;
+            e.Cancel = true;
+            Ask("Save your changes?", () =>
+            {
+                _closeAsked = true;
+                Close();
+            });
+        };
         Closed += (_, _) =>
         {
             StopRecording();
@@ -282,8 +294,8 @@ public sealed partial class SettingsWindow : Window
             var items = nav.Children.OfType<RadioButton>().ToList();
             var current = items.FindIndex(item => item.IsChecked == true);
             var next = items[(current + (e.Key == Key.Down ? 1 : items.Count - 1)) % items.Count];
-            next.IsChecked = true;
-            next.Focus();
+            Go((string)next.Tag);
+            if (next.IsChecked == true) next.Focus();
             e.Handled = true;
         };
         defaultPage = null!;
@@ -296,12 +308,20 @@ public sealed partial class SettingsWindow : Window
                 Style = StyleOf("Nav"),
                 GroupName = "nav",
                 IsTabStop = false,
+                Tag = key,
                 Content = new StackPanel { Orientation = Orientation.Horizontal, Children = { icon, label } },
             };
             AutomationProperties.SetName(item, title);
+            item.PreviewMouseLeftButtonDown += (_, e) =>
+            {
+                if (item.IsChecked == true) return;
+                e.Handled = true;
+                Go(key);
+            };
             item.Checked += (_, _) =>
             {
                 item.IsTabStop = true;
+                _currentPage = key;
                 Navigate(key, title);
             };
             item.Unchecked += (_, _) => item.IsTabStop = false;
@@ -369,7 +389,8 @@ public sealed partial class SettingsWindow : Window
 
     private FrameworkElement Main()
     {
-        var save = _save = new Button { Content = "Save", Style = StyleOf("AccentButton"), MinWidth = 88, Margin = new Thickness(12, 0, 10, 0) };
+        // Greyed out until something differs from what's saved.
+        var save = _save = new Button { Content = "Save", Style = StyleOf("AccentButton"), MinWidth = 88, Margin = new Thickness(12, 0, 10, 0), IsEnabled = _draft.HasChanges };
         AutomationProperties.SetName(save, "Save");
         save.Click += (_, _) => SaveAndApply();
         var minimize = IconButton("\uE921", "Minimize", () => WindowState = WindowState.Minimized, size: 10);
@@ -504,17 +525,17 @@ public sealed partial class SettingsWindow : Window
         _copyLast.IsEnabled = _lastTranscript is not null;
 
         var devices = MicrophoneCapture.GetAvailableDevices();
-        _mic = Combo(_settings.MicrophoneId ?? "", 260,
+        _mic = Choice(260, s => s.MicrophoneId ?? "", (s, id) => s.MicrophoneId = id.Length > 0 ? id : null,
             new[] { ("", "System default") }
                 .Concat(devices.Select(d => (d.Id, d.IsDefault ? $"{d.Name} (default)" : d.Name)))
                 .ToArray());
 
-        _primaryHotkey = Input(_settings.PrimaryHotkey, 160);
-        _altHotkey = Input(_settings.AlternateHotkey, 160);
+        _primaryHotkey = Field(160, s => s.PrimaryHotkey, (s, text) => s.PrimaryHotkey = text);
+        _altHotkey = Field(160, s => s.AlternateHotkey, (s, text) => s.AlternateHotkey = text);
         _primaryHotkey.TextChanged += (_, _) => ClearProblem("dictation");
         _altHotkey.TextChanged += (_, _) => ClearProblem("dictation");
-        _pressAndHold = new CheckBox { IsChecked = _settings.PressAndHold };
-        _pressEnter = new CheckBox { IsChecked = _settings.PressEnterAfterPaste };
+        _pressAndHold = Switch(s => s.PressAndHold, (s, on) => s.PressAndHold = on);
+        _pressEnter = Switch(s => s.PressEnterAfterPaste, (s, on) => s.PressEnterAfterPaste = on);
 
         return Page(
             Group(null,
@@ -531,7 +552,7 @@ public sealed partial class SettingsWindow : Window
 
     private FrameworkElement LanguagesPage()
     {
-        var selected = new HashSet<string>(_settings.SelectedLanguages ?? new List<string> { "en" }, StringComparer.OrdinalIgnoreCase);
+        var selected = new HashSet<string>(_draft.Pending.SelectedLanguages ?? new List<string> { "en" }, StringComparer.OrdinalIgnoreCase);
 
         // The count sits quietly on the card's title line, as Telegram puts counts in its
         // section headers. With none chosen it turns amber: Save needs at least one.
@@ -576,8 +597,13 @@ public sealed partial class SettingsWindow : Window
             {
                 ClearProblem("languages");
                 Count();
+                Edit(s => s.SelectedLanguages = Chosen());
             };
-            tile.Unchecked += (_, _) => Count();
+            tile.Unchecked += (_, _) =>
+            {
+                Count();
+                Edit(s => s.SelectedLanguages = Chosen());
+            };
             _languages[code] = tile;
             tiles.Children.Add(tile);
         }
@@ -596,6 +622,14 @@ public sealed partial class SettingsWindow : Window
             }
         };
         Count();
+        _shows.Add(() =>
+        {
+            var chosen = new HashSet<string>(_draft.Pending.SelectedLanguages ?? new List<string>(), StringComparer.OrdinalIgnoreCase);
+            foreach (var (code, tile) in _languages) tile.IsChecked = chosen.Contains(code);
+            Count();
+        });
+
+        List<string> Chosen() => Languages.Where(language => _languages[language.Code].IsChecked == true).Select(language => language.Code).ToList();
 
         var title = Text("Languages you speak", 13.5, "Link", bold: true);
         AutomationProperties.SetHeadingLevel(title, AutomationHeadingLevel.Level2);
@@ -605,7 +639,7 @@ public sealed partial class SettingsWindow : Window
         var hint = Wrapped(Text("Pick the languages you speak. Automatic detection only chooses among them, so fewer languages means fewer mix-ups.", 12, "Muted"));
         hint.Margin = new Thickness(18, 6, 18, 16);
 
-        _langMode = Combo(string.IsNullOrEmpty(_settings.Language) ? "auto" : _settings.Language, 220,
+        _langMode = Choice(220, s => string.IsNullOrEmpty(s.Language) ? "auto" : s.Language, (s, code) => s.Language = code,
             new[] { ("auto", "Automatic") }
                 .Concat(Languages.Select(l => (l.Code, $"{l.English} only")))
                 .ToArray());
@@ -617,7 +651,7 @@ public sealed partial class SettingsWindow : Window
 
     private FrameworkElement ModelPage()
     {
-        _model = Combo(_settings.ModelId, 240, ModelLibrary.All.Select(model => (model.Id, model.Name)).ToArray());
+        _model = Choice(240, s => s.ModelId, (s, id) => s.ModelId = id, ModelLibrary.All.Select(model => (model.Id, model.Name)).ToArray());
         _model.SelectionChanged += (_, _) => ShowModelStatus();
 
         _runtimeRow = NewJob("Speech runtime install progress", () => InstallOrCancelRuntime(includeGpu: false));
@@ -868,30 +902,26 @@ public sealed partial class SettingsWindow : Window
 
     private FrameworkElement CleanupPage()
     {
-        _aiEnable = new CheckBox { IsChecked = _settings.AiCleanupEnabled };
-        _aiMode = Combo(_settings.AiCleanupMode, 240,
+        _aiEnable = Switch(s => s.AiCleanupEnabled, (s, on) => s.AiCleanupEnabled = on);
+        _aiMode = Choice(240, s => s.AiCleanupMode, (s, mode) => s.AiCleanupMode = mode,
             ("local_smart", "Built-in rules (offline)"),
             ("local_llm", "Local LLM (Ollama, LM Studio)"),
             ("cloud", "Cloud LLM (OpenAI-compatible)"));
-        _aiFillers = new CheckBox { IsChecked = _settings.AiRemoveFillers };
-        _aiPunct = new CheckBox { IsChecked = _settings.AiFormatPunctuation };
-        _aiDedupe = new CheckBox { IsChecked = _settings.AiRemoveDuplicates };
-        _customFillers = Input(_settings.CustomFillerWords, 200);
-        _ollamaUrl = Input(_settings.LocalLlmEndpoint, 240);
-        _ollamaModel = Input(_settings.LocalLlmModel, 240);
-        _cloudUrl = Input(_settings.AiBaseUrl, 240);
-        _cloudModel = Input(_settings.AiModel, 240);
-        try
+        _aiFillers = Switch(s => s.AiRemoveFillers, (s, on) => s.AiRemoveFillers = on);
+        _aiPunct = Switch(s => s.AiFormatPunctuation, (s, on) => s.AiFormatPunctuation = on);
+        _aiDedupe = Switch(s => s.AiRemoveDuplicates, (s, on) => s.AiRemoveDuplicates = on);
+        _customFillers = Field(200, s => s.CustomFillerWords, (s, text) => s.CustomFillerWords = text);
+        _ollamaUrl = Field(240, s => s.LocalLlmEndpoint, (s, text) => s.LocalLlmEndpoint = text);
+        _ollamaModel = Field(240, s => s.LocalLlmModel, (s, text) => s.LocalLlmModel = text);
+        _cloudUrl = Field(240, s => s.AiBaseUrl, (s, text) => s.AiBaseUrl = text);
+        _cloudModel = Field(240, s => s.AiModel, (s, text) => s.AiModel = text);
+        _cloudKey = new PasswordBox { Password = _draft.CloudKey, Width = 240 };
+        _cloudKey.PasswordChanged += (_, _) =>
         {
-            _savedCloudKey = CredentialStore.Read(CredentialStore.AiCleanupTarget) ?? "";
-        }
-        catch (System.ComponentModel.Win32Exception error)
-        {
-            // Show an empty box; saving only touches the credential if the user types a key.
-            AppLogger.Error("Could not read the AI cleanup key", error);
-        }
-        _cloudKey = new PasswordBox { Password = _savedCloudKey, Width = 240 };
-        _cloudKey.PasswordChanged += (_, _) => ClearProblem("ai_cleanup");
+            ClearProblem("ai_cleanup");
+            Edit(_ => _draft.CloudKey = _cloudKey.Password.Trim());
+        };
+        _shows.Add(() => _cloudKey.Password = _draft.CloudKey);
 
         _llmRow = NewJob("Local model download progress", LlmAction);
         _llmDebounce.Tick += (_, _) =>
@@ -922,13 +952,7 @@ public sealed partial class SettingsWindow : Window
         var run = new Button { Content = "Run rules", HorizontalAlignment = HorizontalAlignment.Left, Margin = new Thickness(0, 8, 0, 8) };
         run.Click += (_, _) =>
         {
-            output.Text = AiCleanupService.CleanLocalSmart(sample.Text, new Settings
-            {
-                AiRemoveFillers = _aiFillers.IsChecked == true,
-                AiFormatPunctuation = _aiPunct.IsChecked == true,
-                AiRemoveDuplicates = _aiDedupe.IsChecked == true,
-                CustomFillerWords = _customFillers.Text,
-            });
+            output.Text = AiCleanupService.CleanLocalSmart(sample.Text, _draft.Pending);
             output.Foreground = Br("Text");
         };
 
@@ -1078,7 +1102,7 @@ public sealed partial class SettingsWindow : Window
 
     private FrameworkElement GeneralPage()
     {
-        _micSwitch = new CheckBox { IsChecked = _settings.ShowMicButton };
+        _micSwitch = Switch(s => s.ShowMicButton, (s, on) => s.ShowMicButton = on);
 
         var folder = Wrapped(Text(AppPaths.RealPath(AppPaths.Root), 12, "Muted"));
         return Page(
@@ -1275,112 +1299,202 @@ public sealed partial class SettingsWindow : Window
         _lastText.Foreground = Br(ok ? "Text" : "Warn");
     }
 
-    private void SaveAndApply()
+    /// <returns>Whether it saved; if not, the problem shows on its page.</returns>
+    private bool SaveAndApply()
     {
         ClearProblem();
-
-        var selected = _languages.Where(pair => pair.Value.IsChecked == true).Select(pair => pair.Key).ToList();
-        if (selected.Count == 0)
+        if (_draft.Validate() is { } problem)
         {
-            ShowProblem("languages", "Select at least one language to recognize.");
-            return;
-        }
-
-        // An unparseable or clashing chord would silently unbind dictation, so it never saves.
-        if (HotkeyProblem(_primaryHotkey, out var primary) is { } primaryProblem)
-        {
-            ShowProblem("dictation", primaryProblem, _primaryHotkey);
-            return;
-        }
-
-        if (HotkeyProblem(_altHotkey, out var alternate) is { } alternateProblem)
-        {
-            ShowProblem("dictation", alternateProblem, _altHotkey);
-            return;
-        }
-
-        if (SameChord(primary!, alternate!))
-        {
-            ShowProblem("dictation", "The dictation and alternate hotkeys are the same. Choose a different alternate hotkey.", _altHotkey);
-            return;
-        }
-
-        if (Hotkey.TryParse(_settings.HistoryHotkey, out var history))
-        {
-            foreach (var (chord, box, name) in new[] { (primary!, _primaryHotkey, "dictation"), (alternate!, _altHotkey, "alternate") })
+            ShowProblem(problem.Page, problem.Message, problem.Setting switch
             {
-                if (SameChord(chord, history!))
-                {
-                    ShowProblem("dictation", $"{_settings.HistoryHotkey} already opens history. Choose a different {name} hotkey.", box);
-                    return;
-                }
-            }
+                nameof(Settings.PrimaryHotkey) => _primaryHotkey,
+                nameof(Settings.AlternateHotkey) => _altHotkey,
+                _ => null,
+            });
+            return false;
         }
 
         // The key goes to Credential Manager, never settings.json. Store it first so a
         // failure keeps the window open with nothing half-applied.
-        var cloudKey = _cloudKey.Password.Trim();
-        if (cloudKey != _savedCloudKey)
+        if (_draft.CloudKeyChanged)
         {
             try
             {
-                if (cloudKey.Length == 0) CredentialStore.Delete(CredentialStore.AiCleanupTarget);
-                else CredentialStore.Write(CredentialStore.AiCleanupTarget, cloudKey);
-                _savedCloudKey = cloudKey;
+                if (_draft.CloudKey.Length == 0) CredentialStore.Delete(CredentialStore.AiCleanupTarget);
+                else CredentialStore.Write(CredentialStore.AiCleanupTarget, _draft.CloudKey);
             }
             catch (System.ComponentModel.Win32Exception error)
             {
                 AppLogger.Error("Could not store the AI cleanup key", error);
                 ShowProblem("ai_cleanup", $"Couldn't save the API key to Windows Credential Manager: {error.Message} Nothing was saved.", _cloudKey);
-                return;
+                return false;
             }
         }
 
-        // Reloading the engine takes seconds, so only a change to what it recognizes restarts it.
-        var engineChanged = _settings.ModelId != (Selected(_model) ?? _settings.ModelId)
-                            || _settings.Language != (Selected(_langMode) ?? "auto")
-                            || !(_settings.SelectedLanguages ?? new List<string>()).OrderBy(code => code).SequenceEqual(selected.OrderBy(code => code));
-
-        _settings.SelectedLanguages = selected;
-        _settings.Language = Selected(_langMode) ?? "auto";
-        _settings.ModelId = Selected(_model) ?? _settings.ModelId;
-        _settings.PrimaryHotkey = primary!.Spec.Trim();
-        _settings.AlternateHotkey = alternate!.Spec.Trim();
-        _settings.PressAndHold = _pressAndHold.IsChecked == true;
-        _settings.PressEnterAfterPaste = _pressEnter.IsChecked == true;
-        _settings.MicrophoneId = Selected(_mic) is { Length: > 0 } micId ? micId : null;
-
-        _settings.AiCleanupEnabled = _aiEnable.IsChecked == true;
-        _settings.AiCleanupMode = Selected(_aiMode) ?? "local_smart";
-        _settings.AiRemoveFillers = _aiFillers.IsChecked == true;
-        _settings.AiFormatPunctuation = _aiPunct.IsChecked == true;
-        _settings.AiRemoveDuplicates = _aiDedupe.IsChecked == true;
-        _settings.CustomFillerWords = _customFillers.Text.Trim();
-        _settings.LocalLlmEndpoint = _ollamaUrl.Text.Trim();
-        _settings.LocalLlmModel = _ollamaModel.Text.Trim();
-        _settings.AiBaseUrl = _cloudUrl.Text.Trim();
-        _settings.AiModel = _cloudModel.Text.Trim();
-
-        _settings.ShowMicButton = _micSwitch.IsChecked == true;
-        _settings.CapsuleScale = _scale.Value;
-        _settings.CapsuleAccent = _accent;
-        _settings.CapsuleSkin = _skin;
-        _settings.CapsuleOpacity = _opacity.Value;
-        _settings.CapsuleMeter = Selected(_meter) ?? "bars";
-        _settings.CapsuleLiveText = _liveText.IsChecked == true;
-        _settings.CapsuleTimer = _timer.IsChecked == true;
-        _settings.CapsuleMaxWidth = _maxWidth.Value;
-        _settings.CapsuleLiveGlass = _liveGlass.IsChecked == true;
-        _settings.CapsuleHorizontal = CapsuleLook.Name(_placement.Horizontal);
-        _settings.CapsuleX = _placement.X;
-        _settings.CapsuleVertical = CapsuleLook.Name(_placement.Vertical);
-        _settings.CapsuleY = _placement.Y;
-        _settings.CapsuleScreen = Selected(_screen) ?? "active";
-
+        var restartEngine = _draft.Commit();
         SettingsStore.Save(_settings);
-        _controller.ApplySettings(_settings, restartEngine: engineChanged);
+        _controller.ApplySettings(_settings, restartEngine);
+        ShowDraft();
         ShowModelStatus();
         ShowSaved();
+        return true;
+    }
+
+    /// <summary>The key saved in Credential Manager, or empty if it can't be read.</summary>
+    private static string ReadCloudKey()
+    {
+        try
+        {
+            return CredentialStore.Read(CredentialStore.AiCleanupTarget) ?? "";
+        }
+        catch (System.ComponentModel.Win32Exception error)
+        {
+            // An empty box; saving only touches the credential if the user types a key.
+            AppLogger.Error("Could not read the AI cleanup key", error);
+            return "";
+        }
+    }
+
+    // ---------- The draft ----------
+
+    /// <summary>For the snapshot pictures: the draft, and a visit to another page as a click would make it.</summary>
+    internal SettingsDraft Draft => _draft;
+
+    internal void Visit(string page) => Go(page);
+
+    /// <summary>Opens a page, asking first if the one being left has unsaved changes.</summary>
+    private void Go(string key)
+    {
+        if (key == _currentPage) return;
+        if (!_draft.HasChangesOn(_currentPage))
+        {
+            _navItems[key].IsChecked = true;
+            return;
+        }
+
+        var title = Pages.First(page => page.Key == _currentPage).Title;
+        Ask($"Save your changes to {title}?", () => _navItems[key].IsChecked = true);
+    }
+
+    /// <summary>
+    /// Save, Don't save or Keep editing, on a card over the dimmed window. Save that
+    /// finds a problem shows it and stays; the other two go on with <paramref name="proceed"/>.
+    /// </summary>
+    private void Ask(string question, Action proceed)
+    {
+        var save = new Button { Content = "Save", Style = StyleOf("AccentButton"), MinWidth = 96, IsDefault = true };
+        var discard = new Button { Content = "Don't save", MinWidth = 96, Margin = new Thickness(8, 0, 0, 0) };
+        var stay = new Button { Content = "Keep editing", MinWidth = 96, Margin = new Thickness(8, 0, 0, 0), IsCancel = true };
+        var heading = Text(question, 15, bold: true);
+        AutomationProperties.SetHeadingLevel(heading, AutomationHeadingLevel.Level2);
+        var detail = Wrapped(Text("Your changes aren't saved yet. Save them, or go on with the settings as they were.", 13, "Muted"));
+        detail.Margin = new Thickness(0, 8, 0, 20);
+        var card = new Border
+        {
+            Width = 420,
+            Padding = new Thickness(24, 22, 24, 20),
+            CornerRadius = new CornerRadius(14),
+            Background = Br("Raised"),
+            BorderBrush = Br("Stroke"),
+            BorderThickness = new Thickness(1),
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center,
+            Effect = new DropShadowEffect { BlurRadius = 30, ShadowDepth = 8, Direction = 270, Opacity = 0.5 },
+            Child = new StackPanel
+            {
+                Children =
+                {
+                    heading,
+                    detail,
+                    new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Children = { save, discard, stay } },
+                },
+            },
+        };
+        AutomationProperties.SetName(card, question);
+        var dim = new Border
+        {
+            CornerRadius = new CornerRadius(12),
+            Background = new SolidColorBrush(Color.FromArgb(140, 0, 0, 0)),
+            Child = card,
+        };
+        Grid.SetColumnSpan(dim, 2);
+        _frame.Children.Add(dim);
+        save.Loaded += (_, _) => save.Focus();
+
+        void Done(Action? then)
+        {
+            _frame.Children.Remove(dim);
+            then?.Invoke();
+        }
+
+        save.Click += (_, _) => Done(() =>
+        {
+            if (SaveAndApply()) proceed();
+        });
+        discard.Click += (_, _) => Done(() =>
+        {
+            _draft.Discard();
+            ShowDraft();
+            proceed();
+        });
+        stay.Click += (_, _) => Done(null);
+    }
+
+    /// <summary>Puts a change from a control into the draft. Not while the controls are being shown the draft's values.</summary>
+    private void Edit(Action<Settings> change)
+    {
+        if (_showing) return;
+        change(_draft.Pending);
+        Changed();
+    }
+
+    /// <summary>Save is clickable only with something to save; the live capsule shows the look being edited.</summary>
+    private void Changed()
+    {
+        if (_save is not null) _save.IsEnabled = _draft.HasChanges;
+        if (_currentPage == "capsule") RefreshCapsule();
+    }
+
+    /// <summary>Every control shows the draft's value again: after Don't save, and after Save.</summary>
+    private void ShowDraft()
+    {
+        _showing = true;
+        foreach (var show in _shows) show();
+        _showing = false;
+        Changed();
+    }
+
+    private CheckBox Switch(Func<Settings, bool> get, Action<Settings, bool> set)
+    {
+        var box = new CheckBox { IsChecked = get(_draft.Pending) };
+        box.Checked += (_, _) => Edit(s => set(s, true));
+        box.Unchecked += (_, _) => Edit(s => set(s, false));
+        _shows.Add(() => box.IsChecked = get(_draft.Pending));
+        return box;
+    }
+
+    private TextBox Field(double width, Func<Settings, string?> get, Action<Settings, string> set)
+    {
+        var box = Input(get(_draft.Pending), width);
+        box.TextChanged += (_, _) => Edit(s => set(s, box.Text.Trim()));
+        _shows.Add(() => box.Text = get(_draft.Pending) ?? "");
+        return box;
+    }
+
+    private ComboBox Choice(double width, Func<Settings, string?> get, Action<Settings, string> set, params (string Tag, string Text)[] items)
+    {
+        var combo = Combo(get(_draft.Pending), width, items);
+        combo.SelectionChanged += (_, _) => Edit(s => set(s, Selected(combo) ?? items[0].Tag));
+        _shows.Add(() => combo.SelectedItem = combo.Items.Cast<ComboBoxItem>()
+            .FirstOrDefault(item => string.Equals((string)item.Tag, get(_draft.Pending), StringComparison.OrdinalIgnoreCase)) ?? combo.Items[0]);
+        return combo;
+    }
+
+    private void Bind(Slider slider, Func<Settings, double> get, Action<Settings, double> set)
+    {
+        slider.Value = get(_draft.Pending);
+        slider.ValueChanged += (_, e) => Edit(s => set(s, e.NewValue));
+        _shows.Add(() => slider.Value = get(_draft.Pending));
     }
 
     /// <summary>The window stays open after Save; the button confirms for a moment instead.</summary>
@@ -1567,19 +1681,6 @@ public sealed partial class SettingsWindow : Window
         _flagged = null;
         _problemPage = null;
     }
-
-    /// <summary>Null when the box holds a chord the keyboard hook can bind; otherwise what to tell the user.</summary>
-    private static string? HotkeyProblem(TextBox box, out Hotkey? hotkey)
-    {
-        hotkey = null;
-        var spec = box.Text.Trim();
-        if (spec.Length == 0) return "Enter a hotkey, like RightAlt.";
-        return Hotkey.TryParse(spec, out hotkey)
-            ? null
-            : $"SuperDictate doesn't recognize “{spec}” as a hotkey. Use key names joined by +, like RightAlt or RightCtrl+Space.";
-    }
-
-    private static bool SameChord(Hotkey a, Hotkey b) => a.Key == b.Key && a.Modifiers.SetEquals(b.Modifiers);
 
     // ---------- Building blocks ----------
 

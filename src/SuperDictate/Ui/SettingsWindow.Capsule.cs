@@ -32,54 +32,49 @@ public sealed partial class SettingsWindow
                 Style = StyleOf("SkinTile"),
                 GroupName = "capsule-skin",
                 Margin = new Thickness(4),
-                IsChecked = skin.Id == _skin,
+                IsChecked = skin.Id == _draft.Pending.CapsuleSkin,
                 Content = new StackPanel { Children = { mini, name } },
             };
             AutomationProperties.SetName(tile, $"{skin.Name} skin");
             var id = skin.Id;
-            tile.Checked += (_, _) =>
-            {
-                _skin = id;
-                RefreshCapsule();
-            };
+            tile.Checked += (_, _) => Edit(s => s.CapsuleSkin = id);
+            _shows.Add(() => tile.IsChecked = _draft.Pending.CapsuleSkin == id);
             _skinTiles.Add((skin.Id, mini));
             gallery.Children.Add(tile);
         }
 
         // Position
-        _position = Combo(PresetId(_placement), 160,
+        _position = Combo(PresetId(Placement), 160,
             CapsulePlacement.Presets.Select(preset => (preset.Id, preset.Name)).Append(("custom", "Custom")).ToArray());
         _position.SelectionChanged += (_, _) =>
         {
             if (_syncingPosition) return;
             var chosen = CapsulePlacement.Presets.FirstOrDefault(preset => preset.Id == Selected(_position));
             if (chosen.Id is null) return; // "Custom" keeps the dragged spot.
-            _placement = chosen.Placement;
-            RefreshCapsule();
+            Edit(s => Place(s, chosen.Placement));
         };
         var move = new Button { Content = "Move…", Margin = new Thickness(8, 0, 0, 0) };
         AutomationProperties.SetName(move, "Move the capsule by dragging it");
         move.Click += (_, _) =>
         {
             // The editor shows its own capsule; the live one steps aside (the window deactivates).
-            var editor = new CapsuleLayoutEditor(PendingStyle(), _placement, this);
+            var editor = new CapsuleLayoutEditor(PendingStyle(), Placement, this);
             if (editor.ShowDialog() != true || editor.Result is not { } placed) return;
-            _placement = placed;
+            Edit(s => Place(s, placed));
             SyncPosition();
-            RefreshCapsule();
         };
-        _screen = Combo(_settings.CapsuleScreen, 190, ("active", "Where you're working"), ("primary", "Main screen"));
-        _screen.SelectionChanged += (_, _) => RefreshCapsule();
+        _screen = Choice(190, s => s.CapsuleScreen, (s, screen) => s.CapsuleScreen = screen,
+            ("active", "Where you're working"), ("primary", "Main screen"));
+        _shows.Add(SyncPosition);
 
         // Look
-        var sizeValue = Text($"{_settings.CapsuleScale:0.0}×", 13, "Muted");
+        var sizeValue = Text($"{_draft.Pending.CapsuleScale:0.0}×", 13, "Muted");
         sizeValue.Width = 40;
         sizeValue.TextAlignment = TextAlignment.Right;
         _scale = new Slider
         {
             Minimum = 0.7,
             Maximum = 1.6,
-            Value = _settings.CapsuleScale,
             TickFrequency = 0.1,
             SmallChange = 0.1,
             LargeChange = 0.1,
@@ -87,20 +82,16 @@ public sealed partial class SettingsWindow
             Width = 150,
         };
         AutomationProperties.SetName(_scale, "Capsule size");
-        _scale.ValueChanged += (_, e) =>
-        {
-            sizeValue.Text = $"{e.NewValue:0.0}×";
-            RefreshCapsule();
-        };
+        _scale.ValueChanged += (_, e) => sizeValue.Text = $"{e.NewValue:0.0}×";
+        Bind(_scale, s => s.CapsuleScale, (s, scale) => s.CapsuleScale = scale);
 
-        var opacityValue = Text($"{_settings.CapsuleOpacity:0%}", 13, "Muted");
+        var opacityValue = Text($"{_draft.Pending.CapsuleOpacity:0%}", 13, "Muted");
         opacityValue.Width = 40;
         opacityValue.TextAlignment = TextAlignment.Right;
         _opacity = new Slider
         {
             Minimum = 0.5,
             Maximum = 1,
-            Value = Math.Clamp(_settings.CapsuleOpacity, 0.5, 1),
             TickFrequency = 0.05,
             SmallChange = 0.05,
             LargeChange = 0.1,
@@ -108,11 +99,8 @@ public sealed partial class SettingsWindow
             Width = 150,
         };
         AutomationProperties.SetName(_opacity, "Capsule opacity");
-        _opacity.ValueChanged += (_, e) =>
-        {
-            opacityValue.Text = $"{e.NewValue:0%}";
-            RefreshCapsule();
-        };
+        _opacity.ValueChanged += (_, e) => opacityValue.Text = $"{e.NewValue:0%}";
+        Bind(_opacity, s => Math.Clamp(s.CapsuleOpacity, 0.5, 1), (s, opacity) => s.CapsuleOpacity = opacity);
 
         var swatches = new StackPanel { Orientation = Orientation.Horizontal };
         foreach (var (hex, swatchName) in Accents)
@@ -122,29 +110,24 @@ public sealed partial class SettingsWindow
                 Style = StyleOf("Swatch"),
                 GroupName = "accent",
                 Background = (Brush)new BrushConverter().ConvertFromString(hex)!,
-                IsChecked = string.Equals(hex, _accent, StringComparison.OrdinalIgnoreCase),
+                IsChecked = string.Equals(hex, _draft.Pending.CapsuleAccent, StringComparison.OrdinalIgnoreCase),
                 ToolTip = swatchName,
             };
             AutomationProperties.SetName(swatch, swatchName);
-            swatch.Checked += (_, _) =>
-            {
-                _accent = hex;
-                RefreshCapsule();
-            };
+            swatch.Checked += (_, _) => Edit(s => s.CapsuleAccent = hex);
+            _shows.Add(() => swatch.IsChecked = string.Equals(hex, _draft.Pending.CapsuleAccent, StringComparison.OrdinalIgnoreCase));
             swatches.Children.Add(swatch);
         }
 
-        _meter = Combo(_settings.CapsuleMeter, 150, ("bars", "Bars"), ("wave", "Wave"), ("pulse", "Pulse"));
-        _meter.SelectionChanged += (_, _) => RefreshCapsule();
+        _meter = Choice(150, s => s.CapsuleMeter, (s, meter) => s.CapsuleMeter = meter, ("bars", "Bars"), ("wave", "Wave"), ("pulse", "Pulse"));
 
-        var widthValue = Text($"{_settings.CapsuleMaxWidth:0}", 13, "Muted");
+        var widthValue = Text($"{_draft.Pending.CapsuleMaxWidth:0}", 13, "Muted");
         widthValue.Width = 40;
         widthValue.TextAlignment = TextAlignment.Right;
         _maxWidth = new Slider
         {
             Minimum = CapsuleView.LeastWidest,
             Maximum = CapsuleView.MostWidest,
-            Value = Math.Clamp(_settings.CapsuleMaxWidth, CapsuleView.LeastWidest, CapsuleView.MostWidest),
             TickFrequency = 20,
             SmallChange = 20,
             LargeChange = 100,
@@ -152,23 +135,14 @@ public sealed partial class SettingsWindow
             Width = 150,
         };
         AutomationProperties.SetName(_maxWidth, "Widest the capsule grows");
-        _maxWidth.ValueChanged += (_, e) =>
-        {
-            widthValue.Text = $"{e.NewValue:0}";
-            RefreshCapsule();
-        };
+        _maxWidth.ValueChanged += (_, e) => widthValue.Text = $"{e.NewValue:0}";
+        Bind(_maxWidth, s => Math.Clamp(s.CapsuleMaxWidth, CapsuleView.LeastWidest, CapsuleView.MostWidest), (s, width) => s.CapsuleMaxWidth = width);
 
-        _liveGlass = new CheckBox { IsChecked = _settings.CapsuleLiveGlass };
-        _liveGlass.Checked += (_, _) => RefreshCapsule();
-        _liveGlass.Unchecked += (_, _) => RefreshCapsule();
+        _liveGlass = Switch(s => s.CapsuleLiveGlass, (s, on) => s.CapsuleLiveGlass = on);
 
         // What it shows
-        _liveText = new CheckBox { IsChecked = _settings.CapsuleLiveText };
-        _liveText.Checked += (_, _) => RefreshCapsule();
-        _liveText.Unchecked += (_, _) => RefreshCapsule();
-        _timer = new CheckBox { IsChecked = _settings.CapsuleTimer };
-        _timer.Checked += (_, _) => RefreshCapsule();
-        _timer.Unchecked += (_, _) => RefreshCapsule();
+        _liveText = Switch(s => s.CapsuleLiveText, (s, on) => s.CapsuleLiveText = on);
+        _timer = Switch(s => s.CapsuleTimer, (s, on) => s.CapsuleTimer = on);
 
         var page = Page(
             LiveBanner(),
@@ -216,11 +190,19 @@ public sealed partial class SettingsWindow
         };
     }
 
-    private CapsuleStyle PendingStyle() =>
-        new(_skin, _accent, _scale.Value, _opacity.Value, Selected(_meter) ?? "bars", _timer.IsChecked == true, _maxWidth.Value);
+    private CapsuleStyle PendingStyle() => CapsuleStyle.From(_draft.Pending);
 
-    private CapsuleLook PendingLook() =>
-        new(PendingStyle(), _placement, Selected(_screen) == "primary", _liveText.IsChecked == true, _liveGlass.IsChecked == true);
+    private CapsuleLook PendingLook() => CapsuleLook.From(_draft.Pending);
+
+    private CapsulePlacement Placement => PendingLook().Placement;
+
+    private static void Place(Storage.Settings settings, CapsulePlacement placement)
+    {
+        settings.CapsuleHorizontal = CapsuleLook.Name(placement.Horizontal);
+        settings.CapsuleX = placement.X;
+        settings.CapsuleVertical = CapsuleLook.Name(placement.Vertical);
+        settings.CapsuleY = placement.Y;
+    }
 
     /// <summary>Shows or puts away the live capsule.</summary>
     private void Stage(bool on)
@@ -241,11 +223,10 @@ public sealed partial class SettingsWindow
     /// <summary>Puts the look being edited on the live capsule and the skin tiles.</summary>
     private void RefreshCapsule()
     {
-        if (_meter is null || _timer is null || _liveText is null || _opacity is null || _screen is null
-            || _maxWidth is null || _liveGlass is null) return; // Still being built.
+        if (_liveGlass is null) return; // Still being built.
 
         // Live glass is a way of drawing Liquid Glass; other skins don't use it.
-        _liveGlass.IsEnabled = CapsuleSkin.Find(_skin).Glass;
+        _liveGlass.IsEnabled = CapsuleSkin.Find(_draft.Pending.CapsuleSkin).Glass;
 
         var style = PendingStyle();
         if (_capsuleStaged) _controller.ApplyCapsule(PendingLook());
@@ -262,7 +243,7 @@ public sealed partial class SettingsWindow
     private void SyncPosition()
     {
         _syncingPosition = true;
-        var id = PresetId(_placement);
+        var id = PresetId(Placement);
         _position.SelectedItem = _position.Items.Cast<ComboBoxItem>().First(item => (string)item.Tag == id);
         _syncingPosition = false;
     }

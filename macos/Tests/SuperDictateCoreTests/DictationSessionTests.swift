@@ -109,8 +109,16 @@ final class DictationSessionTests: XCTestCase {
         XCTAssertEqual(session.handle(.sample(true)), [])
         XCTAssertEqual(session.overlay, .listening)
 
-        XCTAssertEqual(session.handle(.start(micAllowed: true)), [.stopSample, .record], "a real dictation takes over")
-        XCTAssertFalse(session.isSampling)
+        // While the Capsule settings page shows its sample, dictation waits and says why.
+        XCTAssertEqual(session.handle(.start(micAllowed: true)), [.notice(.closeCapsuleSettings)])
+        XCTAssertEqual(session.handle(.toggle(micAllowed: true, pressReturn: false)), [.notice(.closeCapsuleSettings)])
+        XCTAssertEqual(session.phase, .ready)
+        XCTAssertTrue(session.isSampling)
+        _ = session.handle(.noticeEnded)
+        XCTAssertEqual(session.overlay, .listening, "the sample comes back")
+
+        XCTAssertEqual(session.handle(.sample(false)), [.stopSample])
+        XCTAssertEqual(session.handle(.start(micAllowed: true)), [.record])
         XCTAssertEqual(session.handle(.sample(true)), [], "never during a recording")
         _ = session.handle(.finish(pressReturn: false))
         XCTAssertEqual(session.handle(.sample(true)), [], "or while processing")

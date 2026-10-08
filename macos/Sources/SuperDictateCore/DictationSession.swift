@@ -29,7 +29,7 @@ public struct DictationSession: Equatable, Sendable {
     }
 
     public enum Notice: Equatable, Sendable {
-        case allowMicrophone, microphoneUnavailable, cancelled, noSpeech, failed, copied
+        case allowMicrophone, microphoneUnavailable, cancelled, noSpeech, failed, copied, closeCapsuleSettings
 
         public var text: String {
             switch self {
@@ -39,6 +39,7 @@ public struct DictationSession: Equatable, Sendable {
             case .noSpeech: "No speech detected"
             case .failed: "Couldn't transcribe that"
             case .copied: "Copied: allow Accessibility to type"
+            case .closeCapsuleSettings: "Close Capsule settings to dictate"
             }
         }
 
@@ -50,6 +51,7 @@ public struct DictationSession: Equatable, Sendable {
             case .noSpeech: "waveform.slash"
             case .failed: "exclamationmark.triangle.fill"
             case .copied: "doc.on.clipboard"
+            case .closeCapsuleSettings: "slider.horizontal.3"
             }
         }
     }
@@ -152,13 +154,12 @@ public struct DictationSession: Equatable, Sendable {
             }
         case .start(let micAllowed):
             guard phase == .ready else { return isModelReady ? [] : [.showWelcome] }
+            // While the Capsule settings page shows its sample, the capsule is being edited.
+            guard !isSampling else { return show(.closeCapsuleSettings) }
             guard micAllowed else { return show(.allowMicrophone) + [.showWelcome] }
-            // A real dictation takes over from the settings page's sample.
-            let sample: [Effect] = isSampling ? [.stopSample] : []
-            isSampling = false
             notice = nil
             phase = .recording
-            return sample + [.record]
+            return [.record]
         case .finish(let pressReturn):
             guard phase == .recording else { return [] }
             self.pressReturn = pressReturn

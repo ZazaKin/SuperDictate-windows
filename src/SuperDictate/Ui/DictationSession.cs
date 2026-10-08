@@ -15,6 +15,9 @@ public sealed class DictationSession
     /// <summary>A recording shorter than this is a tap of the key, not a dictation.</summary>
     public const double Shortest = 0.3;
 
+    /// <summary>What the capsule says to a dictation attempt while the Capsule settings page is open.</summary>
+    public const string SampleNotice = "Close Capsule settings to dictate";
+
     public abstract record Event
     {
         /// <summary>(Re)load the engine. SetUp: the speech runtime and the chosen model are installed.</summary>
@@ -87,6 +90,7 @@ public sealed class DictationSession
     private bool _micOpen;
     private (bool PressEnter, string Status)? _finishWhenOpen;
     private bool _cancelWhenOpen;
+    private bool _sampling;
     private bool _pressEnter;
     private double _seconds;
 
@@ -134,6 +138,9 @@ public sealed class DictationSession
                 // Setup just finished outside the app's own buttons.
                 if (State == DictationState.NeedsSetup) return Handle(new Event.LoadEngine(true));
                 if (State == DictationState.Loading) return None;
+
+                // While the Capsule settings page shows its sample, the capsule is being edited.
+                if (_sampling) return [new Effect.Notice(SampleNotice)];
 
                 // Don't let the user talk into a recording nothing can transcribe. A reload
                 // recovers a crashed worker; with no model it just reports Error again.
@@ -199,6 +206,7 @@ public sealed class DictationSession
             case Event.Sample(var on):
                 // The capsule on screen belongs to a dictation while there is one.
                 if (on && IsBusy) return None;
+                _sampling = on;
                 return on ? [new Effect.StartSample()] : [new Effect.StopSample()];
             default:
                 return None;

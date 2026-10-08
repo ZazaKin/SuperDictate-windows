@@ -626,10 +626,76 @@ internal static class SelfTest
                          && Gives(session.Handle(new SessionEvent.Finish(true)), new SessionEffect.StopRecording("Processing…"));
             Assert("session.reload_while_recording", reload, session.State.ToString());
 
+            // While the Capsule settings page shows its sample, dictation waits and says why.
             session = Ready();
             var sample = Gives(session.Handle(new SessionEvent.Sample(true)), new SessionEffect.StartSample())
-                         && Gives(session.Handle(new SessionEvent.Sample(false)), new SessionEffect.StopSample());
-            Assert("session.sample", sample);
+                         && Gives(session.Handle(new SessionEvent.Toggle(false, true, true)), new SessionEffect.Notice(Ui.DictationSession.SampleNotice))
+                         && session.State == Ui.DictationState.Ready
+                         && Gives(session.Handle(new SessionEvent.Sample(false)), new SessionEffect.StopSample())
+                         && Gives(session.Handle(new SessionEvent.Toggle(false, true, true)), new SessionEffect.Record());
+            Assert("session.sample", sample, session.State.ToString());
+        }
+
+        // --- settings draft: the settings window's pending changes and the rules a save must pass ---
+        {
+            static Settings Saved() => new()
+            {
+                PrimaryHotkey = "RightAlt",
+                AlternateHotkey = "RightCtrl+RightAlt",
+                HistoryHotkey = "RightShift+RightAlt",
+                SelectedLanguages = new System.Collections.Generic.List<string> { "en", "de" },
+            };
+
+            // Changes count by value: a slider moved and put back is no change.
+            var draft = new Ui.SettingsDraft(Saved(), "");
+            var clean = !draft.HasChanges;
+            draft.Pending.CapsuleScale = 0.7 + (3 * 0.1);
+            var undone = !draft.HasChanges;
+            draft.Pending.CapsuleScale = 1.2;
+            var onPage = draft.HasChanges && draft.HasChangesOn("capsule") && !draft.HasChangesOn("dictation");
+            draft.Pending.SelectedLanguages = new System.Collections.Generic.List<string> { "de", "en" };
+            var sameSet = !draft.HasChangesOn("languages");
+            draft.CloudKey = "secret";
+            var key = draft.HasChangesOn("ai_cleanup") && draft.CloudKeyChanged;
+            Assert("draft.changes", clean && undone && onPage && sameSet && key,
+                $"clean={clean}, undone={undone}, onPage={onPage}, sameSet={sameSet}, key={key}");
+
+            // The rules, first problem first, with the page and the setting to point at.
+            bool Problem(System.Action<Settings> change, string page, string setting)
+            {
+                var checkedDraft = new Ui.SettingsDraft(Saved(), "");
+                change(checkedDraft.Pending);
+                return checkedDraft.Validate() is { } found && found.Page == page && found.Setting == setting;
+            }
+
+            var rules = new Ui.SettingsDraft(Saved(), "").Validate() is null
+                        && Problem(s => s.SelectedLanguages.Clear(), "languages", nameof(Settings.SelectedLanguages))
+                        && Problem(s => s.PrimaryHotkey = "", "dictation", nameof(Settings.PrimaryHotkey))
+                        && Problem(s => s.AlternateHotkey = "NotAKey", "dictation", nameof(Settings.AlternateHotkey))
+                        && Problem(s => s.AlternateHotkey = "RightAlt", "dictation", nameof(Settings.AlternateHotkey))
+                        && Problem(s => s.PrimaryHotkey = "RightShift+RightAlt", "dictation", nameof(Settings.PrimaryHotkey));
+            Assert("draft.validate", rules);
+
+            // Save writes only what changed here: a model picked from the tray meanwhile stays.
+            var saved = Saved();
+            var window = new Ui.SettingsDraft(saved, "");
+            window.Pending.CapsuleSkin = "liquid";
+            saved.ModelId = "whisper-small";
+            var restart = window.Commit();
+            var commit = saved.CapsuleSkin == "liquid" && saved.ModelId == "whisper-small" && !restart && !window.HasChanges;
+            window.Pending.SelectedLanguages = new System.Collections.Generic.List<string> { "en", "de", "pl" };
+            var languagesRestart = window.Commit() && saved.SelectedLanguages.Contains("pl");
+            Assert("draft.commit", commit && languagesRestart, $"commit={commit}, restart={languagesRestart}, model={saved.ModelId}");
+
+            // Don't save puts back the settings in use, including a change from the tray.
+            saved = Saved();
+            window = new Ui.SettingsDraft(saved, "key");
+            window.Pending.PressAndHold = !saved.PressAndHold;
+            window.CloudKey = "other";
+            saved.ShowMicButton = !saved.ShowMicButton;
+            window.Discard();
+            Assert("draft.discard", !window.HasChanges && window.Pending.PressAndHold == saved.PressAndHold
+                                    && window.Pending.ShowMicButton == saved.ShowMicButton && window.CloudKey == "key");
         }
 
         // --- whisper engine: needs the speech runtime and a model in the install folder ---
