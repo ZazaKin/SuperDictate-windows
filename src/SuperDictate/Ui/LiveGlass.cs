@@ -21,8 +21,9 @@ namespace SuperDictate.Ui;
 /// it flip to match (<see cref="Light"/>), so they stay readable.
 ///
 /// The capsule window keeps itself out of the copy (<see cref="KeepOutOfCopies"/>),
-/// which also keeps it out of screenshots and screen sharing. Windows 10 2004 and
-/// later can do that; elsewhere, or if the shader can't load, Liquid Glass is painted.
+/// which also keeps it out of screenshots and screen sharing. Windows 10 can't do
+/// that for a see-through window, so there the glass shows the screen as it was when
+/// the capsule came in. If the shader can't load, Liquid Glass is painted.
 /// </summary>
 internal sealed class LiveGlass : Grid, IDisposable
 {
@@ -72,11 +73,12 @@ internal sealed class LiveGlass : Grid, IDisposable
     /// <summary>
     /// Shows the screen behind <paramref name="window"/> through the capsule, which is at
     /// <paramref name="capsule"/> in this layer's coordinates; called once per frame.
+    /// Live, it copies the screen again; otherwise it keeps the last copy (<see cref="Copy"/>).
     /// </summary>
-    public void Follow(IntPtr window, Rect capsule, double radius)
+    public void Follow(IntPtr window, Rect capsule, double radius, bool live)
     {
         if (capsule.Width <= 0 || capsule.Height <= 0 || ActualWidth <= 0) return;
-        if (DateTime.UtcNow - _copied >= Interval && NativeMethods.GetWindowRect(window, out var area) && Copy(area))
+        if (live && DateTime.UtcNow - _copied >= Interval && NativeMethods.GetWindowRect(window, out var area) && Copy(area))
         {
             _copied = DateTime.UtcNow;
         }

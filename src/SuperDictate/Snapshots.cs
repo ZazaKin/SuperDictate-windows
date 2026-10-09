@@ -141,7 +141,7 @@ internal static class Snapshots
                 return;
             }
 
-            glass.Follow(IntPtr.Zero, view.Body.TransformToAncestor(stage).TransformBounds(new Rect(view.Body.RenderSize)), view.Rounding);
+            glass.Follow(IntPtr.Zero, view.Body.TransformToAncestor(stage).TransformBounds(new Rect(view.Body.RenderSize)), view.Rounding, live: false);
             view.GlassUnder(glass.Light);
         }
 
@@ -354,7 +354,7 @@ internal static class Snapshots
             foreach (var (view, glass, voice) in new[] { (light, lightGlass, 0.0), (dark, darkGlass, 2.0) })
             {
                 glass.Show(picture);
-                glass.Follow(IntPtr.Zero, view.Body.TransformToAncestor(stage).TransformBounds(new Rect(view.Body.RenderSize)), view.Rounding);
+                glass.Follow(IntPtr.Zero, view.Body.TransformToAncestor(stage).TransformBounds(new Rect(view.Body.RenderSize)), view.Rounding, live: false);
                 view.GlassUnder(glass.Light);
                 view.SetPreviewLevel(0.5 + (0.3 * Math.Sin((seconds * 6) + voice)));
                 view.Render(seconds);
@@ -467,7 +467,7 @@ internal static class Snapshots
         foreach (var (view, glass) in new[] { (light, lightGlass), (dark, darkGlass) })
         {
             glass.Show(picture);
-            glass.Follow(IntPtr.Zero, view.Body.TransformToAncestor(stage).TransformBounds(new Rect(view.Body.RenderSize)), view.Rounding);
+            glass.Follow(IntPtr.Zero, view.Body.TransformToAncestor(stage).TransformBounds(new Rect(view.Body.RenderSize)), view.Rounding, live: false);
             view.GlassUnder(glass.Light);
             stage.UpdateLayout();
             for (var frame = 0; frame < 12; frame++) view.Render(0.35);

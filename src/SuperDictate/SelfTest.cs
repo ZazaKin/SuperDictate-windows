@@ -972,6 +972,12 @@ internal static class SelfTest
                 Assert("capsule.live_glass", glass.Copy(new Interop.NativeMethods.RECT { Left = 0, Top = 0, Right = 64, Bottom = 32 }));
                 Assert("capsule.glass_shader", Ui.LiveGlass.Available, "the glass shader didn't compile; Liquid Glass stays painted");
 
+                // The Liquid Glass capsule's own window draws the glass, even where Windows can't keep it out of screen copies.
+                var glassy = new Ui.CapsuleOverlay(Ui.CapsuleLook.From(new Settings { CapsuleSkin = "liquid", CapsuleLiveGlass = true }));
+                var (glassOn, glassLive) = glassy.Glass;
+                glassy.Close();
+                Assert("capsule.glass_on", glassOn, $"Liquid Glass is painted (shader {Ui.LiveGlass.Available}, follows the screen {glassLive})");
+
                 // Settings from a build that offered more languages keep only the ones offered now.
                 var older = new Settings { Language = "ja", SelectedLanguages = new System.Collections.Generic.List<string> { "ja", "de", "zh" } };
                 SettingsStore.KeepKnownLanguages(older);

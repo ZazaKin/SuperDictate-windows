@@ -141,8 +141,10 @@ close the window, with changes you haven't saved, SuperDictate asks: **Save**,
     the meter off when you pick it), and **Widest**: how far the capsule grows as your words arrive.
     **Live glass** is on by default. To show the real screen, the capsule keeps
     itself out of screen copies, so it doesn't appear in screenshots or screen
-    sharing; turn it off for a painted Liquid Glass that does. Live glass needs
-    Windows 10 version 2004 or later.
+    sharing; turn it off for a painted Liquid Glass that does. Windows 10 can't
+    keep a see-through window out of screen copies, so there the glass shows the
+    screen as it was when the capsule came in, and the capsule does appear in
+    screenshots.
   - **Position:** presets, or **Move…** to drag it anywhere. The screen dims,
     the capsule snaps to the edges and the center, and arrow keys nudge it.
     Next to the left or right edge it grows away from that edge as your

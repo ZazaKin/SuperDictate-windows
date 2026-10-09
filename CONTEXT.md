@@ -48,6 +48,8 @@ blurred on Windows, light or dark with what's behind it.
 
 **Live glass**:
 Liquid Glass showing the real screen behind it on Windows; off, it is painted.
+Where Windows can't keep the capsule out of screen copies (Windows 10), it shows
+the screen as it was when the capsule came in.
 
 **Sample**:
 The capsule shown on screen with example words while the Capsule settings are

@@ -56,6 +56,11 @@ public sealed class CapsuleOverlay : Window
     private bool _liveText = true;
     private bool _glassWanted;
     private bool _glassOn;
+    private bool _glassLive;
+    private NativeMethods.RECT? _copiedAt;
+    private NativeMethods.RECT _seen;
+    private int _steady;
+    private int _clearing;
     private int _stageStep;
     private long _shownSecond = -1;
 
@@ -116,19 +121,27 @@ public sealed class CapsuleOverlay : Window
     }
 
     /// <summary>
-    /// Live glass needs the window kept out of its own screen copy; where Windows
-    /// can't do that, Liquid Glass stays painted.
+    /// The glass follows the screen when Windows keeps the window out of its own
+    /// screen copy. Windows 10 can't for a see-through window like this one, so
+    /// there it shows a copy taken while the capsule was clear (<see cref="KeepCopyCurrent"/>).
+    /// Without the shader, Liquid Glass stays painted.
     /// </summary>
     private void UseGlass()
     {
         var handle = new WindowInteropHelper(this).Handle;
         if (handle == IntPtr.Zero) return;
-        _glassOn = _glassWanted && LiveGlass.Available && LiveGlass.KeepOutOfCopies(handle, true);
+        _glassOn = _glassWanted && LiveGlass.Available;
+        _glassLive = _glassOn && LiveGlass.KeepOutOfCopies(handle, true);
         if (!_glassWanted) LiveGlass.KeepOutOfCopies(handle, false);
+        _copiedAt = null;
+        EndClearing();
         if (_glassOn) return;
         _glass.Hide();
         _view.GlassUnder(null);
     }
+
+    /// <summary>Whether the Liquid Glass skin draws its glass, and whether that glass follows the screen; for the self-test.</summary>
+    internal (bool On, bool Live) Glass => (_glassOn, _glassLive);
 
     /// <summary>Look, place and screen from settings. Takes effect at once, even while the capsule shows.</summary>
     public void Apply(CapsuleLook look)
@@ -288,6 +301,8 @@ public sealed class CapsuleOverlay : Window
         {
             _shown = true;
             Place();
+            // Hidden until now, the window is clear: a still glass copies what is behind it at once.
+            if (!_rendering && _glassOn && !_glassLive) CopyBehind();
             StartRendering();
         }
 
@@ -381,6 +396,7 @@ public sealed class CapsuleOverlay : Window
         if (!_rendering) return;
         _rendering = false;
         CompositionTarget.Rendering -= OnFrame;
+        EndClearing();
         _view.Quiet();
         _glass.Hide();
     }
@@ -392,6 +408,7 @@ public sealed class CapsuleOverlay : Window
         // On stage the meter breathes as if someone were talking.
         if (_staging) _view.SetPreviewLevel(0.4 + (0.3 * Math.Sin(seconds * 2.6)));
         _view.Render(seconds);
+        if (_glassOn && !_glassLive) KeepCopyCurrent();
         if (_glassOn) FollowWithGlass();
         if (!_dictating) return;
         // The clock's text changes once a second, not every frame.
@@ -408,8 +425,49 @@ public sealed class CapsuleOverlay : Window
         if (body.RenderSize.Width <= 0) return;
         var capsule = body.TransformToAncestor((Visual)Content).TransformBounds(new Rect(body.RenderSize));
         _glass.Opacity = _view.Opacity * Math.Clamp(_view.Current.Opacity, 0.5, 1);
-        _glass.Follow(new WindowInteropHelper(this).Handle, capsule, _view.Rounding * _zoom.ScaleX);
+        _glass.Follow(new WindowInteropHelper(this).Handle, capsule, _view.Rounding * _zoom.ScaleX, _glassLive);
         _view.GlassUnder(_glass.Light);
+    }
+
+    /// <summary>
+    /// A still glass shows the screen as it was where the window is now. When Liquid
+    /// Glass was just picked, or the window moved or resized and settled, the capsule
+    /// clears for a few frames, long enough to leave the screen, and the glass copies
+    /// the screen again.
+    /// </summary>
+    private void KeepCopyCurrent()
+    {
+        if (_clearing > 0)
+        {
+            if (--_clearing > 0) return;
+            CopyBehind();
+            EndClearing();
+            return;
+        }
+
+        if (!NativeMethods.GetWindowRect(new WindowInteropHelper(this).Handle, out var area)) return;
+        if (_copiedAt is { } at && at.Equals(area)) return;
+
+        // While it still moves or resizes (a slider being dragged), it keeps the copy it has.
+        _steady = area.Equals(_seen) ? _steady + 1 : 0;
+        _seen = area;
+        if (_copiedAt is not null && _steady < 8) return;
+        ((UIElement)Content).Opacity = 0;
+        _clearing = 3;
+    }
+
+    private void CopyBehind()
+    {
+        // Remembered even when the copy fails (off every screen), so it isn't tried every frame.
+        if (!NativeMethods.GetWindowRect(new WindowInteropHelper(this).Handle, out var area)) return;
+        _copiedAt = area;
+        _glass.Copy(area);
+    }
+
+    private void EndClearing()
+    {
+        _clearing = 0;
+        ((UIElement)Content).Opacity = 1;
     }
 
     /// <summary>
