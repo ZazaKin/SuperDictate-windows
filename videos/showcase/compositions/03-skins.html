@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+  </head>
+  <body>
+    <template id="skins-template">
+      <style>
+        /* The app's own font, Segoe UI, as installed with Windows (nothing is shipped). */
+        @font-face {
+          font-family: "SD Segoe";
+          src: local("Segoe UI"), local("SegoeUI");
+          font-weight: 400;
+        }
+        @font-face {
+          font-family: "SD Segoe";
+          src: local("Segoe UI Semibold"), local("SegoeUI-Semibold");
+          font-weight: 600;
+        }
+        @font-face {
+          font-family: "SD Segoe";
+          src: local("Segoe UI Bold"), local("SegoeUI-Bold");
+          font-weight: 700;
+        }
+        [data-composition-id="skins"] {
+          position: absolute;
+          inset: 0;
+          font-family: "SD Segoe", sans-serif;
+          color: #f5f5f5;
+        }
+        [data-composition-id="skins"] .w {
+          display: inline-block;
+        }
+        #skins-stage {
+          position: absolute;
+          inset: 0;
+        }
+        /* A picker wheel of the app's own skins, as on Apple's pickers: a drum seen edge-on. */
+        #skins-band {
+          position: absolute;
+          left: 914px;
+          top: 452px;
+          width: 712px;
+          height: 176px;
+          border-radius: 88px;
+          background: rgba(255, 255, 255, 0.04);
+          box-shadow: inset 0 0 0 2px rgba(106, 178, 242, 0.35);
+        }
+        #skins-view {
+          position: absolute;
+          inset: 0;
+          perspective: 1300px;
+          perspective-origin: 1270px 540px;
+          -webkit-mask-image: linear-gradient(180deg, transparent 6%, #000 36%, #000 64%, transparent 94%);
+          mask-image: linear-gradient(180deg, transparent 6%, #000 36%, #000 64%, transparent 94%);
+        }
+        #skins-drum {
+          position: absolute;
+          left: 1270px;
+          top: 540px;
+          width: 0;
+          height: 0;
+          transform-style: preserve-3d;
+        }
+        #skins-drum img {
+          position: absolute;
+          left: -324px;
+          top: -77px;
+          width: 648px;
+          height: 154px;
+          backface-visibility: hidden;
+        }
+        #skins-title {
+          position: absolute;
+          left: 115px;
+          top: 300px;
+          width: 700px;
+          font-size: 150px;
+          font-weight: 600;
+          line-height: 0.98;
+          letter-spacing: -0.045em;
+        }
+        #skins-sub {
+          position: absolute;
+          left: 118px;
+          top: 480px;
+          width: 620px;
+          font-size: 40px;
+          line-height: 1.3;
+          color: #9fb0c2;
+        }
+        #skins-names {
+          position: absolute;
+          left: 118px;
+          top: 640px;
+          width: 700px;
+          height: 60px;
+          font-size: 44px;
+        }
+        #skins-names span {
+          position: absolute;
+          left: 0;
+          top: 0;
+          opacity: 0;
+          white-space: nowrap;
+        }
+        #skins-names b {
+          font-weight: 600;
+          color: #6ab2f2;
+        }
+        #skins-names em {
+          font-style: normal;
+          color: #8395a7;
+          margin-left: 14px;
+        }
+      </style>
+      <div data-hf-id="hf-z1f4" id="skins-root" data-composition-id="skins" data-width="1920" data-height="1080">
+        <svg data-hf-id="hf-p3r6" width="0" height="0" aria-hidden="true" style="position: absolute">
+          <filter data-hf-id="hf-poli" id="skins-whip" x="-30%" y="0" width="160%" height="100%"><fegaussianblur data-hf-id="hf-o0kp" id="skins-whip-blur" stdDeviation="0 0" /></filter>
+        </svg>
+        <div data-hf-id="hf-n1hf" id="skins-stage" data-layout-allow-overflow="">
+          <div data-hf-id="hf-owpj" id="skins-band"></div>
+          <div data-hf-id="hf-gj2k" id="skins-view" data-layout-allow-overflow=""><div data-hf-id="hf-hloj" id="skins-drum" data-layout-allow-overflow=""></div></div>
+          <div data-hf-id="hf-bxgw" id="skins-title">15 skins.</div>
+          <div data-hf-id="hf-0veq" id="skins-sub">Any color, any size, anywhere on screen.</div>
+          <div data-hf-id="hf-pwge" id="skins-names"></div>
+        </div>
+      </div>
+      <script>
+        gsap.registerPlugin(CustomEase);
+        CustomEase.create("rise", "0.32,0.72,0,1"); // The app's page-rise easing (DESIGN.md).
+        const tl = gsap.timeline({ paused: true });
+
+        // The registry's per-word-rise landing: decelerates, then glides the last few pixels in.
+        function land(p) {
+          if (p <= 0) return 0;
+          if (p >= 1) return 1;
+          const s = 0.78, r = 0.07, k = ((1 - r) / s) * 0.5;
+          if (p < s) {
+            const x = p / s, i = 1 - x;
+            return (1 - r) * (0.5 * (1 - i * i * i) + 0.5 * x);
+          }
+          const u = (p - s) / (1 - s), b = k * (1 - s), c = 3 * r - 2 * b, d = b - 2 * r;
+          return 1 - r + b * u + c * u * u + d * u * u * u;
+        }
+        function words(el) {
+          const out = [];
+          [...el.childNodes].forEach((node) => {
+            node.textContent.split(/(\s+)/).forEach((part) => {
+              if (!part) return;
+              if (/^\s+$/.test(part)) return el.insertBefore(document.createTextNode(" "), node);
+              const word = document.createElement("span");
+              word.className = "w";
+              word.textContent = part;
+              el.insertBefore(word, node);
+              out.push(word);
+            });
+            el.removeChild(node);
+          });
+          return out;
+        }
+        function rise(el, at, stagger) {
+          tl.fromTo(words(el), { opacity: 0, y: 60, filter: "blur(14px)" },
+            { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.74, ease: land, stagger: stagger ?? 0.08 }, at);
+        }
+
+        // The skins in the order the app drew them (tour/skins.txt); each still is the app's own frame.
+        const skins = ["Liquid Glass", "Midnight", "Bloom", "Eclipse", "Chrome", "Hive", "Halftone", "Mosaic", "Mesa", "Aurora", "Neon", "Glass", "Graphite", "Paper", "High contrast"];
+        const drum = document.getElementById("skins-drum");
+        const names = document.getElementById("skins-names");
+        const angle = 360 / skins.length;
+        const radius = 420;
+        skins.forEach((name, index) => {
+          const still = document.createElement("img");
+          still.src = "assets/skins/" + String(index).padStart(2, "0") + ".png";
+          still.alt = "";
+          still.style.transform = "rotateX(" + index * angle + "deg) translateZ(" + radius + "px)";
+          drum.appendChild(still);
+          const label = document.createElement("span");
+          label.innerHTML = "<b>" + name + "</b><em>" + (index + 1) + " / " + skins.length + "</em>";
+          names.appendChild(label);
+        });
+
+        // Zoom-through in: the shot arrives out of the last one's push, out of focus.
+        tl.fromTo("#skins-stage", { transformOrigin: "960px 540px", scale: 1.45, opacity: 0, filter: "blur(22px)" },
+          { scale: 1, opacity: 1, filter: "blur(0px)", duration: 0.65, ease: "power3.out" }, 0);
+        tl.set("#skins-stage", { filter: "none" }, 0.66);
+
+        // The wheel spins in, then clicks through every skin, one detent at a time.
+        tl.fromTo(drum, { rotationX: 48 }, { rotationX: 0, duration: 0.8, ease: "power3.out" }, 0);
+        const labels = names.querySelectorAll("span");
+        tl.set(labels[0], { opacity: 1 }, 0.45);
+        for (let index = 1; index < skins.length; index++) {
+          const at = 0.85 + (index - 1) * 0.175;
+          tl.to(drum, { rotationX: -index * angle, duration: 0.13, ease: "power3.inOut" }, at);
+          tl.set(labels[index - 1], { opacity: 0 }, at + 0.065);
+          tl.set(labels[index], { opacity: 1 }, at + 0.065);
+        }
+        tl.fromTo("#skins-band", { opacity: 0, scale: 0.9 }, { opacity: 1, scale: 1, duration: 0.5, ease: "rise" }, 0.5);
+        rise(document.getElementById("skins-title"), 0.3);
+        rise(document.getElementById("skins-sub"), 0.6, 0.04);
+        tl.fromTo("#skins-names", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.5, ease: "rise" }, 0.45);
+
+        // Whip pan out.
+        const whipBlur = document.getElementById("skins-whip-blur");
+        const whip = { v: 0 };
+        const writeWhip = () => whipBlur.setAttribute("stdDeviation", whip.v + " 0");
+        tl.set("#skins-stage", { filter: "url(#skins-whip)" }, 3.4);
+        tl.to("#skins-stage", { x: -1920, duration: 0.45, ease: "power3.in" }, 3.4);
+        tl.fromTo(whip, { v: 0 }, { v: 70, duration: 0.45, ease: "power3.in", onUpdate: writeWhip, immediateRender: false }, 3.4);
+        window.__timelines["skins"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

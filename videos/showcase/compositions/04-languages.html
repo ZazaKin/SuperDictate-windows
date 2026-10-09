@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+  </head>
+  <body>
+    <template id="languages-template">
+      <style>
+        /* The app's own font, Segoe UI, as installed with Windows (nothing is shipped). */
+        @font-face {
+          font-family: "SD Segoe";
+          src: local("Segoe UI"), local("SegoeUI");
+          font-weight: 400;
+        }
+        @font-face {
+          font-family: "SD Segoe";
+          src: local("Segoe UI Semibold"), local("SegoeUI-Semibold");
+          font-weight: 600;
+        }
+        @font-face {
+          font-family: "SD Segoe";
+          src: local("Segoe UI Bold"), local("SegoeUI-Bold");
+          font-weight: 700;
+        }
+        [data-composition-id="languages"] {
+          position: absolute;
+          inset: 0;
+          font-family: "SD Segoe", sans-serif;
+          color: #f5f5f5;
+        }
+        [data-composition-id="languages"] .w {
+          display: inline-block;
+        }
+        #languages-stage,
+        #languages-cam {
+          position: absolute;
+          inset: 0;
+        }
+        #languages-cam {
+          perspective: 2000px;
+          perspective-origin: 1320px 540px;
+        }
+        /* The app's Languages page, floating in space, fading into the field at the bottom. */
+        #languages-page {
+          position: absolute;
+          left: 800px;
+          top: 170px;
+          width: 1040px;
+          height: 760px;
+          border-radius: 22px;
+          overflow: hidden;
+          box-shadow: 0 50px 120px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.08);
+          -webkit-mask-image: linear-gradient(180deg, #000 55%, transparent 100%);
+          mask-image: linear-gradient(180deg, #000 55%, transparent 100%);
+        }
+        #languages-page img {
+          display: block;
+          width: 1040px;
+          height: 760px;
+        }
+        /* The capsule, drawn by the app, floating in front of the page. */
+        #languages-cap {
+          position: absolute;
+          left: 680px;
+          top: 30px;
+          width: 1280px;
+          height: 200px;
+        }
+        #languages-cap video {
+          position: absolute;
+          inset: 0;
+          width: 1280px;
+          height: 200px;
+        }
+        #languages-count {
+          position: absolute;
+          left: 104px;
+          top: 210px;
+          font-size: 300px;
+          font-weight: 700;
+          line-height: 1;
+          letter-spacing: -0.05em;
+          font-variant-numeric: tabular-nums;
+        }
+        #languages-title {
+          position: absolute;
+          left: 115px;
+          top: 520px;
+          font-size: 92px;
+          font-weight: 600;
+          line-height: 1;
+          letter-spacing: -0.035em;
+        }
+        #languages-sub {
+          position: absolute;
+          left: 118px;
+          top: 640px;
+          width: 600px;
+          font-size: 40px;
+          color: #9fb0c2;
+        }
+        #languages-row {
+          position: absolute;
+          left: 118px;
+          top: 760px;
+          font-size: 38px;
+          font-weight: 600;
+          color: #6b7f93;
+        }
+        #languages-row span + span {
+          margin-left: 30px;
+        }
+      </style>
+      <div data-hf-id="hf-s0lo" id="languages-root" data-composition-id="languages" data-width="1920" data-height="1080">
+        <svg data-hf-id="hf-p3r6" width="0" height="0" aria-hidden="true" style="position: absolute">
+          <filter data-hf-id="hf-u0hj" id="languages-whip" x="-30%" y="0" width="160%" height="100%"><fegaussianblur data-hf-id="hf-67l0" id="languages-whip-blur" stdDeviation="0 0" /></filter>
+        </svg>
+        <div data-hf-id="hf-kkdg" id="languages-stage" data-layout-allow-overflow="">
+          <div data-hf-id="hf-w6m3" id="languages-cam" data-layout-allow-overflow="">
+            <div data-hf-id="hf-z5eu" id="languages-page"><img data-hf-id="hf-7mwq" src="assets/settings-languages.png" alt=""></div>
+          </div>
+          <div data-hf-id="hf-hjml" id="languages-cap"><video data-hf-id="hf-s9ue" id="languages-video" class="clip" src="assets/capsule-languages.webm" muted playsinline data-start="0" data-duration="3.5" data-track-index="1"></video></div>
+          <div data-hf-id="hf-zb6b" id="languages-count">1</div>
+          <div data-hf-id="hf-4go0" id="languages-title">languages.</div>
+          <div data-hf-id="hf-grfs" id="languages-sub">Pick yours from the flags.</div>
+          <div data-hf-id="hf-ilkd" id="languages-row"><span data-hf-id="hf-vghz">Deutsch</span><span data-hf-id="hf-a59m">Français</span><span data-hf-id="hf-zahz">Русский</span></div>
+        </div>
+      </div>
+      <script>
+        gsap.registerPlugin(CustomEase);
+        CustomEase.create("rise", "0.32,0.72,0,1"); // The app's page-rise easing (DESIGN.md).
+        const tl = gsap.timeline({ paused: true });
+
+        // The registry's per-word-rise landing: decelerates, then glides the last few pixels in.
+        function land(p) {
+          if (p <= 0) return 0;
+          if (p >= 1) return 1;
+          const s = 0.78, r = 0.07, k = ((1 - r) / s) * 0.5;
+          if (p < s) {
+            const x = p / s, i = 1 - x;
+            return (1 - r) * (0.5 * (1 - i * i * i) + 0.5 * x);
+          }
+          const u = (p - s) / (1 - s), b = k * (1 - s), c = 3 * r - 2 * b, d = b - 2 * r;
+          return 1 - r + b * u + c * u * u + d * u * u * u;
+        }
+        function words(el) {
+          const out = [];
+          [...el.childNodes].forEach((node) => {
+            node.textContent.split(/(\s+)/).forEach((part) => {
+              if (!part) return;
+              if (/^\s+$/.test(part)) return el.insertBefore(document.createTextNode(" "), node);
+              const word = document.createElement("span");
+              word.className = "w";
+              word.textContent = part;
+              el.insertBefore(word, node);
+              out.push(word);
+            });
+            el.removeChild(node);
+          });
+          return out;
+        }
+        function rise(el, at, stagger) {
+          tl.fromTo(words(el), { opacity: 0, y: 60, filter: "blur(14px)" },
+            { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.74, ease: land, stagger: stagger ?? 0.08 }, at);
+        }
+
+        // Whip pan in.
+        const whipBlur = document.getElementById("languages-whip-blur");
+        const whip = { v: 70 };
+        const writeWhip = () => whipBlur.setAttribute("stdDeviation", whip.v + " 0");
+        writeWhip();
+        tl.set("#languages-stage", { filter: "url(#languages-whip)" }, 0);
+        tl.fromTo("#languages-stage", { x: 1920 }, { x: 0, duration: 0.5, ease: "power3.out" }, 0);
+        tl.fromTo(whip, { v: 70 }, { v: 0, duration: 0.5, ease: "power3.out", onUpdate: writeWhip }, 0);
+        tl.set("#languages-stage", { filter: "none" }, 0.5);
+
+        // The page drifts toward the camera the whole shot; the capsule floats in front of it.
+        tl.fromTo("#languages-page", { transformOrigin: "50% 30%", rotationY: -30, rotationX: 14, z: -220 },
+          { rotationY: -12, rotationX: 5, z: 0, duration: 3.4, ease: "power2.out" }, 0);
+        tl.fromTo("#languages-cap", { y: 14 }, { y: -10, duration: 3.4, ease: "sine.inOut" }, 0);
+
+        // The count runs up to 25 and lands.
+        const count = document.getElementById("languages-count");
+        const tally = { n: 1 };
+        tl.fromTo(tally, { n: 1 }, { n: 25, duration: 1.4, ease: "power2.out", onUpdate: () => (count.textContent = Math.round(tally.n)), immediateRender: false }, 0.35);
+        tl.fromTo(count, { opacity: 0, y: 40, filter: "blur(14px)" }, { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.6, ease: "rise" }, 0.3);
+        tl.to(count, { scale: 1.06, transformOrigin: "0% 80%", duration: 0.12, ease: "power2.out" }, 1.7);
+        tl.to(count, { scale: 1, duration: 0.45, ease: "power2.out" }, 1.82);
+        rise(document.getElementById("languages-title"), 0.55);
+        rise(document.getElementById("languages-sub"), 0.85, 0.04);
+
+        // The capsule says the same plan in German, French, Russian (3.5/3 s each, as the app drew it); the name lights up.
+        const row = document.querySelectorAll("#languages-row span");
+        tl.fromTo("#languages-row", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.5, ease: "rise" }, 0.3);
+        row.forEach((name, index) => {
+          const at = index * (3.5 / 3);
+          tl.to(name, { color: "#f5f5f5", duration: 0.2 }, at);
+          if (index < row.length - 1) tl.to(name, { color: "#6b7f93", duration: 0.2 }, at + 3.5 / 3);
+        });
+
+        // Dissolve into the close, pulling away; the capsule goes first, before its clip ends.
+        tl.to("#languages-cap", { opacity: 0, duration: 0.3, ease: "power1.in" }, 3.15);
+        tl.to("#languages-stage", { opacity: 0, scale: 0.96, filter: "blur(10px)", transformOrigin: "960px 540px", duration: 0.5, ease: "power2.in" }, 3.4);
+        window.__timelines["languages"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

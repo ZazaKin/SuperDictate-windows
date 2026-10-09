@@ -1,0 +1,6 @@
+# HyperFrames Studio's local caches, and the agent notes `hyperframes init` writes.
+.hyperframes/
+.thumbnails/
+.transcode-cache/
+AGENTS.md
+CLAUDE.md

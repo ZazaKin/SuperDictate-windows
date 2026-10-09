@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+  </head>
+  <body>
+    <template id="close-template">
+      <style>
+        /* The app's own font, Segoe UI, as installed with Windows (nothing is shipped). */
+        @font-face {
+          font-family: "SD Segoe";
+          src: local("Segoe UI"), local("SegoeUI");
+          font-weight: 400;
+        }
+        @font-face {
+          font-family: "SD Segoe";
+          src: local("Segoe UI Semibold"), local("SegoeUI-Semibold");
+          font-weight: 600;
+        }
+        @font-face {
+          font-family: "SD Segoe";
+          src: local("Segoe UI Bold"), local("SegoeUI-Bold");
+          font-weight: 700;
+        }
+        [data-composition-id="close"] {
+          position: absolute;
+          inset: 0;
+          font-family: "SD Segoe", sans-serif;
+          color: #f5f5f5;
+        }
+        /* The capsule, drawn by the app, waiting above the name. */
+        #close-cap {
+          position: absolute;
+          left: 320px;
+          top: 150px;
+          width: 1280px;
+          height: 200px;
+        }
+        #close-cap video,
+        #close-cap img {
+          position: absolute;
+          inset: 0;
+          width: 1280px;
+          height: 200px;
+        }
+        #close-lockup {
+          position: absolute;
+          left: 0;
+          right: 0;
+          top: 420px;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          gap: 44px;
+        }
+        #close-icon {
+          width: 150px;
+          height: 150px;
+        }
+        #close-mark {
+          position: relative;
+          font-size: 156px;
+          font-weight: 700;
+          line-height: 1;
+          letter-spacing: -0.04em;
+        }
+        #close-mark .c {
+          display: inline-block;
+        }
+        /* One light passing through the letters, then gone. */
+        #close-shine {
+          position: absolute;
+          inset: 0;
+          background: linear-gradient(100deg, rgba(255, 255, 255, 0) 42%, rgba(160, 205, 255, 0.95) 50%, rgba(255, 255, 255, 0) 58%);
+          background-size: 300% 100%;
+          -webkit-background-clip: text;
+          background-clip: text;
+          color: transparent;
+        }
+        #close-tagline {
+          position: absolute;
+          left: 0;
+          right: 0;
+          top: 650px;
+          text-align: center;
+          font-size: 54px;
+          font-weight: 600;
+          letter-spacing: -0.02em;
+          color: #dbe4ee;
+        }
+        #close-tagline .w {
+          display: inline-block;
+        }
+        #close-small {
+          position: absolute;
+          left: 0;
+          right: 0;
+          top: 748px;
+          text-align: center;
+          font-size: 30px;
+          color: #8395a7;
+        }
+      </style>
+      <div data-hf-id="hf-7kyk" id="close-root" data-composition-id="close" data-width="1920" data-height="1080">
+        <div data-hf-id="hf-0ocg" id="close-cap"><img data-hf-id="hf-50yl" src="assets/capsule-waiting-still.png" alt=""><video data-hf-id="hf-kaiv" id="close-video" class="clip" src="assets/capsule-waiting.webm" muted playsinline data-start="0" data-duration="3.5" data-track-index="1"></video></div>
+        <div data-hf-id="hf-b8by" id="close-lockup">
+          <img data-hf-id="hf-qwow" id="close-icon" src="assets/icon.png" alt="">
+          <div data-hf-id="hf-mhrf" id="close-mark"><span data-hf-id="hf-agh7" id="close-letters" data-layout-allow-occlusion="">SuperDictate</span><span data-hf-id="hf-tv60" id="close-shine" aria-hidden="true" data-layout-allow-occlusion="">SuperDictate</span></div>
+        </div>
+        <div data-hf-id="hf-lo8k" id="close-tagline">Speak, and your words appear where you type.</div>
+        <div data-hf-id="hf-i8cu" id="close-small">Windows and macOS · speech recognized on your computer</div>
+      </div>
+      <script>
+        gsap.registerPlugin(CustomEase);
+        CustomEase.create("rise", "0.32,0.72,0,1"); // The app's page-rise easing (DESIGN.md).
+        const tl = gsap.timeline({ paused: true });
+
+        // The registry's per-word-rise landing: decelerates, then glides the last few pixels in.
+        function land(p) {
+          if (p <= 0) return 0;
+          if (p >= 1) return 1;
+          const s = 0.78, r = 0.07, k = ((1 - r) / s) * 0.5;
+          if (p < s) {
+            const x = p / s, i = 1 - x;
+            return (1 - r) * (0.5 * (1 - i * i * i) + 0.5 * x);
+          }
+          const u = (p - s) / (1 - s), b = k * (1 - s), c = 3 * r - 2 * b, d = b - 2 * r;
+          return 1 - r + b * u + c * u * u + d * u * u * u;
+        }
+        // Split into units: letters for the name, words for the line under it.
+        function units(el, letters, className) {
+          const text = el.textContent;
+          el.textContent = "";
+          return (letters ? [...text] : text.split(/(\s+)/)).filter((part) => part).map((part) => {
+            if (/^\s+$/.test(part)) return el.appendChild(document.createTextNode(" ")) && null;
+            const unit = document.createElement("span");
+            unit.className = className;
+            unit.textContent = part;
+            el.appendChild(unit);
+            return unit;
+          }).filter((unit) => unit);
+        }
+
+        // The capsule comes into focus, waiting.
+        tl.fromTo("#close-cap", { opacity: 0, scale: 0.94, filter: "blur(12px)", transformOrigin: "640px 100px" },
+          { opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.7, ease: "rise" }, 0);
+        // The icon pops in; the name cascades in letter by letter.
+        tl.fromTo("#close-icon", { opacity: 0, scale: 0.55 }, { opacity: 1, scale: 1, duration: 0.6, ease: "back.out(1.7)" }, 0.4);
+        tl.fromTo(units(document.getElementById("close-letters"), true, "c"), { opacity: 0, y: 70, filter: "blur(14px)" },
+          { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.7, ease: land, stagger: 0.035 }, 0.5);
+        // The copy that carries the light is only there while the light crosses.
+        tl.fromTo("#close-shine", { opacity: 0 }, { opacity: 1, duration: 0.01 }, 1.6);
+        tl.fromTo("#close-shine", { backgroundPosition: "100% 0%" }, { backgroundPosition: "0% 0%", duration: 0.9, ease: "power2.inOut", immediateRender: false }, 1.6);
+        tl.to("#close-shine", { opacity: 0, duration: 0.01 }, 2.5);
+        tl.fromTo(units(document.getElementById("close-tagline"), false, "w"), { opacity: 0, y: 40, filter: "blur(12px)" },
+          { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.74, ease: land, stagger: 0.05 }, 1.05);
+        tl.fromTo("#close-small", { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.6, ease: "rise" }, 1.5);
+        // Then nothing moves: the last 1.7 s hold. (The clip is 3.5 s; under it, its own last frame holds on.)
+        window.__timelines["close"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

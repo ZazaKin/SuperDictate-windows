@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SuperDictate showcase, storyboard v1</title>
+<style>
+  :root {
+    --bg: #0E1621; --card: #17212B; --control: #202B36; --stroke: #243140;
+    --text: #F5F5F5; --muted: #8395A7; --accent: #3272AA; --link: #6AB2F2;
+    --soft: #1F3448; --capsule-accent: #5B8DEF;
+    --display: "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif;
+    --sans: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+    --mono: "Cascadia Mono", Consolas, monospace;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body { background: #0A1018; color: var(--text); font-family: var(--sans); padding: 40px 32px 64px; }
+  header { max-width: 1500px; margin: 0 auto 28px; display: flex; flex-wrap: wrap; align-items: end; gap: 12px 24px; }
+  header h1 { font-family: var(--display); font-weight: 600; font-size: 28px; letter-spacing: -0.01em; }
+  header h1 span { color: var(--link); }
+  header p { color: var(--muted); font-size: 15px; flex: 1 1 420px; }
+  .tag { font: 12px var(--mono); color: var(--link); background: var(--soft); padding: 6px 10px; border-radius: 8px; }
+  .grid { max-width: 1500px; margin: 0 auto; display: grid; grid-template-columns: repeat(3, 1fr); gap: 28px 22px; }
+  @media (max-width: 1100px) { .grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 700px) { body { padding: 24px 16px; } .grid { grid-template-columns: 1fr; } }
+  figure { display: flex; flex-direction: column; gap: 10px; }
+  figcaption { display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: var(--muted); }
+  .label { display: flex; justify-content: space-between; font: 12px var(--mono); }
+  .label b { color: var(--text); font-weight: 600; }
+  .note b { color: var(--text); }
+  .chip { align-self: start; font: 11px var(--mono); color: var(--link); border: 1px solid var(--stroke); border-radius: 999px; padding: 3px 9px; }
+
+  /* A frame: 16:9, sized in cqw so it reads like the 1920 × 1080 build (1cqw = 19.2 px). */
+  .frame { position: relative; aspect-ratio: 16 / 9; container-type: inline-size; overflow: hidden; border-radius: 10px;
+           background: radial-gradient(70cqw 40cqw at 50% 18%, #16263A 0%, var(--bg) 70%); }
+  .caption { position: absolute; left: 6cqw; bottom: 4.2cqw; font: 600 4.2cqw/1.1 var(--display); letter-spacing: -0.02em; }
+  .caption.small { font-size: 3.4cqw; }
+  .stand-in { position: absolute; display: grid; place-items: center; font: 1.1cqw var(--mono); color: var(--muted);
+              border: 0.15cqw dashed #34424F; border-radius: 1.2cqw; background: #121C27; }
+  .media { position: absolute; object-fit: cover; border-radius: 1.2cqw; }
+
+  /* The capsule, the film's spine: the same spot in every frame. */
+  .capsule { position: absolute; left: 50%; top: 4.6cqw; transform: translateX(-50%); height: 5cqw; padding: 0 2.2cqw;
+             display: flex; align-items: center; gap: 1.4cqw; border-radius: 99cqw; white-space: nowrap;
+             font: 500 1.7cqw var(--sans); color: #fff; background: rgba(28, 30, 38, 0.82);
+             box-shadow: inset 0 0.12cqw 0 rgba(255,255,255,0.45), 0 0.8cqw 2.4cqw rgba(0,0,0,0.35); }
+  .capsule.light { background: rgba(238, 241, 246, 0.86); color: #1F232B; box-shadow: inset 0 0.12cqw 0 #fff, 0 0.8cqw 2.4cqw rgba(0,0,0,0.25); }
+  .capsule .tail { opacity: 0.55; }
+  .capsule .muted { color: var(--muted); }
+  .bars { display: flex; gap: 0.32cqw; align-items: center; height: 2cqw; }
+  .bars i { width: 0.36cqw; border-radius: 1cqw; background: var(--capsule-accent); }
+  .bars i:nth-child(1) { height: 40%; } .bars i:nth-child(2) { height: 85%; } .bars i:nth-child(3) { height: 60%; }
+  .bars i:nth-child(4) { height: 100%; } .bars i:nth-child(5) { height: 45%; }
+  .bars.flat i { height: 22% !important; opacity: 0.6; }
+
+  /* Frame 01: the document stand-in. */
+  .doc { position: absolute; left: 17cqw; right: 17cqw; top: 13cqw; height: 27cqw; border-radius: 1.2cqw; background: #FBFBFC;
+         color: #1F232B; box-shadow: 0 1.2cqw 3cqw rgba(0,0,0,0.4); overflow: hidden; }
+  .doc .bar { background: #ECEEF2; display: flex; align-items: center; gap: 0.6cqw; padding: 0.75cqw 1.2cqw; }
+  .doc .bar i { width: 0.8cqw; height: 0.8cqw; border-radius: 50%; background: #C9CDD4; }
+  .doc .bar span { margin-left: 1cqw; font: 1.1cqw var(--sans); color: #6B7280; }
+  .doc .body { padding: 2.4cqw 3cqw; font: 1.9cqw/1.6 var(--sans); }
+  .doc .typed { background: rgba(50,114,170,0.16); border-radius: 0.3cqw; }
+  .cursor { display: inline-block; width: 0.18cqw; height: 2.2cqw; background: #1F232B; vertical-align: -0.35cqw; margin-left: 0.1cqw; }
+  .step { position: absolute; right: 6cqw; bottom: 4.6cqw; font: 1.2cqw var(--mono); color: var(--muted); text-align: right; line-height: 1.6; }
+  .step b { color: var(--link); font-weight: 400; }
+
+  /* Frame 03: the skin name under the capsule. */
+  .skin-name { position: absolute; left: 50%; top: 10.6cqw; transform: translateX(-50%); font: 1.3cqw var(--sans); color: var(--muted); }
+  .dots { position: absolute; left: 50%; top: 13cqw; transform: translateX(-50%); display: flex; gap: 0.55cqw; }
+  .dots i { width: 0.6cqw; height: 0.6cqw; border-radius: 50%; background: #34424F; }
+  .dots i.on { background: var(--link); }
+  .dim { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(14,22,33,0.94) 0%, rgba(14,22,33,0.35) 32%, rgba(14,22,33,0.35) 70%, rgba(14,22,33,0.96) 88%); }
+
+  /* Frame 05: the lockup. */
+  .lockup { position: absolute; left: 6cqw; top: 17cqw; display: flex; align-items: center; gap: 2.4cqw; }
+  .lockup svg { width: 9cqw; height: 9cqw; }
+  .lockup h2 { font: 700 6.6cqw/1 var(--display); letter-spacing: -0.03em; }
+  .lockup p { font: 1.9cqw var(--sans); color: var(--muted); margin-top: 0.8cqw; }
+  .message { position: absolute; left: 6cqw; right: 12cqw; top: 33cqw; font: 600 3.3cqw/1.2 var(--display); letter-spacing: -0.02em; }
+  .message em { font-style: normal; color: var(--link); }
+  .hold { position: absolute; right: 6cqw; bottom: 4.6cqw; font: 1.2cqw var(--mono); color: var(--muted); }
+
+  /* Closing cells. */
+  .panel { position: absolute; inset: 0; background: var(--card); padding: 4.4cqw; display: flex; flex-direction: column; gap: 3.2cqw; }
+  .panel h3 { font: 600 4cqw var(--display); color: var(--link); }
+  .strip { flex: none; display: flex; height: 9cqw; border-radius: 1cqw; overflow: hidden; }
+  .strip div { position: relative; display: grid; place-items: center; font: 2.4cqw var(--mono); color: var(--text); background: var(--control); }
+  .strip div + div { border-left: 0.3cqw solid var(--bg); }
+  .seams { display: flex; font: 2.2cqw/1.5 var(--mono); color: var(--muted); }
+  .seams span { color: var(--link); }
+  .row { display: flex; flex-wrap: wrap; gap: 1.6cqw 3cqw; }
+  .swatch { display: flex; align-items: center; gap: 1cqw; font: 2.2cqw var(--mono); color: var(--muted); }
+  .swatch i { width: 3.4cqw; height: 3.4cqw; border-radius: 0.6cqw; border: 0.1cqw solid #34424F; }
+  .panel ul { padding-left: 3cqw; font: 2.4cqw/1.5 var(--sans); color: var(--muted); }
+  .panel .type { font: 2.4cqw/1.5 var(--sans); color: var(--muted); }
+  .panel .type b { color: var(--text); font-weight: 600; }
+</style>
+</head>
+<body>
+<header>
+  <h1>SuperDictate showcase <span>· storyboard v1, locked</span></h1>
+  <p>Speak, and your words appear where you type, in a capsule you can make your own. Each frame is drawn at its key moment; no motion yet. What the build changed is listed in STORYBOARD.md under “As built”.</p>
+  <span class="tag">1920 × 1080 · 20.5 s · 5 frames · silent</span>
+</header>
+
+<main class="grid">
+
+  <!-- 01 Dictate -->
+  <figure>
+    <div class="frame" id="frame-01">
+      <div class="doc">
+        <div class="bar"><i></i><i></i><i></i><span>Notes (stand-in for any app)</span></div>
+        <div class="body">Hi team,<br><span class="typed">Move the design review to Thursday at three, and send the new mockups tonight.</span><span class="cursor"></span></div>
+      </div>
+      <div class="capsule light">
+        <span class="bars"><i></i><i></i><i></i><i></i><i></i></span>
+        <span>to Thursday at three, and send <span class="tail">the new mockups tonight</span></span>
+      </div>
+      <div class="caption">Your words appear<br>where you type.</div>
+      <div class="step">0.0 “Speak.” · capsule builds the line<br><b>4.2 “Your words appear…” · typed at the cursor</b></div>
+    </div>
+    <figcaption>
+      <div class="label"><b>01 · DICTATE</b><span>frame-01 · 0.0–6.5 s</span></div>
+      <div class="note"><b>The capsule slides down first, within 0.2 s,</b> and builds the sentence word by word over the document; at 4.2 s the line appears at the cursor and the caption changes. Drawn here at 5 s.</div>
+      <span class="chip">in: cut</span>
+    </figcaption>
+  </figure>
+
+  <!-- 02 Glass -->
+  <figure>
+    <div class="frame" id="frame-02">
+      <img class="media" src="../../docs/images/capsule-live-glass.png" alt="" style="left: 8cqw; top: 3.4cqw; width: 84cqw; height: 37.6cqw;">
+      <div class="caption small">Liquid Glass, light or dark<br>with what’s behind it.</div>
+    </div>
+    <figcaption>
+      <div class="label"><b>02 · GLASS</b><span>frame-02 · 6.5–10.0 s</span></div>
+      <div class="note"><b>The picture slides in from the right under the capsule</b>, whose glass turns light over the bright window; then a slow push in (to 106 %). The app’s own live-glass picture; its top capsule lines up with the spine.</div>
+      <span class="chip">in: slide-left</span>
+    </figcaption>
+  </figure>
+
+  <!-- 03 Skins -->
+  <figure>
+    <div class="frame" id="frame-03">
+      <img class="media" src="../../docs/images/windows/capsule.png" alt="" style="left: 14cqw; top: 12cqw; width: 72cqw; height: 52.6cqw; object-fit: cover; object-position: top;">
+      <div class="dim"></div>
+      <div class="capsule" style="background: linear-gradient(90deg, #2A1F4F, #13304A); box-shadow: inset 0 0 0 0.14cqw #8E6BFF, 0 0.8cqw 2.4cqw rgba(0,0,0,0.35);">
+        <span class="bars"><i></i><i></i><i></i><i></i><i></i></span>
+        <span>Lunch at noon, then <span class="tail">the design review</span></span>
+      </div>
+      <div class="skin-name">Aurora · 3 of 13</div>
+      <div class="dots"><i></i><i></i><i class="on"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+      <div class="caption small">13 skins, any color,<br>any size, anywhere on screen.</div>
+    </div>
+    <figcaption>
+      <div class="label"><b>03 · SKINS</b><span>frame-03 · 10.0–13.5 s</span></div>
+      <div class="note"><b>The capsule changes skin first, on the seam</b>, then about every quarter second through all 13, name under it; the app’s Capsule page sits dimmed behind. Skin colors here are placeholders; the build uses the app’s renders.</div>
+      <span class="chip">in: slide-left</span>
+    </figcaption>
+  </figure>
+
+  <!-- 04 Languages -->
+  <figure>
+    <div class="frame" id="frame-04">
+      <img class="media" src="../../docs/images/windows/languages.png" alt="" style="left: 14cqw; top: 12cqw; width: 72cqw; height: 52.6cqw; object-fit: cover; object-position: top;">
+      <div class="dim"></div>
+      <div class="capsule">
+        <span class="bars"><i></i><i></i><i></i><i></i><i></i></span>
+        <span>Wir verschieben das Review <span class="tail">auf Donnerstag</span></span>
+      </div>
+      <div class="caption">25 languages.</div>
+      <div class="step">Deutsch → Français → Русский<br><b>about 1.1 s each</b></div>
+    </div>
+    <figcaption>
+      <div class="label"><b>04 · LANGUAGES</b><span>frame-04 · 13.5–17.0 s</span></div>
+      <div class="note"><b>The Languages page slides in under the capsule</b>, which then speaks German, French and Russian in turn, each sentence rising in word by word. Sentences are drawn by the app.</div>
+      <span class="chip">in: slide-left</span>
+    </figcaption>
+  </figure>
+
+  <!-- 05 Close -->
+  <figure>
+    <div class="frame" id="frame-05">
+      <div class="capsule"><span class="bars flat"><i></i><i></i><i></i><i></i><i></i></span><span class="muted">Listening…</span></div>
+      <div class="lockup">
+        <svg viewBox="0 0 100 100" aria-hidden="true">
+          <circle cx="50" cy="50" r="50" fill="#3272AA"/>
+          <rect x="39" y="22" width="22" height="36" rx="11" fill="#fff"/>
+          <path d="M30 48a20 20 0 0 0 40 0" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round"/>
+          <path d="M50 68v10M40 78h20" stroke="#fff" stroke-width="5" stroke-linecap="round"/>
+        </svg>
+        <div><h2>SuperDictate</h2><p>Windows and macOS · speech recognized on your computer</p></div>
+      </div>
+      <div class="message">Speak, and your words appear where you type, in a capsule you can <em>make your own.</em></div>
+      <div class="hold">holds still 19.0–20.5 s</div>
+    </div>
+    <figcaption>
+      <div class="label"><b>05 · CLOSE</b><span>frame-05 · 17.0–20.5 s</span></div>
+      <div class="note"><b>The page fades out first</b> while the capsule stays at its spot, idle; the icon and name rise in (the app’s page-rise), then the message. The last 1.5 s hold still.</div>
+      <span class="chip">in: crossfade</span>
+    </figcaption>
+  </figure>
+
+  <!-- Seam map -->
+  <figure>
+    <div class="frame"><div class="panel">
+      <h3>Seam map</h3>
+      <div class="strip">
+        <div style="flex: 6.5">01 Dictate</div><div style="flex: 3.5">02 Glass</div><div style="flex: 3.5">03 Skins</div>
+        <div style="flex: 3.5">04 Lang.</div><div style="flex: 3.5">05 Close</div>
+      </div>
+      <div class="seams">
+        <div style="flex: 6.5">cut in</div><div style="flex: 3.5"><span>← slide</span></div><div style="flex: 3.5"><span>← slide</span></div>
+        <div style="flex: 3.5"><span>← slide</span></div><div style="flex: 3.5">crossfade</div>
+      </div>
+      <ul>
+        <li>The capsule never moves between frames; every seam happens under it.</li>
+        <li>One direction: scenes enter from the right, leave to the left.</li>
+        <li>Total 6.5 + 3.5 + 3.5 + 3.5 + 3.5 = 20.5 s.</li>
+      </ul>
+    </div></div>
+    <figcaption>
+      <div class="label"><b>SEAMS</b><span>0.0–20.5 s</span></div>
+    </figcaption>
+  </figure>
+
+  <!-- Tokens -->
+  <figure>
+    <div class="frame"><div class="panel">
+      <h3>Tokens (from DESIGN.md)</h3>
+      <div class="row">
+        <span class="swatch"><i style="background:#0E1621"></i>field #0E1621</span>
+        <span class="swatch"><i style="background:#17212B"></i>card #17212B</span>
+        <span class="swatch"><i style="background:#F5F5F5"></i>text #F5F5F5</span>
+        <span class="swatch"><i style="background:#8395A7"></i>muted #8395A7</span>
+        <span class="swatch"><i style="background:#3272AA"></i>accent #3272AA</span>
+        <span class="swatch"><i style="background:#6AB2F2"></i>link #6AB2F2</span>
+      </div>
+      <div class="type"><b>Captions</b> Segoe UI Variable Display 600, 65–80 px · <b>Labels</b> Segoe UI Variable Text, 24 px, muted · <b>Easing</b> cubic-bezier(0.32, 0.72, 0, 1)</div>
+      <ul>
+        <li>No invented features or numbers; no fake app UI.</li>
+        <li>No glow, neon or gradient text.</li>
+        <li>No slideshow, no screensaver motion.</li>
+      </ul>
+    </div></div>
+    <figcaption>
+      <div class="label"><b>TOKENS</b><span>palette · type · bans</span></div>
+    </figcaption>
+  </figure>
+
+</main>
+</body>
+</html>

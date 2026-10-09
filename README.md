@@ -18,7 +18,9 @@ computer: your voice never leaves it.
 <p align="center"><b>English</b> · <a href="README.ru.md">Русский</a></p>
 
 <p align="center">
-  <img src="docs/images/capsule.gif" width="720" alt="The capsule writing a sentence word by word as it is spoken">
+  <a href="docs/media/showcase.mp4"><img src="docs/images/showcase.gif" width="720" alt="The capsule writing a sentence word by word as it is spoken, then the sentence typed into a document at the cursor"></a>
+  <br>
+  <a href="docs/media/showcase.mp4">Watch the 22-second tour</a>: the capsule, Liquid Glass, all fifteen skins and the languages.
 </p>
 
 ## Download
@@ -44,7 +46,7 @@ app needs the internet.
 - **See your words as you speak.** A capsule floats over your screen and
   writes a live draft. When you stop, the whole recording is transcribed
   again, so the typed text is a little better than the draft.
-- **Make the capsule yours.** Thirteen skins, including Liquid Glass. Choose
+- **Make the capsule yours.** Fifteen skins, including Liquid Glass and seven with moving art that rises with your voice. Choose
   the accent color, size, opacity, voice meter and how wide it grows, put it in any corner or drag
   it anywhere. Next to the left or right edge it grows away from that edge.
 - **Your languages.** Pick the languages you speak; detection chooses among
@@ -59,7 +61,7 @@ app needs the internet.
 ### The capsule
 
 <p align="center">
-  <img src="docs/images/capsule-skins.png" width="820" alt="All thirteen capsule skins, each showing a sentence">
+  <img src="docs/images/capsule-skins.png" width="820" alt="All fifteen capsule skins, each showing a sentence">
 </p>
 
 On a Mac with macOS 26, the Liquid Glass skin is Apple's own glass. On Windows
