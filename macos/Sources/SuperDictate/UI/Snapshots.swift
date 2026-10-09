@@ -64,11 +64,11 @@ enum Snapshots {
         var body: some View {
             var caption = Caption()
             caption.show(settled: "Lunch at noon, then", tail: "the design review")
-            let meters: [CapsuleStyle.Meter] = [.bars, .wave, .pulse]
+            let meters = CapsuleStyle.Meter.allCases
             return LazyVGrid(columns: [GridItem(.fixed(380), spacing: 24), GridItem(.fixed(380))], spacing: 18) {
                 ForEach(Array(CapsuleSkin.all.enumerated()), id: \.element.id) { index, skin in
                     VStack(spacing: 6) {
-                        CapsulePill(style: CapsuleStyle(skin: skin, meter: meters[index % 3], timer: index < 2),
+                        CapsulePill(style: CapsuleStyle(skin: skin, meter: meters[index % meters.count], timer: index < 2),
                                     caption: caption, started: Date(timeIntervalSinceNow: -14), live: false, level: { 0.1 })
                         Text(skin.name).font(.caption).foregroundStyle(.white.opacity(0.85))
                     }

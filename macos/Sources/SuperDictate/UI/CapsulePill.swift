@@ -11,7 +11,7 @@ struct CapsuleStyle: Equatable {
     static let widestRange: ClosedRange<Double> = 240 ... 900
 
     enum Meter: String, CaseIterable, Identifiable {
-        case bars, wave, pulse
+        case bars, wave, dots, scope
 
         var id: Self { self }
         var title: String { rawValue.capitalized }
@@ -21,7 +21,8 @@ struct CapsuleStyle: Equatable {
             switch self {
             case .bars: 27
             case .wave: 44
-            case .pulse: 20
+            case .dots: 35
+            case .scope: 46
             }
         }
     }
@@ -138,10 +139,19 @@ struct CapsulePill: View {
             }
         }
         .foregroundStyle(skin.isGlass ? AnyShapeStyle(Color.primary) : AnyShapeStyle(Color(skin.text)))
+        // Over a picture, the words get a soft halo in the opposite tone, so every letter stays crisp.
+        .shadow(color: halo, radius: skin.art == nil ? 0 : 3 * scale)
         .padding(.horizontal, 18 * scale)
         .frame(minWidth: CapsuleStyle.narrowest * scale, minHeight: CapsuleStyle.height * scale)
-        .modifier(CapsuleSurface(style: style, rim: rim))
+        .modifier(CapsuleSurface(style: style, rim: rim, live: live, processing: overlay == .processing, level: level))
         .opacity(style.opacity)
+    }
+
+    private var halo: Color {
+        let text = style.skin.text
+        guard style.skin.art != nil else { return .clear }
+        let darkWords = Int(text.red) + Int(text.green) + Int(text.blue) < 384
+        return darkWords ? .white.opacity(0.85) : .black.opacity(0.75)
     }
 
     private var muted: AnyShapeStyle {
@@ -169,10 +179,14 @@ struct CapsulePill: View {
 /// glass on macOS 26 and later, light or dark with what's behind it, and the
 /// words on it follow, as on the system's own glass. Before macOS 26 it is the
 /// system material, light or dark with the Mac's appearance, with a lit rim and
-/// a soft shadow; the snapshot pictures paint that material.
+/// a soft shadow; the snapshot pictures paint that material. An art skin draws
+/// its moving picture under the words (`CapsuleArt`).
 private struct CapsuleSurface: ViewModifier {
     let style: CapsuleStyle
     let rim: AnyShapeStyle
+    let live: Bool
+    let processing: Bool
+    let level: () -> Float
     @Environment(\.paintsGlass) private var paintsGlass
 
     func body(content: Content) -> some View {
@@ -186,6 +200,14 @@ private struct CapsuleSurface: ViewModifier {
                     materialGlass(content)
                 }
             }
+        } else if let art = style.skin.art {
+            content
+                .background {
+                    CapsuleArt(art: art, live: live, processing: processing, level: level)
+                        .clipShape(Capsule())
+                }
+                .overlay(CapsuleRim(width: style.skin.borderWidth).fill(rim, style: FillStyle(eoFill: true)))
+                .shadow(color: .black.opacity(0.3), radius: 16 * style.scale, y: 6 * style.scale)
         } else {
             painted(content)
                 // A see-through skin would show its own shadow through itself; it floats on its rim instead.
@@ -240,7 +262,8 @@ extension EnvironmentValues {
 }
 
 /// The voice meter, in the accent color: five bars, a wave of thin bars taller
-/// in the middle like a voice print, or a pulsing dot. Recording, it follows the
+/// in the middle like a voice print, a small LED matrix, or an oscilloscope
+/// trace. It never draws outside its strip. Recording, it follows the
 /// voice; processing, it settles into a low ripple that no longer reacts to
 /// sound, so it never looks like it's still listening. With Reduce Motion on it
 /// holds still.
@@ -267,20 +290,34 @@ private struct VoiceMeter: View {
         let voice: Double = processing ? 0 : min(Double(level()) * 6, 1)
         return Group {
             switch style.meter {
-            case .pulse:
-                let wave: Double = calm ? 1 : 0.5 + 0.5 * sin(phase * 0.6)
-                let swell: Double = processing ? 0.15 + 0.15 * wave : voice
-                ZStack {
-                    Circle()
-                        .strokeBorder(style.accentColor, lineWidth: 1.5 * scale)
-                        .frame(width: 12 * scale, height: 12 * scale)
-                        .scaleEffect(1 + 0.9 * swell)
-                        .opacity(processing ? 0.25 : 0.15 + 0.6 * voice)
-                    Circle()
-                        .fill(style.accentColor)
-                        .frame(width: 8 * scale, height: 8 * scale)
-                        .scaleEffect(1 + 1.1 * swell)
+            case .dots:
+                // Seven columns of three dots, each column lit from the bottom up.
+                HStack(spacing: 1.6 * scale) {
+                    ForEach(0 ..< 7, id: \.self) { column in
+                        let wave: Double = calm ? 1 : 0.5 + 0.5 * sin(phase + Double(column) * 0.7)
+                        let fill: Double = processing ? (calm ? 0.35 : 0.2 + 0.3 * wave) : wave * voice
+                        VStack(spacing: 1.6 * scale) {
+                            ForEach((0 ..< 3).reversed(), id: \.self) { row in
+                                Circle()
+                                    .fill(style.accentColor)
+                                    .frame(width: 3.4 * scale, height: 3.4 * scale)
+                                    .opacity(min(max(fill * 3 - Double(row), 0.18), 1))
+                            }
+                        }
+                    }
                 }
+            case .scope:
+                // A trace like an oscilloscope's, pinned at both ends; it swings with the voice.
+                let swing: Double = (processing ? (calm ? 1.5 : 1.2 + 0.8 * (0.5 + 0.5 * sin(phase * 0.5))) : 1.2 + 7.2 * voice) * scale
+                Path { path in
+                    for index in 0 ..< 40 {
+                        let x = Double(index) / 39
+                        let shape = 0.7 * sin(x * 14 + phase * 1.3) + 0.3 * sin(x * 31 - phase * 0.8)
+                        let point = CGPoint(x: x * 46 * scale, y: 10 * scale + swing * sin(.pi * x) * shape)
+                        if index == 0 { path.move(to: point) } else { path.addLine(to: point) }
+                    }
+                }
+                .stroke(style.accentColor, style: StrokeStyle(lineWidth: 1.6 * scale, lineCap: .round, lineJoin: .round))
             case .bars, .wave:
                 let wavy = style.meter == .wave
                 let count = wavy ? 13 : 5
@@ -303,6 +340,7 @@ private struct VoiceMeter: View {
             }
         }
         .frame(width: style.meter.width * scale, height: 20 * scale)
+        .clipped()
     }
 }
 

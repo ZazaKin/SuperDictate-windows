@@ -74,8 +74,19 @@ Mono.
   - The capsule widens with the text from 168 to 460 px. Past that, the line
     glides left and the oldest words fade out at the left edge.
   - The draft stays visible while processing, and the capsule never takes focus.
-  - Skins (`Ui/CapsuleSkin.cs`), 13 of them. Each skin's text and status text
+  - Skins (`Ui/CapsuleSkin.cs`), 15 of them. Each skin's text and status text
     meet 4.5:1 on its own fill; the self-test checks this (`capsule.skins`).
+  - Seven art skins (`Ui/CapsuleArt.cs`) draw a moving picture under the words:
+    Bloom (grainy pastel light pools), Eclipse (a planet's lit edge), Chrome
+    (iridescent ribbons), Hive (a lit honeycomb), Halftone (a dithered pixel
+    wave), Mosaic (shimmering tiles) and Mesa (sky over terracotta hills). The
+    voice lifts or brightens them. A calm lane in the skin's base color runs
+    behind the line of words and the words get a soft halo in the opposite
+    tone, so they always read; for these skins Fill and FillEnd are the two
+    extremes the words sit on, so the contrast check covers both.
+  - Voice meters: bars, wave, dots (a 7 × 3 LED matrix) and scope (an
+    oscilloscope trace). The meter strip clips, and the self-test fails if a
+    meter at full voice draws outside it (`capsule.meter_fits`).
   - Liquid Glass is a true capsule. On Windows 10 2004 and later it is live
     (`Ui/LiveGlass.cs`): the screen behind is copied about 20 times a second,
     blurred, and drawn by a pixel shader that bends the bezel inward with a

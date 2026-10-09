@@ -906,18 +906,31 @@ internal static class SelfTest
             try
             {
                 var view = new Ui.CapsuleView();
+                var spilled = new System.Collections.Generic.List<string>();
                 foreach (var skin in Ui.CapsuleSkin.All)
                 {
-                    foreach (var meter in new[] { "bars", "wave", "pulse" })
+                    foreach (var meter in Ui.CapsuleView.Meters)
                     {
                         view.Apply(new Ui.CapsuleStyle(skin.Id, "#5B8DEF", 1.2, 0.8, meter, true));
                         view.ShowText("Listening…", meter: true);
                         view.ShowDraft("hello there", "how are");
                         view.Elapsed = TimeSpan.FromSeconds(75);
-                        view.SetLevel(0.05);
-                        view.Render(1.5);
+                        // Laid out, so the art skins draw their pictures too.
+                        view.Measure(new System.Windows.Size(double.PositiveInfinity, double.PositiveInfinity));
+                        view.Arrange(new System.Windows.Rect(view.DesiredSize));
+                        view.SetPreviewLevel(1);
+                        for (var frame = 0; frame < 20; frame++)
+                        {
+                            view.Render(frame * 0.137);
+                            view.UpdateLayout();
+                            // At full voice every meter stays inside its strip; the old pulse spilled out of the top.
+                            var (strip, ink) = view.MeterReach();
+                            if (!ink.IsEmpty && (ink.Top < -0.5 || ink.Bottom > strip + 0.5)) spilled.Add($"{meter} {ink.Top:0.#}..{ink.Bottom:0.#} of {strip:0.#}");
+                        }
                     }
                 }
+
+                Assert("capsule.meter_fits", spilled.Count == 0, string.Join("; ", spilled.Distinct()));
 
                 _ = new Ui.CapsuleLayoutEditor(view.Current, Ui.CapsulePlacement.TopCenter, null);
                 Assert("capsule.view", true);
@@ -951,6 +964,15 @@ internal static class SelfTest
                 SettingsStore.KeepKnownLanguages(older);
                 var none = new Settings { SelectedLanguages = new System.Collections.Generic.List<string> { "ko" } };
                 SettingsStore.KeepKnownLanguages(none);
+                // Settings naming a skin or meter this build no longer offers fall back to the first of each.
+                var dated = new Settings { CapsuleSkin = "ocean", CapsuleMeter = "pulse" };
+                SettingsStore.KeepKnownLook(dated);
+                var current = new Settings { CapsuleSkin = "mesa", CapsuleMeter = "scope" };
+                SettingsStore.KeepKnownLook(current);
+                Assert("capsule.look_known", dated.CapsuleSkin == "midnight" && dated.CapsuleMeter == "bars"
+                                             && current.CapsuleSkin == "mesa" && current.CapsuleMeter == "scope"
+                                             && Ui.CapsuleSkin.All.Length == 15,
+                    $"{dated.CapsuleSkin}/{dated.CapsuleMeter}, {current.CapsuleSkin}/{current.CapsuleMeter}, {Ui.CapsuleSkin.All.Length} skins");
                 Assert("languages.known", older.Language == "auto" && older.SelectedLanguages.SequenceEqual(new[] { "de" })
                                           && none.SelectedLanguages.SequenceEqual(new[] { "en" }) && SpokenLanguages.All.Length == 25,
                     $"{older.Language} [{string.Join(",", older.SelectedLanguages)}] [{string.Join(",", none.SelectedLanguages)}]");

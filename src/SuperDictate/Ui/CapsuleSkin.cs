@@ -6,7 +6,8 @@ namespace SuperDictate.Ui;
 /// <summary>
 /// A look for the capsule. Text on every skin meets WCAG AA (4.5:1) against its
 /// fill, which the self-test checks; translucent skins are checked as if opaque,
-/// and keep enough fill to hold that over most backgrounds.
+/// and keep enough fill to hold that over most backgrounds. An art skin draws a
+/// moving picture under the words (<see cref="CapsuleArt"/>).
 /// </summary>
 public sealed record CapsuleSkin(
     string Id,
@@ -19,7 +20,8 @@ public sealed record CapsuleSkin(
     Color Muted,
     bool Rainbow = false,
     bool AccentRim = false,
-    bool Glass = false)
+    bool Glass = false,
+    string? Art = null)
 {
     public static readonly CapsuleSkin[] All =
     {
@@ -29,28 +31,36 @@ public sealed record CapsuleSkin(
         // the light at the top and bottom, and a sheen across the top. On a Mac with
         // macOS 26 the same skin is the real thing.
         new("liquid", "Liquid Glass", Argb(120, 0x16, 0x1A, 0x24), Argb(165, 0x0E, 0x10, 0x18), Colors.White, 1.2, Colors.White, Rgb(0xD8, 0xDC, 0xE4), Glass: true),
+
+        // The art skins (Ui/CapsuleArt.cs): a moving picture under the words, calmed behind
+        // them. Fill and FillEnd are the two extremes the words sit on, so both are checked.
+        // Grainy pastel light pools drifting, swelling as you speak; light, dark words.
+        new("bloom", "Bloom", Rgb(0xF6, 0xEE, 0xF0), Rgb(0xFF, 0x7A, 0x6B), Argb(150, 255, 255, 255), 1, Rgb(0x12, 0x14, 0x26), Rgb(0x33, 0x36, 0x4A), Art: "bloom"),
+        // A planet's lit edge low across the capsule; the light rises with the voice.
+        new("eclipse", "Eclipse", Rgb(0x02, 0x04, 0x0A), Rgb(0x1F, 0x4F, 0xB4), Argb(36, 255, 255, 255), 1, Colors.White, Rgb(0xD4, 0xE0, 0xF5), Art: "eclipse"),
+        // Curved black ribbons with iridescent edges and a sliding glint.
+        new("chrome", "Chrome", Rgb(0x07, 0x08, 0x0B), Rgb(0x52, 0x53, 0x56), Argb(50, 255, 255, 255), 1, Colors.White, Rgb(0xC9, 0xCC, 0xD3), Art: "chrome"),
+        // A honeycomb on black, lit by a wandering violet light.
+        new("hive", "Hive", Rgb(0x05, 0x05, 0x09), Rgb(0x28, 0x15, 0x4F), Argb(40, 255, 255, 255), 1, Colors.White, Rgb(0xD8, 0xD4, 0xEE), Art: "hive"),
+        // A pink pixel wave in ordered dither on navy, rising as you speak.
+        new("halftone", "Halftone", Rgb(0x0A, 0x10, 0x22), Rgb(0x38, 0x14, 0x32), Argb(40, 255, 255, 255), 1, Colors.White, Rgb(0xF7, 0xE6, 0xEE), Art: "halftone"),
+        // Lavender-to-pink tiles with a shimmer running through them; light.
+        new("mosaic", "Mosaic", Rgb(0xF2, 0xEE, 0xF9), Rgb(0xF0, 0x7A, 0xA5), Argb(150, 255, 255, 255), 1, Rgb(0x17, 0x12, 0x1C), Rgb(0x4A, 0x2C, 0x3A), Art: "mosaic"),
+        // A pale sky with drifting clouds over a terracotta horizon; light, terracotta words.
+        new("mesa", "Mesa", Rgb(0xC5, 0xD6, 0xE6), Rgb(0xE6, 0xA0, 0x7E), Argb(40, 0, 0, 0), 1, Rgb(0x6E, 0x24, 0x1C), Rgb(0x5E, 0x2F, 0x29), Art: "mesa"),
+
+        // Dark, with a rim that shifts from the accent through violet to teal.
+        new("aurora", "Aurora", Rgb(0x12, 0x12, 0x1A), Rgb(0x0E, 0x0E, 0x16), Colors.Transparent, 1.5, Colors.White, Rgb(0xBF, 0xC2, 0xD0), Rainbow: true),
+        // Black, ringed in the accent color, as if lit from inside.
+        new("neon", "Neon", Rgb(0x0B, 0x0B, 0x10), Rgb(0x0B, 0x0B, 0x10), Colors.Transparent, 1.5, Colors.White, Rgb(0xC4, 0xC6, 0xD2), AccentRim: true),
+        // Smoked glass: the screen shows through, a bright rim catches the light.
+        new("glass", "Glass", Argb(150, 28, 30, 38), Argb(200, 20, 22, 30), Argb(90, 255, 255, 255), 1, Colors.White, Rgb(0xD6, 0xD9, 0xE0)),
         // Brushed dark grey, lit slightly from above.
         new("graphite", "Graphite", Rgb(0x3A, 0x3D, 0x44), Rgb(0x25, 0x27, 0x2C), Argb(26, 255, 255, 255), 1, Colors.White, Rgb(0xC6, 0xC9, 0xD0)),
         // Light, for light themes and bright apps.
         new("paper", "Paper", Rgb(0xFD, 0xFD, 0xFE), Rgb(0xF1, 0xF2, 0xF5), Argb(30, 0, 0, 0), 1, Rgb(0x1B, 0x1B, 0x1F), Rgb(0x55, 0x58, 0x60)),
-        // Smoked glass: the screen shows through, a bright rim catches the light.
-        new("glass", "Glass", Argb(150, 28, 30, 38), Argb(200, 20, 22, 30), Argb(90, 255, 255, 255), 1, Colors.White, Rgb(0xD6, 0xD9, 0xE0)),
-        // Dark, with a rim that shifts from the accent through violet to teal.
-        new("aurora", "Aurora", Rgb(0x12, 0x12, 0x1A), Rgb(0x0E, 0x0E, 0x16), Colors.Transparent, 1.5, Colors.White, Rgb(0xBF, 0xC2, 0xD0), Rainbow: true),
-        // The app's own Telegram night colors.
-        new("telegram", "Telegram", Rgb(0x17, 0x21, 0x2B), Rgb(0x17, 0x21, 0x2B), Rgb(0x2B, 0x3A, 0x4A), 1, Rgb(0xF5, 0xF5, 0xF5), Rgb(0x9D, 0xB0, 0xC4)),
         // Black and white, for the clearest possible read.
         new("contrast", "High contrast", Colors.Black, Colors.Black, Colors.White, 2, Colors.White, Colors.White),
-        // Black, ringed in the accent color, as if lit from inside.
-        new("neon", "Neon", Rgb(0x0B, 0x0B, 0x10), Rgb(0x0B, 0x0B, 0x10), Colors.Transparent, 1.5, Colors.White, Rgb(0xC4, 0xC6, 0xD2), AccentRim: true),
-        // Deep sea blue, darker toward the bottom.
-        new("ocean", "Ocean", Rgb(0x10, 0x3E, 0x60), Rgb(0x0A, 0x24, 0x3C), Argb(70, 0x7F, 0xD8, 0xFF), 1, Colors.White, Rgb(0xC2, 0xDD, 0xEE)),
-        // Evening plum warming to ember.
-        new("sunset", "Sunset", Rgb(0x4A, 0x1D, 0x3A), Rgb(0x2A, 0x10, 0x1E), Argb(80, 0xFF, 0x9F, 0x6B), 1, Colors.White, Rgb(0xF0, 0xCF, 0xD8)),
-        // Pine green, quiet.
-        new("forest", "Forest", Rgb(0x16, 0x34, 0x24), Rgb(0x0D, 0x22, 0x17), Argb(60, 0x8F, 0xE3, 0xB0), 1, Colors.White, Rgb(0xC5, 0xE2, 0xCF)),
-        // Frosted white glass, for bright screens.
-        new("frost", "Frost", Argb(225, 0xF7, 0xF8, 0xFB), Argb(240, 0xEC, 0xEF, 0xF4), Argb(200, 255, 255, 255), 1, Rgb(0x16, 0x18, 0x1D), Rgb(0x4E, 0x53, 0x5C)),
     };
 
     public static CapsuleSkin Find(string? id) => All.FirstOrDefault(skin => skin.Id == id) ?? All[0];

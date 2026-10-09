@@ -70,9 +70,12 @@ final class CapsuleTests: XCTestCase {
                 XCTAssertGreaterThanOrEqual(RGBA.contrast(text, fill), 4.5, skin.name)
             }
         }
-        XCTAssertEqual(Set(CapsuleSkin.all.map(\.id)).count, 13)
+        XCTAssertEqual(Set(CapsuleSkin.all.map(\.id)).count, 15)
         XCTAssertEqual(CapsuleSkin.all.filter(\.isGlass).map(\.id), ["liquid"])
+        XCTAssertEqual(CapsuleSkin.all.compactMap(\.art), ["bloom", "eclipse", "chrome", "hive", "halftone", "mosaic", "mesa"])
         XCTAssertEqual(CapsuleSkin.find("nonsense").id, "midnight")
+        // Skins an earlier version offered fall back too.
+        XCTAssertEqual(CapsuleSkin.find("ocean").id, "midnight")
     }
 }
 

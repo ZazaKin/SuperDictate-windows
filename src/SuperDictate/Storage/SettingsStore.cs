@@ -28,6 +28,7 @@ public static class SettingsStore
                 {
                     MigrateLegacyAiKey(json, loaded);
                     KeepKnownLanguages(loaded);
+                    KeepKnownLook(loaded);
                     return loaded;
                 }
             }
@@ -46,6 +47,13 @@ public static class SettingsStore
         settings.SelectedLanguages = (settings.SelectedLanguages ?? new()).Where(SpokenLanguages.IsKnown).ToList();
         if (settings.SelectedLanguages.Count == 0) settings.SelectedLanguages.Add("en");
         if (settings.Language != "auto" && !SpokenLanguages.IsKnown(settings.Language)) settings.Language = "auto";
+    }
+
+    /// <summary>A skin or voice meter an earlier build offered and this one doesn't falls back to the first.</summary>
+    public static void KeepKnownLook(Settings settings)
+    {
+        if (Ui.CapsuleSkin.All.All(skin => skin.Id != settings.CapsuleSkin)) settings.CapsuleSkin = Ui.CapsuleSkin.All[0].Id;
+        if (!Ui.CapsuleView.Meters.Contains(settings.CapsuleMeter)) settings.CapsuleMeter = Ui.CapsuleView.Meters[0];
     }
 
     /// <summary>

@@ -157,10 +157,13 @@ While this tab is open, the real capsule shows on your screen with sample
 words, and every change appears on it at once. Dictation waits meanwhile: the
 shortcut shows "Close Capsule settings to dictate".
 
-- **Skin**: thirteen looks. **Liquid Glass** is Apple's own glass on macOS 26
-  (and the default there); on macOS 14 and 15 it's a close recreation.
+- **Skin**: fifteen looks. **Liquid Glass** is Apple's own glass on macOS 26
+  (and the default there); on macOS 14 and 15 it's a close recreation. Seven
+  skins carry a moving picture under the words (**Bloom**, **Eclipse**,
+  **Chrome**, **Hive**, **Halftone**, **Mosaic**, **Mesa**); it calms behind
+  the words so they always read, and it holds still with Reduce Motion on.
 - **Size**, **Opacity**, **Accent** (the voice meter's color; Multicolor follows
-  your Mac's accent color) and **Voice meter** (bars, wave or pulse).
+  your Mac's accent color) and **Voice meter** (bars, wave, dots or scope).
 - **Widest**: how far the capsule grows as your words appear.
 - **Place**: six corners and edges, or **Move…** to drag it anywhere.
 - **Screen**: the screen you're working on, or always the main screen.

@@ -129,13 +129,15 @@ close the window, with changes you haven't saved, SuperDictate asks: **Save**,
   open, the real capsule shows on your screen with example words, and every
   change shows on it at once; **Save** keeps it. Dictation waits while you're
   on this page: the hotkey shows "Close Capsule settings to dictate" instead.
-  - **Skin:** 13 looks, from Midnight and Liquid Glass to Paper, Neon and
-    High contrast. Liquid Glass is glass as on an iPhone or a Mac: the screen
+  - **Skin:** 15 looks, from Midnight and Liquid Glass to Paper, Neon and
+    High contrast. Seven of them carry a moving picture under the words
+    (Bloom, Eclipse, Chrome, Hive, Halftone, Mosaic, Mesa) that rises with
+    your voice and calms behind the words so they always read. Liquid Glass is glass as on an iPhone or a Mac: the screen
     behind it shows through, softly blurred, bent at the edge, with light
     catching the rim. Over a bright window it turns light with dark words,
     over a dark one it stays dark with white words.
-  - **Look:** size, opacity, accent color, the voice meter (bars, wave or
-    pulse), and **Widest**: how far the capsule grows as your words arrive.
+  - **Look:** size, opacity, accent color, the voice meter (bars, wave, dots
+    or scope), and **Widest**: how far the capsule grows as your words arrive.
     **Live glass** is on by default. To show the real screen, the capsule keeps
     itself out of screen copies, so it doesn't appear in screenshots or screen
     sharing; turn it off for a painted Liquid Glass that does. Live glass needs

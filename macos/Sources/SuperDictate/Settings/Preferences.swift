@@ -93,9 +93,17 @@ enum Preferences {
         static let settingsTab = "settings.tab"
     }
 
-    /// Defaults for the switches that start out on.
+    /// Defaults for the switches that start out on. A skin or voice meter an earlier
+    /// version offered and this one doesn't goes back to the default.
     static func register() {
-        UserDefaults.standard.register(defaults: [Key.livePreview: true, Key.playSounds: true])
+        let defaults = UserDefaults.standard
+        defaults.register(defaults: [Key.livePreview: true, Key.playSounds: true])
+        if let skin = defaults.string(forKey: Key.skin), !CapsuleSkin.all.contains(where: { $0.id == skin }) {
+            defaults.removeObject(forKey: Key.skin)
+        }
+        if let meter = defaults.string(forKey: Key.meter), CapsuleStyle.Meter(rawValue: meter) == nil {
+            defaults.removeObject(forKey: Key.meter)
+        }
     }
 
     static var hotkey: Hotkey { value(Key.hotkey) ?? .rightCommand }

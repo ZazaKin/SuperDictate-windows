@@ -58,7 +58,7 @@ public sealed class Settings
     /// <summary>0.5 to 1: how see-through the whole capsule is.</summary>
     public double CapsuleOpacity { get; set; } = 1.0;
 
-    /// <summary>The voice meter: bars, wave or pulse.</summary>
+    /// <summary>The voice meter: bars, wave, dots or scope.</summary>
     public string CapsuleMeter { get; set; } = "bars";
 
     /// <summary>Show the words as they're spoken (the live preview).</summary>
