@@ -20,7 +20,7 @@
 <p align="center">
   <a href="docs/media/showcase.mp4"><img src="docs/images/showcase.gif" width="720" alt="Капсула пишет фразу слово за словом, пока её произносят, а затем фраза печатается в документе у курсора"></a>
   <br>
-  <a href="docs/media/showcase.mp4">Смотреть 22-секундный обзор</a>: капсула, Liquid Glass, все пятнадцать обложек и языки.
+  <a href="docs/media/showcase.mp4">Смотреть 24-секундный обзор</a>: капсула, Liquid Glass, все пятнадцать обложек и языки.
 </p>
 
 ## Скачать
@@ -62,7 +62,8 @@
 ### Капсула
 
 <p align="center">
-  <img src="docs/images/capsule-skins.png" width="820" alt="Все пятнадцать обложек капсулы с фразой">
+  <img src="docs/images/capsule-skins.png" width="400" align="top" alt="Все пятнадцать обложек капсулы с фразой">
+  <img src="docs/images/capsule-skins.gif" width="420" align="top" alt="Все пятнадцать обложек в движении: картинки дрейфуют, светятся и мерцают в такт голосу">
 </p>
 
 На Mac с macOS 26 обложка Liquid Glass — настоящее стекло Apple. В Windows это

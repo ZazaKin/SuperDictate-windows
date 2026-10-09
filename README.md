@@ -20,7 +20,7 @@ computer: your voice never leaves it.
 <p align="center">
   <a href="docs/media/showcase.mp4"><img src="docs/images/showcase.gif" width="720" alt="The capsule writing a sentence word by word as it is spoken, then the sentence typed into a document at the cursor"></a>
   <br>
-  <a href="docs/media/showcase.mp4">Watch the 22-second tour</a>: the capsule, Liquid Glass, all fifteen skins and the languages.
+  <a href="docs/media/showcase.mp4">Watch the 24-second tour</a>: the capsule, Liquid Glass, all fifteen skins and the languages.
 </p>
 
 ## Download
@@ -61,7 +61,8 @@ app needs the internet.
 ### The capsule
 
 <p align="center">
-  <img src="docs/images/capsule-skins.png" width="820" alt="All fifteen capsule skins, each showing a sentence">
+  <img src="docs/images/capsule-skins.png" width="400" align="top" alt="All fifteen capsule skins, each showing a sentence">
+  <img src="docs/images/capsule-skins.gif" width="420" align="top" alt="All fifteen skins moving: the art skins drift, glow and shimmer as the voice rises and falls">
 </p>
 
 On a Mac with macOS 26, the Liquid Glass skin is Apple's own glass. On Windows

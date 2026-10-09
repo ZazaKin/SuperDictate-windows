@@ -164,20 +164,21 @@
             { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.74, ease: land, stagger: stagger ?? 0.08 }, at);
         }
 
-        // The skins in the order the app drew them (tour/skins.txt); each still is the app's own frame.
-        const skins = ["Liquid Glass", "Midnight", "Bloom", "Eclipse", "Chrome", "Hive", "Halftone", "Mosaic", "Mesa", "Aurora", "Neon", "Glass", "Graphite", "Paper", "High contrast"];
+        // Ten of the fifteen, the liveliest: each still is the app's own frame, numbered as in tour/skins.txt.
+        const skins = [["Liquid Glass", 0], ["Bloom", 2], ["Eclipse", 3], ["Chrome", 4], ["Hive", 5],
+          ["Halftone", 6], ["Mosaic", 7], ["Mesa", 8], ["Aurora", 9], ["Neon", 10]];
         const drum = document.getElementById("skins-drum");
         const names = document.getElementById("skins-names");
         const angle = 360 / skins.length;
-        const radius = 420;
-        skins.forEach((name, index) => {
-          const still = document.createElement("img");
-          still.src = "assets/skins/" + String(index).padStart(2, "0") + ".png";
-          still.alt = "";
-          still.style.transform = "rotateX(" + index * angle + "deg) translateZ(" + radius + "px)";
-          drum.appendChild(still);
+        const radius = 300;
+        skins.forEach(([name, still], index) => {
+          const image = document.createElement("img");
+          image.src = "assets/skins/" + String(still).padStart(2, "0") + ".png";
+          image.alt = "";
+          image.style.transform = "rotateX(" + index * angle + "deg) translateZ(" + radius + "px)";
+          drum.appendChild(image);
           const label = document.createElement("span");
-          label.innerHTML = "<b>" + name + "</b><em>" + (index + 1) + " / " + skins.length + "</em>";
+          label.innerHTML = "<b>" + name + "</b>";
           names.appendChild(label);
         });
 
@@ -186,15 +187,15 @@
           { scale: 1, opacity: 1, filter: "blur(0px)", duration: 0.65, ease: "power3.out" }, 0);
         tl.set("#skins-stage", { filter: "none" }, 0.66);
 
-        // The wheel spins in, then clicks through every skin, one detent at a time.
+        // The wheel spins in, then rolls on slowly, easing into each skin and out again.
         tl.fromTo(drum, { rotationX: 48 }, { rotationX: 0, duration: 0.8, ease: "power3.out" }, 0);
         const labels = names.querySelectorAll("span");
         tl.set(labels[0], { opacity: 1 }, 0.45);
         for (let index = 1; index < skins.length; index++) {
-          const at = 0.85 + (index - 1) * 0.175;
-          tl.to(drum, { rotationX: -index * angle, duration: 0.13, ease: "power3.inOut" }, at);
-          tl.set(labels[index - 1], { opacity: 0 }, at + 0.065);
-          tl.set(labels[index], { opacity: 1 }, at + 0.065);
+          const at = 0.95 + (index - 1) * 0.5;
+          tl.to(drum, { rotationX: -index * angle, duration: 0.42, ease: "sine.inOut" }, at);
+          tl.set(labels[index - 1], { opacity: 0 }, at + 0.21);
+          tl.set(labels[index], { opacity: 1 }, at + 0.21);
         }
         tl.fromTo("#skins-band", { opacity: 0, scale: 0.9 }, { opacity: 1, scale: 1, duration: 0.5, ease: "rise" }, 0.5);
         rise(document.getElementById("skins-title"), 0.3);
@@ -205,9 +206,9 @@
         const whipBlur = document.getElementById("skins-whip-blur");
         const whip = { v: 0 };
         const writeWhip = () => whipBlur.setAttribute("stdDeviation", whip.v + " 0");
-        tl.set("#skins-stage", { filter: "url(#skins-whip)" }, 3.4);
-        tl.to("#skins-stage", { x: -1920, duration: 0.45, ease: "power3.in" }, 3.4);
-        tl.fromTo(whip, { v: 0 }, { v: 70, duration: 0.45, ease: "power3.in", onUpdate: writeWhip, immediateRender: false }, 3.4);
+        tl.set("#skins-stage", { filter: "url(#skins-whip)" }, 5.4);
+        tl.to("#skins-stage", { x: -1920, duration: 0.45, ease: "power3.in" }, 5.4);
+        tl.fromTo(whip, { v: 0 }, { v: 70, duration: 0.45, ease: "power3.in", onUpdate: writeWhip, immediateRender: false }, 5.4);
         window.__timelines["skins"] = tl;
       </script>
     </template>
