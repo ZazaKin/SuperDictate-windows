@@ -193,9 +193,10 @@ add(effects, 22.3, shimmer(1.6, [86, 90, 93, 98]), gain=0.045, pan=0.25)
 
 # ---- Mix -------------------------------------------------------------------
 
-# The music sits well under the effects, so the whooshes and ticks carry.
+# The music, and the effects a touch above it: present, never sharp.
 MUSIC = 0.4
-dry = (pad + arp) * MUSIC + effects
+EFFECTS = 0.35
+dry = (pad + arp) * MUSIC + effects * EFFECTS
 # A small room: decaying stereo noise as the impulse response.
 _, ir_t = span(0, 2.2)
 impulse = rng.standard_normal((len(ir_t), 2)) * np.exp(-ir_t / 0.55)[:, None]
