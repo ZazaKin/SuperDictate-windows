@@ -20,7 +20,7 @@ computer: your voice never leaves it.
 <p align="center">
   <a href="docs/media/showcase.mp4"><img src="docs/images/showcase.gif" width="720" alt="The capsule writing a sentence word by word as it is spoken, then the sentence typed into a document at the cursor"></a>
   <br>
-  <a href="docs/media/showcase.mp4">Watch the 24-second tour</a>: the capsule, Liquid Glass, all fifteen skins and the languages.
+  <a href="docs/media/showcase.mp4">Watch the 25-second tour</a> (with sound): the capsule, Liquid Glass, all fifteen skins and the languages.
 </p>
 
 ## Download

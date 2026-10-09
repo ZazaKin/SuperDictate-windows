@@ -1,6 +1,6 @@
 # The README video
 
-The 24-second tour at the top of the README (`docs/media/showcase.mp4`, and its
+The 25-second tour at the top of the README (`docs/media/showcase.mp4`, and its
 opening shot as `docs/images/showcase.gif`), made with
 [HyperFrames](https://hyperframes.heygen.com): HTML scenes animated with GSAP,
 rendered to video. What it says and why is in `BRIEF.md`; the shots, as planned
@@ -17,8 +17,12 @@ them up to date after the app changes:
    MP4: `ffmpeg -framerate 30 -i glass-motion/frame-%03d.png -c:v libx264 -crf 16 -pix_fmt yuv420p assets/glass-motion.mp4`.
 3. Copy `settings-capsule.png` and `settings-languages.png` from `<folder>` to
    `assets/`, and the last frame of `tour/waiting` to `assets/capsule-waiting-still.png`.
-4. For the skin wheel, cut one still per skin from `tour/skins` (the order is in
-   `tour/skins.txt`), all to the same box, into `assets/skins/00.png` onward.
+4. For the skin wheel, encode each `tour/skin-<id>` folder the same way as the
+   capsule clips, cropped to the capsule (`-vf crop=648:154:316:32`), into
+   `assets/skins/<id>.webm`.
+5. The sound is synthesized: `python score.py score.wav`, then
+   `ffmpeg -i score.wav -c:a aac -b:a 192k assets/score.m4a`. Its cues follow the
+   film's timings; move a shot and move its cue in `score.py` too.
 
 Then, with Node 22 and FFmpeg installed:
 

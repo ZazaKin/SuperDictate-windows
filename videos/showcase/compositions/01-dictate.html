@@ -151,7 +151,7 @@
           <div data-hf-id="hf-pfz9" id="dictate-cam">
             <div data-hf-id="hf-whjb" id="dictate-world" data-layout-allow-overflow="">
               <div data-hf-id="hf-bu56" id="dictate-doc">
-                <div data-hf-id="hf-ufsv" class="bar"><i data-hf-id="hf-wt6k"></i><i data-hf-id="hf-zeb8"></i><i data-hf-id="hf-y7e5"></i><span data-hf-id="hf-yzq6">Notes</span></div>
+                <div data-hf-id="hf-ufsv" class="bar"><i data-hf-id="hf-wt6k"></i><i data-hf-id="hf-zeb8"></i><i data-hf-id="hf-y7e5"></i><span data-hf-id="hf-yzq6" id="dictate-label">Notes</span></div>
                 <div data-hf-id="hf-1tw3" class="body" id="dictate-body">
                   <div data-hf-id="hf-2wdo">Hi team,</div>
                   <div data-hf-id="hf-np12" class="line"><span data-hf-id="hf-564x" class="cursor" id="dictate-cursor-start"></span><span data-hf-id="hf-boqw" id="dictate-typed">Move the design review to Thursday at three, and send the new mockups tonight</span><span data-hf-id="hf-238q" class="cursor" id="dictate-cursor-end"></span></div>
@@ -210,14 +210,14 @@
         // of a tilt, then one pull-back to the whole desk. Its zoom, 30 values a second, comes from
         // the capsule's own width in the app's frames: it eases out a little ahead of each widening,
         // so the capsule grows on screen and never leaves the frame. Then it breathes in.
-        const camera = {"scale":[2.3349,2.3317,2.3282,2.3244,2.3203,2.3159,2.3113,2.3065,2.3015,2.2963,2.291,2.2857,2.2803,2.2748,2.2694,2.264,2.2586,2.2532,2.248,2.2428,2.2377,2.2328,2.2279,2.2232,2.2186,2.2142,2.2099,2.2058,2.2017,2.1979,2.1941,2.1905,2.187,2.1837,2.1804,2.1772,2.1741,2.1711,2.1682,2.1653,2.1624,2.1595,2.1567,2.1538,2.1509,2.1479,2.1448,2.1417,2.1384,2.135,2.1314,2.1277,2.1237,2.1195,2.115,2.1102,2.1051,2.0997,2.094,2.0878,2.0813,2.0743,2.0669,2.059,2.0507,2.0419,2.0325,2.0228,2.0125,2.0017,1.9905,1.9788,1.9666,1.954,1.9409,1.9275,1.9137,1.8995,1.8849,1.87,1.8548,1.8394,1.8236,1.8076,1.7913,1.7748,1.758,1.741,1.7238,1.7064,1.6888,1.6711,1.6531,1.6351,1.6169,1.5694,1.537,1.5199,1.5087,1.5032,1.5005,1.5005,1.4709,1.4526,1.4399,1.4323,1.4289,1.4149,1.401,1.3871,1.3733,1.3596,1.346,1.3325,1.3192,1.3062,1.2933,1.2808,1.2686,1.2568,1.2454,1.2345,1.224,1.2141,1.2048,1.1961,1.1881,1.1807,1.174,1.168,1.1627,1.1581,1.1543,1.1512,1.1489,1.1474,1.0],"y":[388,388,388,388,388,388,388,388,388,388,388,388,388,388,388,388,388,388,388,388,388,388,388,388,388,388,388,388,388,388,388,388,388,388,388,388,388,388,388,388,388,388,388,388,388,388,388,388,388,388,388,388,388,388,388,388,388,388,388,388,388,388,388,388,388,388,388,388,388,388,388,388,388,388,388,388,388,388,388,388,388,388,388,388,388,388,388,388,388,388,388,388,388,388,388,388,388,388,388.0,388.0,387.9,387.8,387.4,386.6,385.2,383.0,379.8,375.2,368.9,360.5,349.7,335.9,318.6,297.4,271.7,240.8,204.1,164.8,131.1,102.9,79.5,60.3,44.8,32.5,23.0,15.7,10.3,6.4,3.8,2.0,1.0,0.4,0.1,0.0,0.0,0.0,0]};
+        const camera = {"scale":[2.2281,2.2262,2.2241,2.2219,2.2196,2.2171,2.2146,2.2118,2.209,2.2061,2.203,2.1998,2.1965,2.1931,2.1896,2.186,2.1823,2.1784,2.1745,2.1705,2.1664,2.1622,2.1579,2.1536,2.1491,2.1446,2.14,2.1353,2.1306,2.1258,2.1209,2.116,2.111,2.106,2.1009,2.0958,2.0906,2.0854,2.0802,2.075,2.0697,2.0644,2.059,2.0537,2.0484,2.043,2.0377,2.0323,2.027,2.0217,2.0164,2.0111,2.0059,2.0007,1.9956,1.9904,1.9854,1.9804,1.9755,1.9706,1.9658,1.9611,1.9565,1.952,1.9476,1.9432,1.939,1.9349,1.931,1.9271,1.9234,1.9198,1.9164,1.9131,1.91,1.907,1.9042,1.9016,1.8991,1.8968,1.8947,1.8928,1.891,1.8895,1.8881,1.8869,1.8859,1.8851,1.8845,1.8841,1.8839,1.883,1.8802,1.8754,1.8689,1.8605,1.8503,1.8384,1.8247,1.8095,1.7926,1.7743,1.7545,1.7334,1.711,1.6875,1.663,1.6374,1.6111,1.584,1.5564,1.5282,1.4997,1.4709,1.442,1.4131,1.3843,1.3557,1.3276,1.2999,1.2728,1.2465,1.221,1.1964,1.1729,1.1506,1.1294,1.1097,1.0913,1.0745,1.0592,1.0456,1.0336,1.0235,1.0151,1.0085,1.0038,1.0009,1.0],"y":[388.0,388.0,388.0,388.0,388.0,388.0,388.0,388.0,388.0,388.0,388.0,388.0,388.0,388.0,388.0,388.0,388.0,388.0,388.0,388.0,388.0,388.0,388.0,388.0,388.0,388.0,388.0,388.0,388.0,388.0,388.0,388.0,388.0,388.0,388.0,388.0,388.0,388.0,388.0,388.0,388.0,388.0,388.0,388.0,388.0,388.0,388.0,388.0,388.0,388.0,388.0,388.0,388.0,388.0,388.0,388.0,388.0,388.0,388.0,388.0,388.0,388.0,388.0,388.0,388.0,388.0,388.0,388.0,388.0,388.0,388.0,388.0,388.0,388.0,388.0,388.0,388.0,388.0,388.0,388.0,388.0,388.0,388.0,388.0,388.0,388.0,388.0,388.0,388.0,388.0,388.0,387.6,386.3,384.3,381.4,377.7,373.2,368.0,362.0,355.3,347.9,339.9,331.2,321.9,312.1,301.8,291.0,279.8,268.2,256.4,244.2,231.8,219.3,206.7,194.0,181.3,168.7,156.2,143.8,131.6,119.8,108.2,97.0,86.2,75.9,66.1,56.8,48.1,40.1,32.7,26.0,20.0,14.8,10.3,6.6,3.7,1.7,0.4,0.0]};
         const world = document.getElementById("dictate-world");
         const lens = { t: 0 };
         function frameCamera() {
           const t = lens.t;
-          let scale = 1 + 0.04 * (0.5 - 0.5 * Math.cos(Math.PI * Math.min(Math.max((t - 4.55) / 1.85, 0), 1)));
+          let scale = 1 + 0.04 * (0.5 - 0.5 * Math.cos(Math.PI * Math.min(Math.max((t - 4.6) / 1.8, 0), 1)));
           let y = 0;
-          if (t < 4.55) {
+          if (t < 4.6) {
             const f = Math.min(t * 30, camera.scale.length - 1.001);
             const i = Math.floor(f), k = f - i;
             scale = camera.scale[i] + (camera.scale[i + 1] - camera.scale[i]) * k;
@@ -228,14 +228,14 @@
         frameCamera();
         tl.fromTo(lens, { t: 0 }, { t: 6.4, duration: 6.4, ease: "none", onUpdate: frameCamera }, 0);
         tl.set("#dictate-doc", { filter: "blur(18px)", opacity: 0.12 }, 0); // Out of focus and dim: just a shape behind the words.
-        tl.set("#dictate-body", { opacity: 0 }, 0); // Its words come with the focus.
+        tl.set(["#dictate-body", "#dictate-label"], { opacity: 0 }, 0); // Its words come with the focus.
         tl.fromTo("#dictate-cap", { y: -46, opacity: 0 }, { y: 0, opacity: 1, duration: 0.5, ease: "rise" }, 0.05);
         rise(document.getElementById("dictate-speak"), 0.5);
         leave(document.getElementById("dictate-speak"), 3.0);
 
         // As the camera pulls back, the page comes into focus.
         tl.to("#dictate-doc", { filter: "blur(0px)", opacity: 1, duration: 1.0, ease: "power2.out" }, 3.45);
-        tl.to("#dictate-body", { opacity: 1, duration: 0.5, ease: "power1.out" }, 3.95);
+        tl.to(["#dictate-body", "#dictate-label"], { opacity: 1, duration: 0.5, ease: "power1.out" }, 3.95);
 
         // The words land at the cursor, pasted at once as the app types them, with a brief highlight.
         tl.fromTo("#dictate-cursor-start", { opacity: 1 }, { opacity: 0, duration: 0.01, repeat: 7, yoyo: true, repeatDelay: 0.5 }, 0.5);
