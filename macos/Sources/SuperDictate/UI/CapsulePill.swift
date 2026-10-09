@@ -135,6 +135,8 @@ struct CapsulePill: View {
                     Text(timerInterval: started ... Date.distantFuture, countsDown: false)
                         .font(.system(size: 11 * scale, weight: .medium).monospacedDigit())
                         .foregroundStyle(muted)
+                        // Never squeezed onto two lines by a long line of words.
+                        .fixedSize()
                 }
             }
         }
