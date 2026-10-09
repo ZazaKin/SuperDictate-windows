@@ -1,7 +1,7 @@
 """
 The tour's sound, made from nothing but sine waves and noise, so it carries no
-one else's rights: a soft pad in D major, a plucked arpeggio once the tour gets
-going, a low pulse, and effects on the film's own cues (whooshes on the whip
+one else's rights: a soft pad in D major, a slow pluck once the tour gets
+going, and effects on the film's own cues (whooshes on the whip
 pans, a riser into the zoom-through, a tick as each skin reaches the front, a
 pop and a shimmer on the name). It resolves on the name and fades.
 
@@ -88,28 +88,20 @@ def pluck(frequency, seconds=0.9):
     return tone * np.exp(-t / 0.22) * np.minimum(1, t / 0.004)
 
 
+# A slow pluck every two beats, rising through the chord: calm, never busy.
 arp = np.zeros((N, 2))
-step = BEAT / 2
+step = 2 * BEAT
 moment = 6.85
 while moment < 20.7 - 0.05:
     chord = [notes for start, notes in CHORDS if start <= moment][-1]
     beat = int(round((moment - 6.85) / step))
-    note = chord[3:][beat % len(chord[3:])] + (12 if beat % 8 >= 4 else 0)
-    add(arp, moment, pluck(midi(note)), pan=0.45 * math.sin(beat * 1.3), gain=0.05 if beat % 2 == 0 else 0.032)
+    note = chord[3:][beat % len(chord[3:])]
+    add(arp, moment, pluck(midi(note), seconds=1.6), pan=0.35 * math.sin(beat * 1.3), gain=0.03)
     moment += step
-# Echoes, three eighths behind, softer and to the other side.
-echo = int(RATE * step * 3)
-arp[echo:, 0] += arp[:-echo, 1] * 0.32
-arp[echo:, 1] += arp[:-echo, 0] * 0.32
-
-pulse = np.zeros((N, 2))
-moment = 6.85
-while moment < 20.7:
-    _, t = span(0, 0.5)
-    frequency = 52 + 30 * np.exp(-t / 0.04)
-    thump = np.sin(2 * math.pi * np.cumsum(frequency) / RATE) * np.exp(-t / 0.18)
-    add(pulse, moment, thump, gain=0.16)
-    moment += 2 * BEAT
+# One soft echo, a beat behind, to the other side.
+echo = int(RATE * BEAT)
+arp[echo:, 0] += arp[:-echo, 1] * 0.18
+arp[echo:, 1] += arp[:-echo, 0] * 0.18
 
 # ---- Effects ---------------------------------------------------------------
 
@@ -201,7 +193,9 @@ add(effects, 22.3, shimmer(1.6, [86, 90, 93, 98]), gain=0.045, pan=0.25)
 
 # ---- Mix -------------------------------------------------------------------
 
-dry = pad + arp + pulse + effects
+# The music sits well under the effects, so the whooshes and ticks carry.
+MUSIC = 0.4
+dry = (pad + arp) * MUSIC + effects
 # A small room: decaying stereo noise as the impulse response.
 _, ir_t = span(0, 2.2)
 impulse = rng.standard_normal((len(ir_t), 2)) * np.exp(-ir_t / 0.55)[:, None]
