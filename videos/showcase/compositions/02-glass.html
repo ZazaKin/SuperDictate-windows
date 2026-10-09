@@ -40,7 +40,7 @@
           perspective: 2200px;
           perspective-origin: 1280px 530px;
         }
-        /* The app's live-glass picture (drawn at 3x so the push-in stays sharp), as a card in space. */
+        /* The app's Liquid Glass, alive (the --snapshot tour's glass-motion), as a card in space. */
         #glass-card {
           position: absolute;
           left: 760px;
@@ -51,7 +51,7 @@
           overflow: hidden;
           box-shadow: 0 50px 120px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.1);
         }
-        #glass-card img {
+        #glass-card video {
           display: block;
           width: 1040px;
           height: 465px;
@@ -93,7 +93,7 @@
         <div data-hf-id="hf-67vh" id="glass-stage" data-layout-allow-overflow="">
           <div data-hf-id="hf-ttxi" id="glass-cam" data-layout-allow-overflow="">
             <div data-hf-id="hf-lg7r" id="glass-card" data-layout-allow-overflow="">
-              <img data-hf-id="hf-bqd3" src="assets/glass.png" alt="">
+              <video id="glass-video" class="clip" src="assets/glass-motion.mp4" muted playsinline data-start="0" data-duration="3.75" data-track-index="1"></video>
               <div data-hf-id="hf-0xzb" id="glass-sweep" data-layout-allow-overflow=""></div>
             </div>
           </div>

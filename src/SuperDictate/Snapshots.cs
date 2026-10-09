@@ -254,7 +254,103 @@ internal static class Snapshots
         });
 
         window.Close();
+        await DrawGlassMotion(Path.Combine(folder, "glass-motion"), clock);
         await DrawGallery(Path.Combine(folder, "gallery"), clock);
+    }
+
+    /// <summary>
+    /// Liquid Glass alive, for the video's glass shot: the page behind the two capsules
+    /// drifts, so the bend at their edges moves with it, and the white window slides
+    /// away from under the top one, which turns from light glass to dark as the screen
+    /// behind it does. 3.8 seconds at 30 frames a second, 2.5 times the points.
+    /// </summary>
+    private static async Task DrawGlassMotion(string folder, FrameClock? clock)
+    {
+        Directory.CreateDirectory(folder);
+        var page = new Canvas { Width = 760, Height = 340, Background = Wallpaper, ClipToBounds = true };
+        var window = new Canvas { Width = 600, Height = 150 };
+        window.Children.Add(new System.Windows.Shapes.Rectangle { Width = 600, Height = 150, RadiusX = 12, RadiusY = 12, Fill = Brushes.White });
+        for (var line = 0; line < 5; line++)
+        {
+            var text = new TextBlock
+            {
+                Text = line % 3 == 0 ? "Quarterly review: ship the Mac version first" : "Notes, numbers and a few links to read before Thursday",
+                FontSize = line % 3 == 0 ? 22 : 15,
+                FontWeight = line % 3 == 0 ? FontWeights.SemiBold : FontWeights.Normal,
+                Foreground = new SolidColorBrush(Color.FromRgb(0x1F, 0x23, 0x2B)),
+            };
+            Canvas.SetLeft(text, 30);
+            Canvas.SetTop(text, 12 + (line * 26));
+            window.Children.Add(text);
+        }
+
+        var orange = new System.Windows.Shapes.Ellipse { Width = 110, Height = 110, Fill = new SolidColorBrush(Color.FromRgb(0xFF, 0x8A, 0x3D)) };
+        var yellow = new System.Windows.Shapes.Ellipse { Width = 130, Height = 130, Fill = new SolidColorBrush(Color.FromRgb(0xFF, 0xC8, 0x3D)) };
+        var pink = new System.Windows.Shapes.Rectangle { Width = 160, Height = 60, RadiusX = 8, RadiusY = 8, Fill = new SolidColorBrush(Color.FromRgb(0xE1, 0x3B, 0x7A)) };
+        page.Children.Add(window);
+        page.Children.Add(orange);
+        page.Children.Add(yellow);
+        page.Children.Add(pink);
+
+        CapsuleView Capsule(double top)
+        {
+            var view = new CapsuleView { HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(0, top, 0, 0) };
+            view.Apply(new CapsuleStyle("liquid", "#5B8DEF", 1.25, 1, "bars", true));
+            view.ShowText("Listening…", meter: true);
+            view.ShowDraft("So the plan for tomorrow is simple:", "we ship the Mac version first");
+            view.Elapsed = TimeSpan.FromSeconds(14);
+            return view;
+        }
+
+        var light = Capsule(46);
+        var dark = Capsule(240);
+        var lightGlass = new LiveGlass();
+        var darkGlass = new LiveGlass();
+        var stage = new Grid { Width = page.Width, Height = page.Height, Children = { page, lightGlass, darkGlass, light, dark } };
+        var host = Host(stage);
+        await ShowOffScreen(host);
+        // The words finish arriving.
+        if (clock is null) await Task.Delay(1500);
+        else for (var frame = 0; frame < 45; frame++) clock.Advance(TimeSpan.FromSeconds(1 / 30.0));
+
+        static double Ease(double from, double to, double seconds)
+        {
+            var x = Math.Clamp((seconds - from) / (to - from), 0, 1);
+            return x * x * (3 - (2 * x));
+        }
+
+        for (var frame = 0; frame < 114; frame++)
+        {
+            var seconds = frame / 30.0;
+            // The page drifts; at two seconds the window slides up and away from under the top capsule.
+            Canvas.SetLeft(window, 80 - (10 * seconds));
+            Canvas.SetTop(window, 16 - (200 * Ease(2.0, 2.9, seconds)));
+            Canvas.SetLeft(orange, 120 + (30 * Math.Sin(seconds * 0.9)));
+            Canvas.SetTop(orange, 15 * Math.Cos(seconds * 0.8));
+            Canvas.SetLeft(yellow, 500 - (40 * seconds));
+            Canvas.SetTop(yellow, 220 - (10 * seconds));
+            Canvas.SetLeft(pink, 150 + (25 * seconds));
+            Canvas.SetTop(pink, 250);
+            stage.UpdateLayout();
+
+            // The glass sees the page, as the app sees the screen.
+            var picture = new RenderTargetBitmap((int)page.Width, (int)page.Height, 96, 96, PixelFormats.Pbgra32);
+            picture.Render(page);
+            foreach (var (view, glass, voice) in new[] { (light, lightGlass, 0.0), (dark, darkGlass, 2.0) })
+            {
+                glass.Show(picture);
+                glass.Follow(IntPtr.Zero, view.Body.TransformToAncestor(stage).TransformBounds(new Rect(view.Body.RenderSize)), view.Rounding);
+                view.GlassUnder(glass.Light);
+                view.SetPreviewLevel(0.5 + (0.3 * Math.Sin((seconds * 6) + voice)));
+                view.Render(seconds);
+            }
+
+            await Task.Delay(1);
+            Save(stage, Path.Combine(folder, $"frame-{frame:000}.png"), scale: 2.5);
+            clock?.Advance(TimeSpan.FromSeconds(1 / 30.0));
+        }
+
+        host.Close();
     }
 
     /// <summary>Every skin at once, moving, for three seconds at 30 frames a second: how each one looks alive.</summary>

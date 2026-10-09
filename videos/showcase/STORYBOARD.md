@@ -1,6 +1,6 @@
 ---
 format: 1920x1080
-duration: 22s
+duration: 24s
 message: "Speak, and your words appear where you type, in a capsule you can make your own."
 arc: Speak → it types → make it yours (glass, skins, languages) → the name
 audience: people landing on the GitHub page
@@ -37,20 +37,27 @@ The v1 sheet (`storyboard.html`): placement, hierarchy and copy of all five fram
 "Improve video. Make in a style of big companies. Better animation, more motion,
 aesthetic movements and shot choices." (v2, launch-film treatment)
 
-## As built (v2)
+## Changes from v2
+
+"First 4 sec - the capsule goes out of edges of a frame but it shouldnt. It should
+expand camera should be animated smoothly. second 8 - liquid glass should be
+animated. 15 skins roll should take more time and roll should be animated slower and
+smoother. show only 10 and good ones." (v3)
+
+## As built (v3)
 
 A camera per shot, the shots joined by named transitions; the app still draws every
-capsule, page, skin and picture (`SuperDictate.exe --snapshot`, `tour/`).
+capsule, page, skin and glass (`SuperDictate.exe --snapshot`, `tour/`).
 
 | Shot | Time | Camera and motion | Into the next |
 |---|---|---|---|
-| 01 Dictate | 0–6.85 s | Macro on the capsule (2.2x, settling out of an 18° tilt), the page a dim out-of-focus shape; "Speak." rises blur-to-sharp; one power4 pull-back to the whole desk as the words land at the cursor with a brief highlight. | whip pan left, directional blur |
-| 02 Glass | 6.85–10.6 s | The glass picture (3x) as a card turning toward camera out of depth, a light crossing it; "Liquid Glass." beside it; push-in until the light capsule holds the frame. | zoom-through |
-| 03 Skins | 10.45–14.3 s | All 15 skins on a 3D picker drum that spins in and clicks through each, the name ticking beside "15 skins." | whip pan left |
-| 04 Languages | 14.3–18.2 s | "25" counts up and lands; the Languages page floats in 3D, drifting toward camera; the capsule speaks German, French, Russian and each name lights up. | dissolve, pulling away |
-| 05 Close | 17.7–22 s | The capsule comes into focus; the icon pops, the name cascades in letter by letter, one light passes through it; the line under it rises; still for the last 1.7 s. | end |
+| 01 Dictate | 0–6.85 s | Close-up on the capsule, settling out of an 18° tilt, the page a dim out-of-focus shape; "Speak." rises blur-to-sharp. The zoom follows the capsule's measured width in the app's frames, easing out ahead of each widening, so it grows on screen and never leaves the frame (at most 1497 of 1920 px); then one pull-back to the whole desk as the words land at the cursor. | whip pan left, directional blur |
+| 02 Glass | 6.85–10.6 s | The app's Liquid Glass, moving (`tour/glass-motion`): the page drifts behind both capsules and the window slides away under the top one, which turns from light glass to dark. On a card turning toward camera out of depth, a light crossing it; "Liquid Glass." beside it; push-in on that capsule as it turns. | zoom-through |
+| 03 Skins | 10.45–16.3 s | Ten of the fifteen skins (Liquid Glass, the seven art skins, Aurora, Neon) on a 3D picker wheel that spins in and rolls on slowly, easing into each, the name beside "15 skins." | whip pan left |
+| 04 Languages | 16.3–20.2 s | "25" counts up and lands; the Languages page floats in 3D, drifting toward camera; the capsule speaks German, French, Russian and each name lights up. | dissolve, pulling away |
+| 05 Close | 19.7–24 s | The capsule comes into focus; the icon pops, the name cascades in letter by letter, one light passes through it; the line under it rises; still for the last 1.7 s. | end |
 
-Length 22 s. Captions in Segoe UI; word reveals follow the registry's per-word-rise
+Length 24 s. Captions in Segoe UI; word reveals follow the registry's per-word-rise
 landing. Background: the field with two drifting pools of the app's blue and the
 registry vignette.
 

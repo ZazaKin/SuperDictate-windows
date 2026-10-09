@@ -6,7 +6,7 @@ message: "Speak, and your words appear where you type, in a capsule you can make
 destination: github-readme
 aspect: 1920x1080
 language: en
-length: 22s
+length: 24s
 angle: product-tour
 ---
 
