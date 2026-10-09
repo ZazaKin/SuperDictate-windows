@@ -6,7 +6,7 @@ message: "Speak, and your words appear where you type, in a capsule you can make
 destination: github-readme
 aspect: 1920x1080
 language: en
-length: 24s
+length: 25s
 angle: product-tour
 ---
 
@@ -30,7 +30,8 @@ skins, the languages, and the name to remember.
 
 ## Notes
 
-- Silent: no music, no voice. Captions on screen carry the words.
+- Sound: a synthesized score (`score.py`): a soft pad and arpeggio in D major with
+  effects on the cuts. No voice; captions on screen carry the words.
 - Deliverables: a GIF embedded in README.md and README.ru.md, and the MP4
   committed next to it and linked.
 - Only real UI from the app; no invented features or claims.

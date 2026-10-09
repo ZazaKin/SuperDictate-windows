@@ -253,6 +253,15 @@ internal static class Snapshots
             else view.Quiet();
         });
 
+        // Each skin on the video's wheel, alive for six seconds: its art moving, a voice rising and falling.
+        view.ShowDraft("Lunch at noon, then", "the design review");
+        await Wait(1.5);
+        foreach (var (id, index) in new[] { "liquid", "bloom", "eclipse", "chrome", "hive", "halftone", "mosaic", "mesa", "aurora", "neon" }.Select((id, index) => (id, index)))
+        {
+            Look(id);
+            await Record($"skin-{id}", 6.0, seconds => view.SetPreviewLevel(Voice(seconds + index)));
+        }
+
         window.Close();
         await DrawGlassMotion(Path.Combine(folder, "glass-motion"), clock);
         await DrawGallery(Path.Combine(folder, "gallery"), clock);
@@ -262,7 +271,7 @@ internal static class Snapshots
     /// Liquid Glass alive, for the video's glass shot: the page behind the two capsules
     /// drifts, so the bend at their edges moves with it, and the white window slides
     /// away from under the top one, which turns from light glass to dark as the screen
-    /// behind it does. 3.8 seconds at 30 frames a second, 2.5 times the points.
+    /// behind it does. 4.8 seconds at 30 frames a second, 2.5 times the points.
     /// </summary>
     private static async Task DrawGlassMotion(string folder, FrameClock? clock)
     {
@@ -319,7 +328,7 @@ internal static class Snapshots
             return x * x * (3 - (2 * x));
         }
 
-        for (var frame = 0; frame < 114; frame++)
+        for (var frame = 0; frame < 144; frame++)
         {
             var seconds = frame / 30.0;
             // The page drifts; at two seconds the window slides up and away from under the top capsule.

@@ -20,7 +20,7 @@
 <p align="center">
   <a href="docs/media/showcase.mp4"><img src="docs/images/showcase.gif" width="720" alt="Капсула пишет фразу слово за словом, пока её произносят, а затем фраза печатается в документе у курсора"></a>
   <br>
-  <a href="docs/media/showcase.mp4">Смотреть 24-секундный обзор</a>: капсула, Liquid Glass, все пятнадцать обложек и языки.
+  <a href="docs/media/showcase.mp4">Смотреть 25-секундный обзор</a> (со звуком): капсула, Liquid Glass, все пятнадцать обложек и языки.
 </p>
 
 ## Скачать

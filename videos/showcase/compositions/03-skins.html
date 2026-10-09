@@ -62,13 +62,19 @@
           height: 0;
           transform-style: preserve-3d;
         }
-        #skins-drum img {
+        /* Each skin is the app's own recording of it, alive: its art moving, a voice rising and falling. */
+        #skins-drum .skin {
           position: absolute;
           left: -324px;
           top: -77px;
           width: 648px;
           height: 154px;
           backface-visibility: hidden;
+        }
+        #skins-drum video {
+          display: block;
+          width: 648px;
+          height: 154px;
         }
         #skins-title {
           position: absolute;
@@ -120,7 +126,7 @@
         </svg>
         <div data-hf-id="hf-n1hf" id="skins-stage" data-layout-allow-overflow="">
           <div data-hf-id="hf-owpj" id="skins-band"></div>
-          <div data-hf-id="hf-gj2k" id="skins-view" data-layout-allow-overflow=""><div data-hf-id="hf-hloj" id="skins-drum" data-layout-allow-overflow=""></div></div>
+          <div data-hf-id="hf-gj2k" id="skins-view" data-layout-allow-overflow=""><div data-hf-id="hf-hloj" id="skins-drum" data-layout-allow-overflow=""><div class="skin" style="transform: rotateX(0deg) translateZ(300px)"><video id="skins-liquid" class="clip" src="assets/skins/liquid.webm" muted playsinline data-start="0" data-duration="5.85" data-track-index="1"></video></div><div class="skin" style="transform: rotateX(36deg) translateZ(300px)"><video id="skins-bloom" class="clip" src="assets/skins/bloom.webm" muted playsinline data-start="0" data-duration="5.85" data-track-index="2"></video></div><div class="skin" style="transform: rotateX(72deg) translateZ(300px)"><video id="skins-eclipse" class="clip" src="assets/skins/eclipse.webm" muted playsinline data-start="0" data-duration="5.85" data-track-index="3"></video></div><div class="skin" style="transform: rotateX(108deg) translateZ(300px)"><video id="skins-chrome" class="clip" src="assets/skins/chrome.webm" muted playsinline data-start="0" data-duration="5.85" data-track-index="4"></video></div><div class="skin" style="transform: rotateX(144deg) translateZ(300px)"><video id="skins-hive" class="clip" src="assets/skins/hive.webm" muted playsinline data-start="0" data-duration="5.85" data-track-index="5"></video></div><div class="skin" style="transform: rotateX(180deg) translateZ(300px)"><video id="skins-halftone" class="clip" src="assets/skins/halftone.webm" muted playsinline data-start="0" data-duration="5.85" data-track-index="6"></video></div><div class="skin" style="transform: rotateX(216deg) translateZ(300px)"><video id="skins-mosaic" class="clip" src="assets/skins/mosaic.webm" muted playsinline data-start="0" data-duration="5.85" data-track-index="7"></video></div><div class="skin" style="transform: rotateX(252deg) translateZ(300px)"><video id="skins-mesa" class="clip" src="assets/skins/mesa.webm" muted playsinline data-start="0" data-duration="5.85" data-track-index="8"></video></div><div class="skin" style="transform: rotateX(288deg) translateZ(300px)"><video id="skins-aurora" class="clip" src="assets/skins/aurora.webm" muted playsinline data-start="0" data-duration="5.85" data-track-index="9"></video></div><div class="skin" style="transform: rotateX(324deg) translateZ(300px)"><video id="skins-neon" class="clip" src="assets/skins/neon.webm" muted playsinline data-start="0" data-duration="5.85" data-track-index="10"></video></div></div></div>
           <div data-hf-id="hf-bxgw" id="skins-title">15 skins.</div>
           <div data-hf-id="hf-0veq" id="skins-sub">Any color, any size, anywhere on screen.</div>
           <div data-hf-id="hf-pwge" id="skins-names"></div>
@@ -164,19 +170,13 @@
             { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.74, ease: land, stagger: stagger ?? 0.08 }, at);
         }
 
-        // Ten of the fifteen, the liveliest: each still is the app's own frame, numbered as in tour/skins.txt.
-        const skins = [["Liquid Glass", 0], ["Bloom", 2], ["Eclipse", 3], ["Chrome", 4], ["Hive", 5],
-          ["Halftone", 6], ["Mosaic", 7], ["Mesa", 8], ["Aurora", 9], ["Neon", 10]];
+        // Ten of the fifteen, the liveliest, in the order of the wheel.
+        const skins = ["Liquid Glass", "Bloom", "Eclipse", "Chrome", "Hive", "Halftone", "Mosaic", "Mesa", "Aurora", "Neon"];
         const drum = document.getElementById("skins-drum");
         const names = document.getElementById("skins-names");
+        const clips = drum.querySelectorAll("video");
         const angle = 360 / skins.length;
-        const radius = 300;
-        skins.forEach(([name, still], index) => {
-          const image = document.createElement("img");
-          image.src = "assets/skins/" + String(still).padStart(2, "0") + ".png";
-          image.alt = "";
-          image.style.transform = "rotateX(" + index * angle + "deg) translateZ(" + radius + "px)";
-          drum.appendChild(image);
+        skins.forEach((name) => {
           const label = document.createElement("span");
           label.innerHTML = "<b>" + name + "</b>";
           names.appendChild(label);
@@ -187,13 +187,34 @@
           { scale: 1, opacity: 1, filter: "blur(0px)", duration: 0.65, ease: "power3.out" }, 0);
         tl.set("#skins-stage", { filter: "none" }, 0.66);
 
-        // The wheel spins in, then rolls on slowly, easing into each skin and out again.
-        tl.fromTo(drum, { rotationX: 48 }, { rotationX: 0, duration: 0.8, ease: "power3.out" }, 0);
+        // The wheel, as a function of time: it spins in, then rolls on slowly, easing into each skin
+        // and out again. Skins away from the front fall out of focus and dim, as on a lens.
+        function turn(t) {
+          if (t < 0.8) return 48 * Math.pow(1 - t / 0.8, 3);
+          let at = 0;
+          for (let index = 1; index < skins.length; index++) {
+            const start = 0.95 + (index - 1) * 0.5;
+            if (t <= start) break;
+            const p = Math.min((t - start) / 0.42, 1);
+            at = -(index - 1 + (0.5 - 0.5 * Math.cos(Math.PI * p))) * angle;
+          }
+          return at;
+        }
+        const wheel = { t: 0 };
+        function roll() {
+          const rotation = turn(wheel.t);
+          gsap.set(drum, { rotationX: rotation });
+          clips.forEach((clip, index) => {
+            const away = Math.abs(((index * angle + rotation) % 360 + 540) % 360 - 180) / angle;
+            clip.style.filter = "blur(" + (Math.min(away, 2.5) * 3.4).toFixed(2) + "px) brightness(" + (1 - Math.min(away, 2) * 0.2).toFixed(3) + ")";
+          });
+        }
+        roll();
+        tl.fromTo(wheel, { t: 0 }, { t: 5.85, duration: 5.85, ease: "none", onUpdate: roll }, 0);
         const labels = names.querySelectorAll("span");
         tl.set(labels[0], { opacity: 1 }, 0.45);
         for (let index = 1; index < skins.length; index++) {
           const at = 0.95 + (index - 1) * 0.5;
-          tl.to(drum, { rotationX: -index * angle, duration: 0.42, ease: "sine.inOut" }, at);
           tl.set(labels[index - 1], { opacity: 0 }, at + 0.21);
           tl.set(labels[index], { opacity: 1 }, at + 0.21);
         }
