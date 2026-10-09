@@ -30,7 +30,7 @@ skins, the languages, and the name to remember.
 
 ## Notes
 
-- Sound: a synthesized score (`score.py`): a soft pad and arpeggio in D major with
+- Sound: a synthesized score (`score.py`): a calm pad and slow pluck in D major, under
   effects on the cuts. No voice; captions on screen carry the words.
 - Deliverables: a GIF embedded in README.md and README.ru.md, and the MP4
   committed next to it and linked.
