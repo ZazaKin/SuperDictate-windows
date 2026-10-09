@@ -56,7 +56,7 @@ internal sealed class CapsuleView : Grid
     public const double BaseHeight = 48;
 
     /// <summary>The voice meters, in the order the settings offer them.</summary>
-    public static readonly string[] Meters = { "bars", "wave", "dots", "scope" };
+    public static readonly string[] Meters = { "bars", "wave", "dots", "scope", "none" };
 
     private const double ScopeWidth = 46;
 
@@ -167,6 +167,7 @@ internal sealed class CapsuleView : Grid
         _backdrop.Visibility = _art is null ? Visibility.Collapsed : Visibility.Visible;
         if (_art is not null)
         {
+            _art.Accent = accent.Color;
             _art.Radius = Rounding;
             _body.Background = Brushes.Transparent;
         }
@@ -207,7 +208,7 @@ internal sealed class CapsuleView : Grid
     {
         _caption.Text = caption;
         _meterShown = meter;
-        _meter.Visibility = meter ? Visibility.Visible : Visibility.Collapsed;
+        _meter.Visibility = meter && _style.Meter != "none" ? Visibility.Visible : Visibility.Collapsed;
         _processing = processing;
         Refresh();
     }
@@ -261,7 +262,9 @@ internal sealed class CapsuleView : Grid
         var scale = _style.Scale;
         var phase = seconds * 9;
         _shownLevel += (_level - _shownLevel) * 0.3;
+        _live.Follow(seconds);
         _art?.Render(calm ? 0 : seconds, _processing ? 0 : _shownLevel);
+        if (_style.Meter == "none") return;
 
         if (_style.Meter == "dots")
         {
@@ -334,6 +337,9 @@ internal sealed class CapsuleView : Grid
         // nothing it draws may leave it (the self-test checks every meter at full voice).
         _meter.Height = 20 * scale;
         _meter.ClipToBounds = true;
+        // Off: no meter at all, and the words have the capsule to themselves.
+        _meter.Visibility = _meterShown && _style.Meter != "none" ? Visibility.Visible : Visibility.Collapsed;
+        if (_style.Meter == "none") return;
 
         if (_style.Meter == "dots")
         {

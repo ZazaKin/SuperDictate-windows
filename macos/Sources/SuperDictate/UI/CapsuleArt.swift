@@ -9,6 +9,8 @@ import SwiftUI
 /// and behind the meter.
 struct CapsuleArt: View {
     let art: String
+    /// The accent color, for a picture that is the voice meter itself (Halftone).
+    let accent: Color
     /// False draws a still, for the skin tiles.
     let live: Bool
     let processing: Bool
@@ -28,20 +30,20 @@ struct CapsuleArt: View {
     private func canvas(at seconds: Double) -> some View {
         let voice = processing ? 0 : min(Double(level()) * 6, 1)
         return Canvas { context, size in
-            ArtPainter.paint(art, in: context, size: size, seconds: seconds, level: voice)
+            ArtPainter.paint(art, in: context, size: size, seconds: seconds, level: voice, accent: accent)
         }
     }
 }
 
 private enum ArtPainter {
-    static func paint(_ art: String, in context: GraphicsContext, size: CGSize, seconds t: Double, level: Double) {
+    static func paint(_ art: String, in context: GraphicsContext, size: CGSize, seconds t: Double, level: Double, accent: Color) {
         guard size.width > 0, size.height > 0 else { return }
         switch art {
         case "bloom": bloom(context, size, t, level)
         case "eclipse": eclipse(context, size, t, level)
         case "chrome": chrome(context, size, t, level)
         case "hive": hive(context, size, t, level)
-        case "halftone": halftone(context, size, t, level)
+        case "halftone": halftone(context, size, t, level, accent)
         case "mosaic": mosaic(context, size, t, level)
         case "mesa": mesa(context, size, t, level)
         default: break
@@ -91,13 +93,18 @@ private enum ArtPainter {
         let (w, h) = (size.width, size.height)
         fill(context, size, color(0x07080B))
         // Rings around a point above and right of the capsule, so their arcs sweep across it.
-        let distance = ((w * 0.6) * (w * 0.6) + (h * 2.6) * (h * 2.6)).squareRoot()
         let centre = CGPoint(x: w * 1.1, y: -h * 2.1)
         let thickness = h * 0.55
         let edge = (150 + 105 * level) / 255.0
-        for index in 0 ..< 5 {
+        // Enough ribbons to cross the whole capsule however wide it grows: from the corner nearest
+        // their centre to the one farthest away, one ribbon width apart.
+        let step = h * 0.62
+        let nearest = ((w * 0.1) * (w * 0.1) + (h * 2.1) * (h * 2.1)).squareRoot() - step
+        let farthest = ((w * 1.1) * (w * 1.1) + (h * 3.1) * (h * 3.1)).squareRoot() + step
+        let count = Int(((farthest - nearest) / step).rounded(.up)) + 1
+        for index in 0 ..< count {
             let k = Double(index)
-            let radius = distance + (k - 2) * h * 0.62 + h * 0.08 * sin(t * 0.8 + k)
+            let radius = nearest + k * step + h * 0.08 * sin(t * 0.8 + k)
             func at(_ fraction: Double) -> Double { min(max((radius - thickness * fraction) / radius, 0), 1) }
             let shading = Gradient(stops: [
                 .init(color: color(0x0B0C0F), location: at(1)),
@@ -147,8 +154,9 @@ private enum ArtPainter {
     /// The 4 × 4 ordered-dither thresholds.
     private static let bayer = [[0, 8, 2, 10], [12, 4, 14, 6], [3, 11, 1, 9], [15, 7, 13, 5]]
 
-    /// A pink wave in ordered dither on navy, after a halftone poster: it rolls, and rises as you speak.
-    private static func halftone(_ context: GraphicsContext, _ size: CGSize, _ t: Double, _ level: Double) {
+    /// A wave in ordered dither on navy, after a halftone poster, in the accent color: it rolls, and rises
+    /// and falls with the voice, so it is the voice meter itself.
+    private static func halftone(_ context: GraphicsContext, _ size: CGSize, _ t: Double, _ level: Double, _ accent: Color) {
         let rows = 14
         let cell = size.height / CGFloat(rows)
         let columns = Int((size.width / cell).rounded(.up))
@@ -159,14 +167,14 @@ private enum ArtPainter {
             for column in 0 ..< columns {
                 let c = Double(column)
                 // A pink mass under the calm lane, its dithered fringe climbing around the meter as the voice comes.
-                let crest = 0.42 + 0.15 * sin(c * 0.11 + t * 1.1) + 0.08 * sin(c * 0.29 - t * 1.7) + 0.25 * level
+                let crest = 0.3 + 0.12 * sin(c * 0.11 + t * 1.1) + 0.07 * sin(c * 0.29 - t * 1.7) + 0.55 * level
                 let density = min(max(0.5 + (crest - height) * 2.6, 0), 1)
                 if (Double(bayer[row & 3][column & 3]) + 0.5) / 16 < density {
                     dots.addRect(CGRect(x: CGFloat(column) * cell, y: CGFloat(row) * cell, width: cell * 0.75, height: cell * 0.75))
                 }
             }
         }
-        context.fill(dots, with: .color(color(0xC21E63)))
+        context.fill(dots, with: .color(accent))
         lane(context, size, 0x0A1022, strength: 0.75)
     }
 

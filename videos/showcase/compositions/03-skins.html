@@ -35,17 +35,6 @@
           position: absolute;
           inset: 0;
         }
-        /* A picker wheel of the app's own skins, as on Apple's pickers: a drum seen edge-on. */
-        #skins-band {
-          position: absolute;
-          left: 914px;
-          top: 452px;
-          width: 712px;
-          height: 176px;
-          border-radius: 88px;
-          background: rgba(255, 255, 255, 0.04);
-          box-shadow: inset 0 0 0 2px rgba(106, 178, 242, 0.35);
-        }
         #skins-view {
           position: absolute;
           inset: 0;
@@ -125,7 +114,6 @@
           <filter data-hf-id="hf-poli" id="skins-whip" x="-30%" y="0" width="160%" height="100%"><fegaussianblur data-hf-id="hf-o0kp" id="skins-whip-blur" stdDeviation="0 0" /></filter>
         </svg>
         <div data-hf-id="hf-n1hf" id="skins-stage" data-layout-allow-overflow="">
-          <div data-hf-id="hf-owpj" id="skins-band"></div>
           <div data-hf-id="hf-gj2k" id="skins-view" data-layout-allow-overflow=""><div data-hf-id="hf-hloj" id="skins-drum" data-layout-allow-overflow=""><div class="skin" style="transform: rotateX(0deg) translateZ(300px)"><video id="skins-liquid" class="clip" src="assets/skins/liquid.webm" muted playsinline data-start="0" data-duration="5.85" data-track-index="1"></video></div><div class="skin" style="transform: rotateX(36deg) translateZ(300px)"><video id="skins-bloom" class="clip" src="assets/skins/bloom.webm" muted playsinline data-start="0" data-duration="5.85" data-track-index="2"></video></div><div class="skin" style="transform: rotateX(72deg) translateZ(300px)"><video id="skins-eclipse" class="clip" src="assets/skins/eclipse.webm" muted playsinline data-start="0" data-duration="5.85" data-track-index="3"></video></div><div class="skin" style="transform: rotateX(108deg) translateZ(300px)"><video id="skins-chrome" class="clip" src="assets/skins/chrome.webm" muted playsinline data-start="0" data-duration="5.85" data-track-index="4"></video></div><div class="skin" style="transform: rotateX(144deg) translateZ(300px)"><video id="skins-hive" class="clip" src="assets/skins/hive.webm" muted playsinline data-start="0" data-duration="5.85" data-track-index="5"></video></div><div class="skin" style="transform: rotateX(180deg) translateZ(300px)"><video id="skins-halftone" class="clip" src="assets/skins/halftone.webm" muted playsinline data-start="0" data-duration="5.85" data-track-index="6"></video></div><div class="skin" style="transform: rotateX(216deg) translateZ(300px)"><video id="skins-mosaic" class="clip" src="assets/skins/mosaic.webm" muted playsinline data-start="0" data-duration="5.85" data-track-index="7"></video></div><div class="skin" style="transform: rotateX(252deg) translateZ(300px)"><video id="skins-mesa" class="clip" src="assets/skins/mesa.webm" muted playsinline data-start="0" data-duration="5.85" data-track-index="8"></video></div><div class="skin" style="transform: rotateX(288deg) translateZ(300px)"><video id="skins-aurora" class="clip" src="assets/skins/aurora.webm" muted playsinline data-start="0" data-duration="5.85" data-track-index="9"></video></div><div class="skin" style="transform: rotateX(324deg) translateZ(300px)"><video id="skins-neon" class="clip" src="assets/skins/neon.webm" muted playsinline data-start="0" data-duration="5.85" data-track-index="10"></video></div></div></div>
           <div data-hf-id="hf-bxgw" id="skins-title">15 skins.</div>
           <div data-hf-id="hf-0veq" id="skins-sub">Any color, any size, anywhere on screen.</div>
@@ -218,7 +206,6 @@
           tl.set(labels[index - 1], { opacity: 0 }, at + 0.21);
           tl.set(labels[index], { opacity: 1 }, at + 0.21);
         }
-        tl.fromTo("#skins-band", { opacity: 0, scale: 0.9 }, { opacity: 1, scale: 1, duration: 0.5, ease: "rise" }, 0.5);
         rise(document.getElementById("skins-title"), 0.3);
         rise(document.getElementById("skins-sub"), 0.6, 0.04);
         tl.fromTo("#skins-names", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.5, ease: "rise" }, 0.45);

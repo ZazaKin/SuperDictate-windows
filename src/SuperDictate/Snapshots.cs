@@ -128,7 +128,7 @@ internal static class Snapshots
             else for (var frame = 0; frame < seconds * 30; frame++) clock.Advance(TimeSpan.FromSeconds(1 / 30.0));
         }
 
-        void Look(string skin) => view.Apply(new CapsuleStyle(skin, "#5B8DEF", 1.25, 1, "bars", false));
+        void Look(string skin, string meter = "bars") => view.Apply(new CapsuleStyle(skin, "#5B8DEF", 1.25, 1, meter, false));
 
         // Live glass under Liquid Glass, as the app draws it; painted skins draw themselves.
         void Follow()
@@ -256,9 +256,15 @@ internal static class Snapshots
         // Each skin on the video's wheel, alive for six seconds: its art moving, a voice rising and falling.
         view.ShowDraft("Lunch at noon, then", "the design review");
         await Wait(1.5);
-        foreach (var (id, index) in new[] { "liquid", "bloom", "eclipse", "chrome", "hive", "halftone", "mosaic", "mesa", "aurora", "neon" }.Select((id, index) => (id, index)))
+        // Each with a different voice meter, so the wheel isn't the same five bars ten times; Halftone is its own.
+        var wheel = new[]
         {
-            Look(id);
+            ("liquid", "bars"), ("bloom", "wave"), ("eclipse", "scope"), ("chrome", "dots"), ("hive", "wave"),
+            ("halftone", "none"), ("mosaic", "scope"), ("mesa", "bars"), ("aurora", "dots"), ("neon", "wave"),
+        };
+        foreach (var ((id, meter), index) in wheel.Select((pair, index) => (pair, index)))
+        {
+            Look(id, meter);
             await Record($"skin-{id}", 6.0, seconds => view.SetPreviewLevel(Voice(seconds + index)));
         }
 
@@ -370,7 +376,7 @@ internal static class Snapshots
         var views = CapsuleSkin.All.Select((skin, index) =>
         {
             var view = new CapsuleView { HorizontalAlignment = HorizontalAlignment.Center };
-            view.Apply(new CapsuleStyle(skin.Id, "#5B8DEF", 1, 1, CapsuleView.Meters[index % CapsuleView.Meters.Length], false));
+            view.Apply(new CapsuleStyle(skin.Id, "#5B8DEF", 1, 1, skin.Meter ?? CapsuleView.Meters[index % 4], false));
             view.ShowText("Listening…", meter: true);
             view.ShowDraft("Lunch at noon, then", "the design review");
             var name = new TextBlock
@@ -489,7 +495,7 @@ internal static class Snapshots
         var views = CapsuleSkin.All.Select((skin, index) =>
         {
             var view = new CapsuleView { HorizontalAlignment = HorizontalAlignment.Center };
-            view.Apply(new CapsuleStyle(skin.Id, "#5B8DEF", 1, 1, CapsuleView.Meters[index % CapsuleView.Meters.Length], index < 2));
+            view.Apply(new CapsuleStyle(skin.Id, "#5B8DEF", 1, 1, skin.Meter ?? CapsuleView.Meters[index % 4], index < 2));
             view.ShowText("Listening…", meter: true);
             view.ShowDraft("Lunch at noon, then", "the design review");
             view.Elapsed = TimeSpan.FromSeconds(14);

@@ -163,7 +163,8 @@ shortcut shows "Close Capsule settings to dictate".
   **Chrome**, **Hive**, **Halftone**, **Mosaic**, **Mesa**); it calms behind
   the words so they always read, and it holds still with Reduce Motion on.
 - **Size**, **Opacity**, **Accent** (the voice meter's color; Multicolor follows
-  your Mac's accent color) and **Voice meter** (bars, wave, dots or scope).
+  your Mac's accent color) and **Voice meter** (bars, wave, dots, scope or Off; Halftone is its own meter, in the accent
+  color, and turns the meter off when you pick it).
 - **Widest**: how far the capsule grows as your words appear.
 - **Place**: six corners and edges, or **Move…** to drag it anywhere.
 - **Screen**: the screen you're working on, or always the main screen.

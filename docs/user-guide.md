@@ -137,7 +137,8 @@ close the window, with changes you haven't saved, SuperDictate asks: **Save**,
     catching the rim. Over a bright window it turns light with dark words,
     over a dark one it stays dark with white words.
   - **Look:** size, opacity, accent color, the voice meter (bars, wave, dots
-    or scope), and **Widest**: how far the capsule grows as your words arrive.
+    or scope, or Off; Halftone is its own meter, in the accent color, and turns
+    the meter off when you pick it), and **Widest**: how far the capsule grows as your words arrive.
     **Live glass** is on by default. To show the real screen, the capsule keeps
     itself out of screen copies, so it doesn't appear in screenshots or screen
     sharing; turn it off for a painted Liquid Glass that does. Live glass needs

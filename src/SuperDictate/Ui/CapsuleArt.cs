@@ -24,7 +24,12 @@ internal abstract class CapsuleArt : Grid
     {
         IsHitTestVisible = false;
         ClipToBounds = true;
-        SizeChanged += (_, _) => Cut();
+        // A capsule that settles at a new width after the last frame still gets its picture redrawn to fit.
+        SizeChanged += (_, _) =>
+        {
+            Cut();
+            if (!double.IsNaN(_seconds)) Render(_seconds, _level);
+        };
     }
 
     public static CapsuleArt? For(string? art) => art switch
@@ -39,6 +44,9 @@ internal abstract class CapsuleArt : Grid
         _ => null,
     };
 
+    /// <summary>The accent color, for a picture that is the voice meter itself (Halftone).</summary>
+    public Color Accent { get; set; } = Color.FromRgb(0x5B, 0x8D, 0xEF);
+
     /// <summary>The capsule's corner radius, to cut the picture to.</summary>
     public double Radius
     {
@@ -51,8 +59,12 @@ internal abstract class CapsuleArt : Grid
 
     /// <param name="seconds">Time, for the motion; held at 0 with Windows animations off.</param>
     /// <param name="level">The voice, 0 to 1.</param>
+    private double _seconds = double.NaN;
+    private double _level;
+
     public void Render(double seconds, double level)
     {
+        (_seconds, _level) = (seconds, level);
         var size = new Size(ActualWidth, ActualHeight);
         if (size.Width <= 0 || size.Height <= 0) return;
         if (size != _built)
@@ -234,21 +246,14 @@ internal abstract class CapsuleArt : Grid
     /// <summary>Curved black ribbons with iridescent edges, after dark chrome: they undulate, a glint slides across.</summary>
     private sealed class Chrome : CapsuleArt
     {
-        private const int Count = 5;
-        private readonly Ellipse[] _ribbons = new Ellipse[Count];
+        private readonly System.Collections.Generic.List<Ellipse> _ribbons = new();
         private readonly Canvas _canvas = new();
         private readonly LinearGradientBrush _glint = new() { StartPoint = new Point(0, 0), EndPoint = new Point(1, 0.4) };
-        private double _distance;
+        private double _nearest;
 
         public Chrome()
         {
             Background = Solid(0x07080B);
-            for (var index = 0; index < Count; index++)
-            {
-                _ribbons[index] = new Ellipse();
-                _canvas.Children.Add(_ribbons[index]);
-            }
-
             // Everywhere a little light, and a band of full light that slides through.
             foreach (var (alpha, offset) in new[] { (110, 0.0), (110, 0.3), (255, 0.4), (110, 0.5), (110, 1.0) })
             {
@@ -260,18 +265,36 @@ internal abstract class CapsuleArt : Grid
             Lane(0x07080B, 0.7);
         }
 
-        protected override void Build(double width, double height) =>
-            _distance = Math.Sqrt(Math.Pow(width * 0.6, 2) + Math.Pow(height * 2.6, 2));
+        /// <summary>
+        /// Enough ribbons to cross the whole capsule however wide it grows: from the corner nearest
+        /// their centre to the one farthest away, one ribbon width apart.
+        /// </summary>
+        protected override void Build(double width, double height)
+        {
+            var step = height * 0.62;
+            _nearest = Math.Sqrt(Math.Pow(width * 0.1, 2) + Math.Pow(height * 2.1, 2)) - step;
+            var farthest = Math.Sqrt(Math.Pow(width * 1.1, 2) + Math.Pow(height * 3.1, 2)) + step;
+            var count = (int)Math.Ceiling((farthest - _nearest) / step) + 1;
+            while (_ribbons.Count < count)
+            {
+                var ribbon = new Ellipse();
+                _ribbons.Add(ribbon);
+                _canvas.Children.Add(ribbon);
+            }
+
+            for (var index = 0; index < _ribbons.Count; index++) _ribbons[index].Visibility = index < count ? Visibility.Visible : Visibility.Collapsed;
+        }
 
         protected override void Draw(double width, double height, double seconds, double level)
         {
             // Rings around a point above and right of the capsule, so their arcs sweep across it.
             var centre = new Point(width * 1.1, -height * 2.1);
             var thickness = height * 0.55;
-            for (var index = 0; index < Count; index++)
+            for (var index = 0; index < _ribbons.Count; index++)
             {
-                var radius = _distance + ((index - 2) * height * 0.62) + (height * 0.08 * Math.Sin((seconds * 0.8) + index));
                 var ribbon = _ribbons[index];
+                if (ribbon.Visibility != Visibility.Visible) continue;
+                var radius = _nearest + (index * height * 0.62) + (height * 0.08 * Math.Sin((seconds * 0.8) + index));
                 ribbon.Width = ribbon.Height = radius * 2;
                 Canvas.SetLeft(ribbon, centre.X - radius);
                 Canvas.SetTop(ribbon, centre.Y - radius);
@@ -455,13 +478,14 @@ internal abstract class CapsuleArt : Grid
         }
     }
 
-    /// <summary>A pink wave in ordered dither on navy, after a halftone poster: it rolls, and rises as you speak.</summary>
+    /// <summary>
+    /// A wave in ordered dither on navy, after a halftone poster, in the accent color: it rolls,
+    /// and rises and falls with the voice, so it is the voice meter itself.
+    /// </summary>
     private sealed class Halftone : Cells
     {
         // The 4 × 4 ordered-dither thresholds.
         private static readonly int[,] Bayer = { { 0, 8, 2, 10 }, { 12, 4, 14, 6 }, { 3, 11, 1, 9 }, { 15, 7, 13, 5 } };
-        private static readonly Color Pink = Rgb(0xC21E63);
-
         public Halftone()
         {
             Background = Solid(0x0A1022);
@@ -476,10 +500,10 @@ internal abstract class CapsuleArt : Grid
         {
             var height = 1 - ((row + 0.5) / rows); // 0 at the bottom, 1 at the top.
             // A pink mass under the calm lane, its dithered fringe climbing around the meter as the voice comes.
-            var crest = 0.42 + (0.15 * Math.Sin((column * 0.11) + (seconds * 1.1))) + (0.08 * Math.Sin((column * 0.29) - (seconds * 1.7)))
-                        + (0.25 * level);
+            var crest = 0.3 + (0.12 * Math.Sin((column * 0.11) + (seconds * 1.1))) + (0.07 * Math.Sin((column * 0.29) - (seconds * 1.7)))
+                        + (0.55 * level);
             var density = Math.Clamp(0.5 + ((crest - height) * 2.6), 0, 1);
-            return (Bayer[row & 3, column & 3] + 0.5) / 16 < density ? Pink : Colors.Transparent;
+            return (Bayer[row & 3, column & 3] + 0.5) / 16 < density ? Accent : Colors.Transparent;
         }
     }
 

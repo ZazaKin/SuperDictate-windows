@@ -11,10 +11,10 @@ struct CapsuleStyle: Equatable {
     static let widestRange: ClosedRange<Double> = 240 ... 900
 
     enum Meter: String, CaseIterable, Identifiable {
-        case bars, wave, dots, scope
+        case bars, wave, dots, scope, none
 
         var id: Self { self }
-        var title: String { rawValue.capitalized }
+        var title: String { self == .none ? "Off" : rawValue.capitalized }
 
         /// The meter's width at size 1, so the words know how much room is left.
         var width: CGFloat {
@@ -23,6 +23,7 @@ struct CapsuleStyle: Equatable {
             case .wave: 44
             case .dots: 35
             case .scope: 46
+            case .none: 0
             }
         }
     }
@@ -122,7 +123,9 @@ struct CapsulePill: View {
                     .font(.system(size: 13 * scale, weight: .medium))
             default:
                 let processing = overlay == .processing
-                VoiceMeter(style: style, processing: processing, live: live, level: level)
+                if style.meter != .none {
+                    VoiceMeter(style: style, processing: processing, live: live, level: level)
+                }
                 if caption.isEmpty {
                     Text(status ?? (processing ? "Processing…" : "Listening…"))
                         .font(.system(size: 13 * scale, weight: .medium))
@@ -205,7 +208,7 @@ private struct CapsuleSurface: ViewModifier {
         } else if let art = style.skin.art {
             content
                 .background {
-                    CapsuleArt(art: art, live: live, processing: processing, level: level)
+                    CapsuleArt(art: art, accent: style.accentColor, live: live, processing: processing, level: level)
                         .clipShape(Capsule())
                 }
                 .overlay(CapsuleRim(width: style.skin.borderWidth).fill(rim, style: FillStyle(eoFill: true)))
@@ -292,6 +295,8 @@ private struct VoiceMeter: View {
         let voice: Double = processing ? 0 : min(Double(level()) * 6, 1)
         return Group {
             switch style.meter {
+            case .none:
+                EmptyView()
             case .dots:
                 // Seven columns of three dots, each column lit from the bottom up.
                 HStack(spacing: 1.6 * scale) {

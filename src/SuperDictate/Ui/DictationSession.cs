@@ -91,6 +91,8 @@ public sealed class DictationSession
     private (bool PressEnter, string Status)? _finishWhenOpen;
     private bool _cancelWhenOpen;
     private bool _sampling;
+    // The Capsule settings page is open and wants its sample, even if a dictation holds the capsule now.
+    private bool _sampleWanted;
     private bool _pressEnter;
     private double _seconds;
 
@@ -99,6 +101,16 @@ public sealed class DictationSession
     public bool IsBusy => State is DictationState.Recording or DictationState.Transcribing;
 
     public IReadOnlyList<Effect> Handle(Event happened)
+    {
+        var wasBusy = IsBusy;
+        var effects = Decide(happened);
+        // A dictation that ends while the Capsule page is open hands the capsule back to the sample.
+        if (!wasBusy || IsBusy || !_sampleWanted || _sampling) return effects;
+        _sampling = true;
+        return [.. effects, new Effect.StartSample()];
+    }
+
+    private IReadOnlyList<Effect> Decide(Event happened)
     {
         switch (happened)
         {
@@ -204,7 +216,8 @@ public sealed class DictationSession
                 return None;
 
             case Event.Sample(var on):
-                // The capsule on screen belongs to a dictation while there is one.
+                // The capsule on screen belongs to a dictation while there is one; the sample follows it.
+                _sampleWanted = on;
                 if (on && IsBusy) return None;
                 _sampling = on;
                 return on ? [new Effect.StartSample()] : [new Effect.StopSample()];
