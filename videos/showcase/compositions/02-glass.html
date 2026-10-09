@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+  </head>
+  <body>
+    <template id="glass-template">
+      <style>
+        /* The app's own font, Segoe UI, as installed with Windows (nothing is shipped). */
+        @font-face {
+          font-family: "SD Segoe";
+          src: local("Segoe UI"), local("SegoeUI");
+          font-weight: 400;
+        }
+        @font-face {
+          font-family: "SD Segoe";
+          src: local("Segoe UI Semibold"), local("SegoeUI-Semibold");
+          font-weight: 600;
+        }
+        @font-face {
+          font-family: "SD Segoe";
+          src: local("Segoe UI Bold"), local("SegoeUI-Bold");
+          font-weight: 700;
+        }
+        [data-composition-id="glass"] {
+          position: absolute;
+          inset: 0;
+          font-family: "SD Segoe", sans-serif;
+          color: #f5f5f5;
+        }
+        [data-composition-id="glass"] .w {
+          display: inline-block;
+        }
+        #glass-stage,
+        #glass-cam {
+          position: absolute;
+          inset: 0;
+        }
+        #glass-cam {
+          perspective: 2200px;
+          perspective-origin: 1280px 530px;
+        }
+        /* The app's live-glass picture (drawn at 3x so the push-in stays sharp), as a card in space. */
+        #glass-card {
+          position: absolute;
+          left: 760px;
+          top: 300px;
+          width: 1040px;
+          height: 465px;
+          border-radius: 26px;
+          overflow: hidden;
+          box-shadow: 0 50px 120px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.1);
+        }
+        #glass-card img {
+          display: block;
+          width: 1040px;
+          height: 465px;
+        }
+        /* A light passing over the glass. */
+        #glass-sweep {
+          position: absolute;
+          top: -20%;
+          left: 0;
+          width: 300px;
+          height: 140%;
+          background: linear-gradient(90deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0));
+          mix-blend-mode: soft-light;
+        }
+        #glass-title {
+          position: absolute;
+          left: 115px;
+          top: 330px;
+          width: 600px;
+          font-size: 150px;
+          font-weight: 600;
+          line-height: 0.98;
+          letter-spacing: -0.045em;
+        }
+        #glass-sub {
+          position: absolute;
+          left: 118px;
+          top: 650px;
+          width: 560px;
+          font-size: 40px;
+          line-height: 1.3;
+          color: #9fb0c2;
+        }
+      </style>
+      <div data-hf-id="hf-zjoc" id="glass-root" data-composition-id="glass" data-width="1920" data-height="1080">
+        <svg data-hf-id="hf-p3r6" width="0" height="0" aria-hidden="true" style="position: absolute">
+          <filter data-hf-id="hf-8yeg" id="glass-whip" x="-30%" y="0" width="160%" height="100%"><fegaussianblur data-hf-id="hf-5suf" id="glass-whip-blur" stdDeviation="0 0" /></filter>
+        </svg>
+        <div data-hf-id="hf-67vh" id="glass-stage" data-layout-allow-overflow="">
+          <div data-hf-id="hf-ttxi" id="glass-cam" data-layout-allow-overflow="">
+            <div data-hf-id="hf-lg7r" id="glass-card" data-layout-allow-overflow="">
+              <img data-hf-id="hf-bqd3" src="assets/glass.png" alt="">
+              <div data-hf-id="hf-0xzb" id="glass-sweep" data-layout-allow-overflow=""></div>
+            </div>
+          </div>
+          <div data-hf-id="hf-wbvg" id="glass-title">Liquid Glass.</div>
+          <div data-hf-id="hf-uhdu" id="glass-sub">Light or dark, with what’s behind it.</div>
+        </div>
+      </div>
+      <script>
+        gsap.registerPlugin(CustomEase);
+        CustomEase.create("rise", "0.32,0.72,0,1"); // The app's page-rise easing (DESIGN.md).
+        const tl = gsap.timeline({ paused: true });
+
+        // The registry's per-word-rise landing: decelerates, then glides the last few pixels in.
+        function land(p) {
+          if (p <= 0) return 0;
+          if (p >= 1) return 1;
+          const s = 0.78, r = 0.07, k = ((1 - r) / s) * 0.5;
+          if (p < s) {
+            const x = p / s, i = 1 - x;
+            return (1 - r) * (0.5 * (1 - i * i * i) + 0.5 * x);
+          }
+          const u = (p - s) / (1 - s), b = k * (1 - s), c = 3 * r - 2 * b, d = b - 2 * r;
+          return 1 - r + b * u + c * u * u + d * u * u * u;
+        }
+        function words(el) {
+          const out = [];
+          [...el.childNodes].forEach((node) => {
+            node.textContent.split(/(\s+)/).forEach((part) => {
+              if (!part) return;
+              if (/^\s+$/.test(part)) return el.insertBefore(document.createTextNode(" "), node);
+              const word = document.createElement("span");
+              word.className = "w";
+              word.textContent = part;
+              el.insertBefore(word, node);
+              out.push(word);
+            });
+            el.removeChild(node);
+          });
+          return out;
+        }
+        function rise(el, at, stagger) {
+          tl.fromTo(words(el), { opacity: 0, y: 60, filter: "blur(14px)" },
+            { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.74, ease: land, stagger: stagger ?? 0.08 }, at);
+        }
+
+        // Whip pan in: arrives at the speed the last shot left, blur resolving as it lands.
+        const whipBlur = document.getElementById("glass-whip-blur");
+        const whip = { v: 70 };
+        const writeWhip = () => whipBlur.setAttribute("stdDeviation", whip.v + " 0");
+        writeWhip();
+        tl.set("#glass-stage", { filter: "url(#glass-whip)" }, 0);
+        tl.fromTo("#glass-stage", { x: 1920 }, { x: 0, duration: 0.5, ease: "power3.out" }, 0);
+        tl.fromTo(whip, { v: 70 }, { v: 0, duration: 0.5, ease: "power3.out", onUpdate: writeWhip }, 0);
+        tl.set("#glass-stage", { filter: "none" }, 0.5);
+
+        // The card turns toward the camera out of depth; a light crosses it.
+        tl.fromTo("#glass-card",
+          { transformOrigin: "520px 104px", rotationY: -32, rotationX: 10, z: -260 },
+          { rotationY: -14, rotationX: 4, z: 0, duration: 1.7, ease: "power3.out" }, 0.05);
+        tl.fromTo("#glass-sweep", { x: -420, skewX: -18 }, { x: 1300, skewX: -18, duration: 1.3, ease: "power2.inOut" }, 0.75);
+        rise(document.getElementById("glass-title"), 0.35);
+        rise(document.getElementById("glass-sub"), 0.7, 0.04);
+        tl.to("#glass-title .w, #glass-sub .w", { opacity: 0, x: -50, filter: "blur(12px)", duration: 0.34, ease: "power2.in", stagger: 0.03 }, 1.95);
+
+        // Detail: the camera pushes in on the light capsule until it holds the frame.
+        tl.to("#glass-card", { rotationY: 0, rotationX: 0, x: -320, y: 136, scale: 1.8, duration: 1.3, ease: "power3.inOut" }, 2.0);
+        // Zoom-through into the next shot.
+        tl.to("#glass-card", { scale: 4.4, duration: 0.45, ease: "power3.in" }, 3.3);
+        tl.to("#glass-cam", { filter: "blur(22px)", duration: 0.45, ease: "power3.in" }, 3.3);
+        tl.to("#glass-cam", { opacity: 0, duration: 0.2, ease: "power1.in" }, 3.55);
+        window.__timelines["glass"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

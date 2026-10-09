@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+  </head>
+  <body>
+    <template id="dictate-template">
+      <style>
+        /* The app's own font, Segoe UI, as installed with Windows (nothing is shipped). */
+        @font-face {
+          font-family: "SD Segoe";
+          src: local("Segoe UI"), local("SegoeUI");
+          font-weight: 400;
+        }
+        @font-face {
+          font-family: "SD Segoe";
+          src: local("Segoe UI Semibold"), local("SegoeUI-Semibold");
+          font-weight: 600;
+        }
+        @font-face {
+          font-family: "SD Segoe";
+          src: local("Segoe UI Bold"), local("SegoeUI-Bold");
+          font-weight: 700;
+        }
+        [data-composition-id="dictate"] {
+          position: absolute;
+          inset: 0;
+          font-family: "SD Segoe", sans-serif;
+          color: #f5f5f5;
+        }
+        [data-composition-id="dictate"] .w {
+          display: inline-block;
+        }
+        [data-composition-id="dictate"] .em {
+          color: #6ab2f2;
+        }
+        #dictate-stage,
+        #dictate-cam,
+        #dictate-world {
+          position: absolute;
+          inset: 0;
+        }
+        /* The camera: one lens over the whole desk, so the capsule and the page move as one. */
+        #dictate-cam {
+          perspective: 1800px;
+          perspective-origin: 960px 540px;
+        }
+        #dictate-world {
+          transform-style: preserve-3d;
+        }
+        /* The document the words land in: a stand-in for any app. */
+        #dictate-doc {
+          position: absolute;
+          left: 326px;
+          top: 250px;
+          width: 1268px;
+          height: 500px;
+          border-radius: 22px;
+          background: #fbfbfc;
+          color: #1f232b;
+          box-shadow: 0 40px 90px rgba(0, 0, 0, 0.5);
+          overflow: hidden;
+        }
+        [data-composition-id="dictate"] .bar {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding: 16px 24px;
+          background: #eceef2;
+        }
+        [data-composition-id="dictate"] .bar i {
+          width: 16px;
+          height: 16px;
+          border-radius: 50%;
+          background: #c9cdd4;
+        }
+        [data-composition-id="dictate"] .bar span {
+          margin-left: 14px;
+          font-size: 22px;
+          color: #5b616b;
+        }
+        [data-composition-id="dictate"] .body {
+          padding: 44px 58px;
+          font-size: 38px;
+          line-height: 1.6;
+        }
+        [data-composition-id="dictate"] .line {
+          position: relative;
+        }
+        [data-composition-id="dictate"] .cursor {
+          display: inline-block;
+          width: 3px;
+          height: 44px;
+          margin-left: 2px;
+          vertical-align: -8px;
+          background: #1f232b;
+        }
+        #dictate-cursor-start {
+          position: absolute;
+          left: 0;
+          top: 10px;
+        }
+        #dictate-typed,
+        #dictate-cursor-end {
+          opacity: 0;
+        }
+        #dictate-typed {
+          border-radius: 6px;
+        }
+        /* The capsule, drawn by the app: at the top of the "screen", above the page. */
+        #dictate-cap {
+          position: absolute;
+          left: 320px;
+          top: 52px;
+          width: 1280px;
+          height: 200px;
+        }
+        #dictate-cap video {
+          position: absolute;
+          inset: 0;
+          width: 1280px;
+          height: 200px;
+        }
+        #dictate-speak {
+          position: absolute;
+          left: 0;
+          right: 0;
+          top: 730px;
+          text-align: center;
+          font-size: 190px;
+          font-weight: 600;
+          line-height: 1;
+          letter-spacing: -0.04em;
+        }
+        #dictate-lands {
+          position: absolute;
+          left: 115px;
+          bottom: 76px;
+          width: 1150px;
+          font-size: 92px;
+          font-weight: 600;
+          line-height: 1.04;
+          letter-spacing: -0.035em;
+        }
+      </style>
+      <div data-hf-id="hf-d5hg" id="dictate-root" data-composition-id="dictate" data-width="1920" data-height="1080">
+        <svg data-hf-id="hf-p3r6" width="0" height="0" aria-hidden="true" style="position: absolute">
+          <filter data-hf-id="hf-6tok" id="dictate-whip" x="-30%" y="0" width="160%" height="100%"><fegaussianblur data-hf-id="hf-jy0v" id="dictate-whip-blur" stdDeviation="0 0" /></filter>
+        </svg>
+        <div data-hf-id="hf-gd7l" id="dictate-stage" data-layout-allow-overflow="">
+          <div data-hf-id="hf-pfz9" id="dictate-cam">
+            <div data-hf-id="hf-whjb" id="dictate-world" data-layout-allow-overflow="">
+              <div data-hf-id="hf-bu56" id="dictate-doc">
+                <div data-hf-id="hf-ufsv" class="bar"><i data-hf-id="hf-wt6k"></i><i data-hf-id="hf-zeb8"></i><i data-hf-id="hf-y7e5"></i><span data-hf-id="hf-yzq6">Notes</span></div>
+                <div data-hf-id="hf-1tw3" class="body" id="dictate-body">
+                  <div data-hf-id="hf-2wdo">Hi team,</div>
+                  <div data-hf-id="hf-np12" class="line"><span data-hf-id="hf-564x" class="cursor" id="dictate-cursor-start"></span><span data-hf-id="hf-boqw" id="dictate-typed">Move the design review to Thursday at three, and send the new mockups tonight</span><span data-hf-id="hf-238q" class="cursor" id="dictate-cursor-end"></span></div>
+                </div>
+              </div>
+              <div data-hf-id="hf-qzio" id="dictate-cap"><video data-hf-id="hf-4qj3" id="dictate-video" class="clip" src="assets/capsule-dictate.webm" muted playsinline data-start="0" data-duration="5.2" data-track-index="1"></video></div>
+            </div>
+          </div>
+          <div data-hf-id="hf-jlue" id="dictate-speak">Speak.</div>
+          <div data-hf-id="hf-jdnh" id="dictate-lands">Your words appear <em data-hf-id="hf-yfkr">where you type.</em></div>
+        </div>
+      </div>
+      <script>
+        gsap.registerPlugin(CustomEase);
+        CustomEase.create("rise", "0.32,0.72,0,1"); // The app's page-rise easing (DESIGN.md).
+        const tl = gsap.timeline({ paused: true });
+
+        // The registry's per-word-rise landing: decelerates, then glides the last few pixels in.
+        function land(p) {
+          if (p <= 0) return 0;
+          if (p >= 1) return 1;
+          const s = 0.78, r = 0.07, k = ((1 - r) / s) * 0.5;
+          if (p < s) {
+            const x = p / s, i = 1 - x;
+            return (1 - r) * (0.5 * (1 - i * i * i) + 0.5 * x);
+          }
+          const u = (p - s) / (1 - s), b = k * (1 - s), c = 3 * r - 2 * b, d = b - 2 * r;
+          return 1 - r + b * u + c * u * u + d * u * u * u;
+        }
+        // Each word its own span (an <em> keeps its accent), so words can rise one after another.
+        function words(el) {
+          const out = [];
+          [...el.childNodes].forEach((node) => {
+            node.textContent.split(/(\s+)/).forEach((part) => {
+              if (!part) return;
+              if (/^\s+$/.test(part)) return el.insertBefore(document.createTextNode(" "), node);
+              const word = document.createElement("span");
+              word.className = node.nodeType === 1 ? "w em" : "w";
+              word.textContent = part;
+              el.insertBefore(word, node);
+              out.push(word);
+            });
+            el.removeChild(node);
+          });
+          return out;
+        }
+        function rise(el, at, stagger) {
+          tl.fromTo(words(el), { opacity: 0, y: 70, filter: "blur(16px)" },
+            { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.74, ease: land, stagger: stagger ?? 0.07 }, at);
+        }
+        function leave(el, at) {
+          tl.to(el.querySelectorAll(".w"), { opacity: 0, y: -40, filter: "blur(12px)", duration: 0.36, ease: "power2.in", stagger: 0.03 }, at);
+        }
+
+        // Macro: the capsule fills the frame, tilted, the page behind it out of focus.
+        tl.fromTo("#dictate-world",
+          { transformOrigin: "960px 152px", y: 388, scale: 2.45, rotationX: 18 },
+          { y: 388, scale: 2.15, rotationX: 0, duration: 1.4, ease: "power3.out" }, 0);
+        tl.to("#dictate-world", { scale: 2.27, duration: 1.85, ease: "sine.inOut" }, 1.4);
+        tl.set("#dictate-doc", { filter: "blur(18px)", opacity: 0.12 }, 0); // Out of focus and dim: just a shape behind the words.
+        tl.set("#dictate-body", { opacity: 0 }, 0); // Its words come with the focus.
+        tl.fromTo("#dictate-cap", { y: -46, opacity: 0 }, { y: 0, opacity: 1, duration: 0.5, ease: "rise" }, 0.05);
+        rise(document.getElementById("dictate-speak"), 0.5);
+        leave(document.getElementById("dictate-speak"), 3.0);
+
+        // One move: the camera pulls back from the capsule to the whole desk as it finishes.
+        tl.to("#dictate-world", { y: 0, scale: 1, duration: 1.25, ease: "power4.inOut" }, 3.25);
+        tl.to("#dictate-doc", { filter: "blur(0px)", opacity: 1, duration: 1.0, ease: "power2.out" }, 3.45);
+        tl.to("#dictate-body", { opacity: 1, duration: 0.5, ease: "power1.out" }, 3.95);
+
+        // The words land at the cursor, pasted at once as the app types them, with a brief highlight.
+        tl.fromTo("#dictate-cursor-start", { opacity: 1 }, { opacity: 0, duration: 0.01, repeat: 7, yoyo: true, repeatDelay: 0.5 }, 0.5);
+        tl.set("#dictate-cursor-start", { opacity: 0 }, 4.6);
+        tl.set(["#dictate-typed", "#dictate-cursor-end"], { opacity: 1 }, 4.6);
+        tl.fromTo("#dictate-typed", { backgroundColor: "rgba(50, 114, 170, 0.28)" }, { backgroundColor: "rgba(50, 114, 170, 0)", duration: 0.9, ease: "power2.out" }, 4.6);
+        tl.fromTo("#dictate-cursor-end", { opacity: 1 }, { opacity: 0, duration: 0.01, repeat: 2, yoyo: true, repeatDelay: 0.5, immediateRender: false }, 5.1);
+        // The capsule leaves as the app's does once the words are typed.
+        tl.to("#dictate-cap", { y: -46, opacity: 0, duration: 0.4, ease: "power2.in" }, 4.8);
+        rise(document.getElementById("dictate-lands"), 4.7, 0.06);
+        // The camera keeps breathing in.
+        tl.to("#dictate-world", { scale: 1.04, duration: 1.9, ease: "sine.inOut" }, 4.5);
+
+        // Whip pan out: the whole shot streaks left, blur peaking at the cut.
+        const whipBlur = document.getElementById("dictate-whip-blur");
+        const whip = { v: 0 };
+        const writeWhip = () => whipBlur.setAttribute("stdDeviation", whip.v + " 0");
+        tl.set("#dictate-stage", { filter: "url(#dictate-whip)" }, 6.4);
+        tl.to("#dictate-stage", { x: -1920, duration: 0.45, ease: "power3.in" }, 6.4);
+        tl.fromTo(whip, { v: 0 }, { v: 70, duration: 0.45, ease: "power3.in", onUpdate: writeWhip, immediateRender: false }, 6.4);
+        window.__timelines["dictate"] = tl;
+      </script>
+    </template>
+  </body>
+</html>
