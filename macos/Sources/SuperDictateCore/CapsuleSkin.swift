@@ -70,9 +70,11 @@ public struct CapsuleSkin: Identifiable, Equatable, Sendable {
     public let rim: Rim
     /// The moving picture under the words, for an art skin; nil for a plain one.
     public let art: String?
+    /// The voice meter picking this skin sets: "none" for a skin that is its own meter (Halftone).
+    public let meter: String?
 
     init(_ id: String, _ name: String, fill: RGBA, fillEnd: RGBA? = nil, border: RGBA, borderWidth: Double = 1,
-         text: RGBA = .white, muted: RGBA, rim: Rim = .plain, art: String? = nil) {
+         text: RGBA = .white, muted: RGBA, rim: Rim = .plain, art: String? = nil, meter: String? = nil) {
         self.id = id
         self.name = name
         self.fill = fill
@@ -83,6 +85,7 @@ public struct CapsuleSkin: Identifiable, Equatable, Sendable {
         self.muted = muted
         self.rim = rim
         self.art = art
+        self.meter = meter
     }
 
     /// The fill shows what's behind it, so it gets no shadow.
@@ -113,9 +116,10 @@ public struct CapsuleSkin: Identifiable, Equatable, Sendable {
         // A honeycomb on black, lit by a wandering violet light.
         CapsuleSkin("hive", "Hive", fill: RGBA(0x050509), fillEnd: RGBA(0x28154F), border: RGBA(0xFFFFFF, alpha: 40),
                     muted: RGBA(0xD8D4EE), art: "hive"),
-        // A pink pixel wave in ordered dither on navy, rising as you speak.
+        // A pixel wave in ordered dither on navy, in the accent color, rising as you speak: it is its
+        // own voice meter, so picking it turns the meter off.
         CapsuleSkin("halftone", "Halftone", fill: RGBA(0x0A1022), fillEnd: RGBA(0x381432), border: RGBA(0xFFFFFF, alpha: 40),
-                    muted: RGBA(0xF7E6EE), art: "halftone"),
+                    muted: RGBA(0xF7E6EE), art: "halftone", meter: "none"),
         // Lavender-to-pink tiles with a shimmer running through them; light.
         CapsuleSkin("mosaic", "Mosaic", fill: RGBA(0xF2EEF9), fillEnd: RGBA(0xF07AA5), border: RGBA(0xFFFFFF, alpha: 150),
                     text: RGBA(0x17121C), muted: RGBA(0x4A2C3A), art: "mosaic"),

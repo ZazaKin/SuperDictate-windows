@@ -111,6 +111,8 @@ public struct DictationSession: Equatable, Sendable {
     public private(set) var phase: Phase
     public private(set) var notice: Notice?
     public private(set) var isSampling = false
+    /// The Capsule settings page is open and wants its sample, even while a dictation holds the capsule.
+    private var sampleWanted = false
     private var seconds = 0.0
     private var pressReturn = false
 
@@ -130,6 +132,15 @@ public struct DictationSession: Equatable, Sendable {
     }
 
     public mutating func handle(_ event: Event) -> [Effect] {
+        let wasBusy = phase == .recording || phase == .processing
+        let effects = decide(event)
+        // A dictation that ends while the Capsule page is open hands the capsule back to the sample.
+        guard wasBusy, phase != .recording, phase != .processing, sampleWanted, !isSampling else { return effects }
+        isSampling = true
+        return effects + [.startSample]
+    }
+
+    private mutating func decide(_ event: Event) -> [Effect] {
         switch event {
         case .prepare(let detail):
             guard case .needsModel = phase else { return [] }
@@ -147,8 +158,8 @@ public struct DictationSession: Equatable, Sendable {
 
         case .toggle(let micAllowed, let pressReturn):
             switch phase {
-            case .recording: return handle(.finish(pressReturn: pressReturn))
-            case .ready: return handle(.start(micAllowed: micAllowed))
+            case .recording: return decide(.finish(pressReturn: pressReturn))
+            case .ready: return decide(.start(micAllowed: micAllowed))
             case .processing: return []
             case .needsModel, .preparing: return [.showWelcome]
             }
@@ -166,7 +177,7 @@ public struct DictationSession: Equatable, Sendable {
             phase = .processing
             return [.stopRecording]
         case .silenceLimit:
-            return handle(.finish(pressReturn: false))
+            return decide(.finish(pressReturn: false))
         case .cancel:
             guard phase == .recording else { return [] }
             phase = .ready
@@ -199,6 +210,7 @@ public struct DictationSession: Equatable, Sendable {
             notice = nil
 
         case .sample(let on):
+            sampleWanted = on
             guard on != isSampling, phase != .recording, phase != .processing else { return [] }
             isSampling = on
             return [on ? .startSample : .stopSample]

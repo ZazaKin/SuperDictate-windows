@@ -21,7 +21,8 @@ public sealed record CapsuleSkin(
     bool Rainbow = false,
     bool AccentRim = false,
     bool Glass = false,
-    string? Art = null)
+    string? Art = null,
+    string? Meter = null)
 {
     public static readonly CapsuleSkin[] All =
     {
@@ -42,8 +43,9 @@ public sealed record CapsuleSkin(
         new("chrome", "Chrome", Rgb(0x07, 0x08, 0x0B), Rgb(0x52, 0x53, 0x56), Argb(50, 255, 255, 255), 1, Colors.White, Rgb(0xC9, 0xCC, 0xD3), Art: "chrome"),
         // A honeycomb on black, lit by a wandering violet light.
         new("hive", "Hive", Rgb(0x05, 0x05, 0x09), Rgb(0x28, 0x15, 0x4F), Argb(40, 255, 255, 255), 1, Colors.White, Rgb(0xD8, 0xD4, 0xEE), Art: "hive"),
-        // A pink pixel wave in ordered dither on navy, rising as you speak.
-        new("halftone", "Halftone", Rgb(0x0A, 0x10, 0x22), Rgb(0x38, 0x14, 0x32), Argb(40, 255, 255, 255), 1, Colors.White, Rgb(0xF7, 0xE6, 0xEE), Art: "halftone"),
+        // A pixel wave in ordered dither on navy, in the accent color, rising as you speak: it is its
+        // own voice meter, so picking it turns the meter off.
+        new("halftone", "Halftone", Rgb(0x0A, 0x10, 0x22), Rgb(0x38, 0x14, 0x32), Argb(40, 255, 255, 255), 1, Colors.White, Rgb(0xF7, 0xE6, 0xEE), Art: "halftone", Meter: "none"),
         // Lavender-to-pink tiles with a shimmer running through them; light.
         new("mosaic", "Mosaic", Rgb(0xF2, 0xEE, 0xF9), Rgb(0xF0, 0x7A, 0xA5), Argb(150, 255, 255, 255), 1, Rgb(0x17, 0x12, 0x1C), Rgb(0x4A, 0x2C, 0x3A), Art: "mosaic"),
         // A pale sky with drifting clouds over a terracotta horizon; light, terracotta words.

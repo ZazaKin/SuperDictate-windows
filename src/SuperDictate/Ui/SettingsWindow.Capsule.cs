@@ -37,7 +37,17 @@ public sealed partial class SettingsWindow
             };
             AutomationProperties.SetName(tile, $"{skin.Name} skin");
             var id = skin.Id;
-            tile.Checked += (_, _) => Edit(s => s.CapsuleSkin = id);
+            tile.Checked += (_, _) =>
+            {
+                // A skin that moves with the voice itself (Halftone) turns the meter off; it can be turned back on.
+                var preferred = CapsuleSkin.Find(id).Meter;
+                Edit(s =>
+                {
+                    s.CapsuleSkin = id;
+                    if (preferred is not null) s.CapsuleMeter = preferred;
+                });
+                if (preferred is not null) ShowDraft();
+            };
             _shows.Add(() => tile.IsChecked = _draft.Pending.CapsuleSkin == id);
             _skinTiles.Add((skin.Id, mini));
             gallery.Children.Add(tile);
@@ -119,7 +129,7 @@ public sealed partial class SettingsWindow
             swatches.Children.Add(swatch);
         }
 
-        _meter = Choice(150, s => s.CapsuleMeter, (s, meter) => s.CapsuleMeter = meter, ("bars", "Bars"), ("wave", "Wave"), ("dots", "Dots"), ("scope", "Scope"));
+        _meter = Choice(150, s => s.CapsuleMeter, (s, meter) => s.CapsuleMeter = meter, ("bars", "Bars"), ("wave", "Wave"), ("dots", "Dots"), ("scope", "Scope"), ("none", "Off"));
 
         var widthValue = Text($"{_draft.Pending.CapsuleMaxWidth:0}", 13, "Muted");
         widthValue.Width = 40;

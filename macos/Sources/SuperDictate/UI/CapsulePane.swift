@@ -21,7 +21,11 @@ struct CapsulePane: View {
             Section {
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 10)], spacing: 10) {
                     ForEach(CapsuleSkin.all) { skin in
-                        SkinTile(skin: skin, style: stored.style, chosen: skin.id == stored.skin) { stored.skin = skin.id }
+                        SkinTile(skin: skin, style: stored.style, chosen: skin.id == stored.skin) {
+                            stored.skin = skin.id
+                            // A skin that moves with the voice itself (Halftone) turns the meter off; it can be turned back on.
+                            if let meter = skin.meter.flatMap(CapsuleStyle.Meter.init(rawValue:)) { stored.meter = meter }
+                        }
                     }
                 }
                 .padding(.vertical, 4)

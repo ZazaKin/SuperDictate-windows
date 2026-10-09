@@ -172,15 +172,39 @@ internal sealed class LiveCaption : Canvas
         var total = _line.DesiredSize.Width;
         var width = Math.Min(total, _widest);
         OpacityMask = total > _widest ? _edgeFade : null;
-        GlideTo(this, WidthProperty, width, motion);
-        GlideTo(_shift, TranslateTransform.XProperty, width - total, motion);
+        _width = width;
+        _offset = width - total;
+        if (motion && !double.IsNaN(Width)) return; // Follow eases the line there, frame by frame.
+        Width = width;
+        _shift.X = _offset;
     }
 
-    private static void GlideTo(IAnimatable target, DependencyProperty property, double value, bool motion)
+    private double _width;
+    private double _offset;
+    private double _followed = double.NaN;
+
+    /// <summary>
+    /// Moves the line's width and glide toward where the words want them, called once a
+    /// frame: a spring that keeps its speed from one word to the next, so the capsule
+    /// grows in one smooth motion rather than a kick per word. A still (no time passing)
+    /// lands at once.
+    /// </summary>
+    public void Follow(double seconds)
     {
-        target.BeginAnimation(property, motion ? new DoubleAnimation(value, Glide) { EasingFunction = Out } : null);
-        if (!motion) ((DependencyObject)target).SetValue(property, value);
+        var step = seconds - _followed;
+        _followed = seconds;
+        if (!(step > 0 && step < 0.5) || double.IsNaN(Width))
+        {
+            Width = _width;
+            _shift.X = _offset;
+            return;
+        }
+
+        var pull = 1 - Math.Exp(-step / 0.14);
+        Width += (_width - Width) * pull;
+        _shift.X += (_offset - _shift.X) * pull;
     }
+
 
     private static T Frozen<T>(T freezable) where T : Freezable
     {

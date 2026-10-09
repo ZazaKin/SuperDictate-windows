@@ -634,6 +634,19 @@ internal static class SelfTest
                          && Gives(session.Handle(new SessionEvent.Sample(false)), new SessionEffect.StopSample())
                          && Gives(session.Handle(new SessionEvent.Toggle(false, true, true)), new SessionEffect.Record());
             Assert("session.sample", sample, session.State.ToString());
+
+            // Opening the Capsule page during a dictation: the sample comes up as soon as the dictation ends.
+            session = Recording();
+            var heldBack = Gives(session.Handle(new SessionEvent.Sample(true)));
+            var handedBack = session.Handle(new SessionEvent.Cancel()).Concat(session.Handle(new SessionEvent.MicrophoneOpened()))
+                .OfType<SessionEffect.StartSample>().Any();
+            session = Recording();
+            session.Handle(new SessionEvent.Sample(true));
+            session.Handle(new SessionEvent.Finish(false));
+            session.Handle(new SessionEvent.Recorded(2));
+            session.Handle(new SessionEvent.Transcribed("hello"));
+            var afterDelivery = session.Handle(new SessionEvent.Delivered()).OfType<SessionEffect.StartSample>().Any();
+            Assert("session.sample_after_dictation", heldBack && handedBack && afterDelivery, $"held={heldBack}, cancel={handedBack}, delivered={afterDelivery}");
         }
 
         // --- settings draft: the settings window's pending changes and the rules a save must pass ---

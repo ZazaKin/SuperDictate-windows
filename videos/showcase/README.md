@@ -21,7 +21,7 @@ them up to date after the app changes:
    capsule clips, cropped to the capsule (`-vf crop=648:154:316:32`), into
    `assets/skins/<id>.webm`.
 5. The sound is synthesized: `python score.py score.wav`, then
-   `ffmpeg -i score.wav -af loudnorm=I=-21:TP=-3:LRA=11 -ar 48000 -c:a aac -b:a 192k assets/score.m4a`. Its cues follow the
+   `ffmpeg -i score.wav -af loudnorm=I=-24:TP=-5:LRA=11 -ar 48000 -c:a aac -b:a 192k assets/score.m4a`. Its cues follow the
    film's timings; move a shot and move its cue in `score.py` too.
 
 Then, with Node 22 and FFmpeg installed:
