@@ -119,7 +119,7 @@ public sealed partial class SettingsWindow
             swatches.Children.Add(swatch);
         }
 
-        _meter = Choice(150, s => s.CapsuleMeter, (s, meter) => s.CapsuleMeter = meter, ("bars", "Bars"), ("wave", "Wave"), ("pulse", "Pulse"));
+        _meter = Choice(150, s => s.CapsuleMeter, (s, meter) => s.CapsuleMeter = meter, ("bars", "Bars"), ("wave", "Wave"), ("dots", "Dots"), ("scope", "Scope"));
 
         var widthValue = Text($"{_draft.Pending.CapsuleMaxWidth:0}", 13, "Muted");
         widthValue.Width = 40;

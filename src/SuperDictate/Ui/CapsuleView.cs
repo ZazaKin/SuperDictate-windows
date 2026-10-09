@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Windows;
 using System.Windows.Automation;
 using System.Windows.Automation.Peers;
@@ -54,9 +55,17 @@ internal sealed class CapsuleView : Grid
     public const double MostWidest = 900;
     public const double BaseHeight = 48;
 
+    /// <summary>The voice meters, in the order the settings offer them.</summary>
+    public static readonly string[] Meters = { "bars", "wave", "dots", "scope" };
+
+    private const double ScopeWidth = 46;
+
     private readonly Grid _frame = new();
     private readonly Border _shadow = new();
     private readonly Border _body = new();
+    // An art skin's moving picture, under the words.
+    private readonly Border _backdrop = new() { IsHitTestVisible = false };
+    private readonly StackPanel _content = new() { VerticalAlignment = VerticalAlignment.Center };
     private readonly Border _sheen = new() { IsHitTestVisible = false, VerticalAlignment = VerticalAlignment.Top };
     private readonly Grid _meter = new() { HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
     private readonly List<FrameworkElement> _marks = new();
@@ -74,18 +83,20 @@ internal sealed class CapsuleView : Grid
     private bool _meterShown = true;
     private TimeSpan? _elapsed;
     private bool? _glassLight;
+    private CapsuleArt? _art;
+    private string? _artId;
+    private PolyLineSegment? _scope;
 
     public CapsuleView()
     {
         Typography.SetNumeralAlignment(_timer, FontNumeralAlignment.Tabular);
-        _body.Child = new StackPanel
-        {
-            VerticalAlignment = VerticalAlignment.Center,
-            Children = { new Grid { Children = { _meter, _timer } }, new Grid { Children = { _caption, _live } } },
-        };
+        _content.Children.Add(new Grid { Children = { _meter, _timer } });
+        _content.Children.Add(new Grid { Children = { _caption, _live } });
+        _body.Child = _content;
         // The shadow is its own layer so the effect never re-renders the meter or blurs the text.
         _shadow.Effect = new DropShadowEffect { BlurRadius = 16, ShadowDepth = 3, Direction = 270, Opacity = 0.35 };
         _frame.Children.Add(_shadow);
+        _frame.Children.Add(_backdrop);
         _frame.Children.Add(_body);
         _frame.Children.Add(_sheen);
         Children.Add(_frame);
@@ -144,6 +155,31 @@ internal sealed class CapsuleView : Grid
         _body.BorderBrush = live ? Brushes.Transparent : skin.BorderBrush(accent.Color);
         _body.BorderThickness = new Thickness(skin.BorderWidth);
         _body.Padding = new Thickness(14 * scale, 5 * scale, 14 * scale, 5 * scale);
+
+        // An art skin paints its own fill: its picture, cut to the capsule, with the rim on top.
+        if (skin.Art != _artId)
+        {
+            _artId = skin.Art;
+            _art = CapsuleArt.For(skin.Art);
+            _backdrop.Child = _art;
+        }
+
+        _backdrop.Visibility = _art is null ? Visibility.Collapsed : Visibility.Visible;
+        if (_art is not null)
+        {
+            _art.Radius = Rounding;
+            _body.Background = Brushes.Transparent;
+        }
+
+        // Over a picture, the words get a soft halo in the opposite tone, so every letter stays crisp.
+        var darkWords = skin.Text.R + skin.Text.G + skin.Text.B < 384;
+        _content.Effect = _art is null ? null : new DropShadowEffect
+        {
+            Color = darkWords ? Colors.White : Colors.Black,
+            BlurRadius = 6 * scale,
+            ShadowDepth = 0,
+            Opacity = darkWords ? 0.85 : 0.75,
+        };
 
         // Glass catches the light: a soft sheen over its top half.
         _sheen.Visibility = skin.Glass && !live ? Visibility.Visible : Visibility.Collapsed;
@@ -225,16 +261,33 @@ internal sealed class CapsuleView : Grid
         var scale = _style.Scale;
         var phase = seconds * 9;
         _shownLevel += (_level - _shownLevel) * 0.3;
+        _art?.Render(calm ? 0 : seconds, _processing ? 0 : _shownLevel);
 
-        if (_style.Meter == "pulse")
+        if (_style.Meter == "dots")
         {
-            var wave = calm ? 1 : 0.5 + (0.5 * Math.Sin(phase * 0.6));
-            var swell = _processing ? 0.15 + (0.15 * wave) : _shownLevel;
-            var core = (ScaleTransform)_marks[1].RenderTransform;
-            core.ScaleX = core.ScaleY = 1 + (1.1 * swell);
-            var halo = (ScaleTransform)_marks[0].RenderTransform;
-            halo.ScaleX = halo.ScaleY = 1 + (0.9 * swell);
-            _marks[0].Opacity = _processing ? 0.25 : 0.15 + (0.6 * _shownLevel);
+            // Each column lights from the bottom up, the top dot only on the loudest moments.
+            for (var column = 0; column < 7; column++)
+            {
+                var wave = calm ? 1.0 : 0.5 + (0.5 * Math.Sin(phase + (column * 0.7)));
+                var fill = _processing ? (calm ? 0.35 : 0.2 + (0.3 * wave)) : wave * _shownLevel;
+                for (var row = 0; row < 3; row++) _marks[(column * 3) + row].Opacity = Math.Clamp((fill * 3) - row, 0.18, 1);
+            }
+
+            return;
+        }
+
+        if (_style.Meter == "scope" && _scope is not null)
+        {
+            // A trace like an oscilloscope's, pinned at both ends; it swings with the voice.
+            var swing = (_processing ? (calm ? 1.5 : 1.2 + (0.8 * (0.5 + (0.5 * Math.Sin(phase * 0.5))))) : 1.2 + (7.2 * _shownLevel)) * scale;
+            var points = _scope.Points;
+            for (var index = 0; index < points.Count; index++)
+            {
+                var x = index / (double)(points.Count - 1);
+                var shape = (0.7 * Math.Sin((x * 14) + (phase * 1.3))) + (0.3 * Math.Sin((x * 31) - (phase * 0.8)));
+                points[index] = new Point(x * ScopeWidth * scale, (10 * scale) + (swing * Math.Sin(Math.PI * x) * shape));
+            }
+
             return;
         }
 
@@ -251,6 +304,19 @@ internal sealed class CapsuleView : Grid
         }
     }
 
+    /// <summary>The meter's strip, and where its marks reach in it now; for the self-test.</summary>
+    internal (double Strip, Rect Ink) MeterReach()
+    {
+        var ink = Rect.Empty;
+        foreach (var mark in _marks)
+        {
+            var bounds = mark is Path path ? path.Data.GetRenderBounds(new Pen(null, path.StrokeThickness)) : new Rect(mark.RenderSize);
+            ink.Union(mark.TransformToAncestor(_meter).TransformBounds(bounds));
+        }
+
+        return (_meter.Height, ink);
+    }
+
     private void Refresh()
     {
         _caption.Visibility = _live.IsEmpty ? Visibility.Visible : Visibility.Collapsed;
@@ -263,21 +329,50 @@ internal sealed class CapsuleView : Grid
     {
         _meter.Children.Clear();
         _marks.Clear();
-        // A fixed-height strip: the meter moves inside it, so the text never shifts.
+        _scope = null;
+        // A fixed-height strip: the meter moves inside it, so the text never shifts, and
+        // nothing it draws may leave it (the self-test checks every meter at full voice).
         _meter.Height = 20 * scale;
+        _meter.ClipToBounds = true;
 
-        if (_style.Meter == "pulse")
+        if (_style.Meter == "dots")
         {
-            var halo = new Ellipse { Width = 12 * scale, Height = 12 * scale, Stroke = accent, StrokeThickness = 1.5 * scale };
-            var core = new Ellipse { Width = 8 * scale, Height = 8 * scale, Fill = accent };
-            foreach (var mark in new[] { halo, core })
+            // A small LED matrix: seven columns of three dots.
+            var pitch = 5 * scale;
+            var size = 3.4 * scale;
+            var matrix = new Canvas { Width = 7 * pitch, Height = 3 * pitch, VerticalAlignment = VerticalAlignment.Center };
+            for (var column = 0; column < 7; column++)
             {
-                mark.RenderTransformOrigin = new Point(0.5, 0.5);
-                mark.RenderTransform = new ScaleTransform(1, 1);
-                _marks.Add(mark);
-                _meter.Children.Add(mark);
+                for (var row = 0; row < 3; row++)
+                {
+                    var dot = new Ellipse { Width = size, Height = size, Fill = accent };
+                    Canvas.SetLeft(dot, (column * pitch) + ((pitch - size) / 2));
+                    Canvas.SetTop(dot, ((2 - row) * pitch) + ((pitch - size) / 2));
+                    _marks.Add(dot);
+                    matrix.Children.Add(dot);
+                }
             }
 
+            _meter.Children.Add(matrix);
+            return;
+        }
+
+        if (_style.Meter == "scope")
+        {
+            _scope = new PolyLineSegment(Enumerable.Range(0, 40).Select(index => new Point(index * ScopeWidth * scale / 39, 10 * scale)), true);
+            var trace = new Path
+            {
+                Width = ScopeWidth * scale,
+                Height = 20 * scale,
+                Stroke = accent,
+                StrokeThickness = 1.6 * scale,
+                StrokeLineJoin = PenLineJoin.Round,
+                StrokeStartLineCap = PenLineCap.Round,
+                StrokeEndLineCap = PenLineCap.Round,
+                Data = new PathGeometry(new[] { new PathFigure(new Point(0, 10 * scale), new[] { _scope }, false) }),
+            };
+            _marks.Add(trace);
+            _meter.Children.Add(trace);
             return;
         }
 
